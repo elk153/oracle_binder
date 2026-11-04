@@ -30,12 +30,12 @@
 }
 
 .browser-card--proxy .browser-card__media {
-  outline: 3px dashed var(--text-accent);
-  outline-offset: -4px;
+  outline: 1.5px dashed var(--text-accent);
+  outline-offset: -3px;
 }
 
 .browser-card--proxy .browser-card__media:focus-visible {
-  outline: 3px solid var(--text-accent);
+  outline: 2px solid var(--text-accent);
   outline-offset: 3px;
 }
 
@@ -67,12 +67,9 @@
 }
 
 .browser-card--proxy .browser-card__kind-label {
-  background:
-    repeating-linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--text-accent) 18%, var(--bg-main)) 0 3px,
-      var(--bg-main) 3px 6px
-    );
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--text-accent) 72%, var(--surface-border));
+  background: color-mix(in srgb, var(--text-accent) 8%, var(--bg-main));
 }
 
 .browser-card--virtual .browser-card__kind-label {

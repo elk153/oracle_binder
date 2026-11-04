@@ -212,17 +212,16 @@
 }
 
 .deck-page__kind-pill--proxy {
-  background:
-    repeating-linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--text-accent) 18%, var(--bg-card)) 0 3px,
-      var(--bg-card) 3px 6px
-    );
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--text-accent) 72%, var(--surface-border));
+  background: color-mix(in srgb, var(--text-accent) 8%, var(--bg-card));
 }
 
 .deck-page__kind-pill--virtual {
   color: var(--text-secondary);
   background: color-mix(in srgb, var(--bg-header) 92%, transparent);
+  filter: grayscale(0.7);
+  opacity: 0.72;
 }
 
 .deck-page__message {
