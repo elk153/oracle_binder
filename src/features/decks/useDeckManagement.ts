@@ -78,6 +78,52 @@ export default function useDeckManagement() {
       ),
   });
 
+  const renameDeck = useMutation<
+    Deck,
+    Error,
+    { id: string; name: string }
+  >({
+    mutationFn: async ({ id, name }) => {
+      if (!user) throw new Error("Sign in to rename a deck.");
+      const { data, error } = await supabase
+        .from("decks")
+        .update({ name: name.trim() })
+        .eq("user_id", user.id)
+        .eq("id", id)
+        .select("*")
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (updated) =>
+      queryClient.setQueryData<Deck[]>(decksKey, (current) =>
+        current?.map((deck) => (deck.id === updated.id ? updated : deck)),
+      ),
+  });
+
+  const deleteDeck = useMutation<Deck, Error, string>({
+    mutationFn: async (id) => {
+      if (!user) throw new Error("Sign in to delete a deck.");
+      const { data, error } = await supabase
+        .from("decks")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("id", id)
+        .select("*")
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (deleted) => {
+      queryClient.setQueryData<Deck[]>(decksKey, (current) =>
+        current?.filter((deck) => deck.id !== deleted.id),
+      );
+      queryClient.setQueryData<DeckCard[]>(deckCardsKey, (current) =>
+        current?.filter((entry) => entry.deck_id !== deleted.id),
+      );
+    },
+  });
+
   const addDeckCard = useMutation<DeckCard, Error, NewDeckCard>({
     mutationFn: async (entry) => {
       if (!user) throw new Error("Sign in to add a card to a deck.");
@@ -125,9 +171,13 @@ export default function useDeckManagement() {
     isLoading: decksQuery.isLoading || deckCardsQuery.isLoading,
     isPending:
       createDeck.isPending ||
+      renameDeck.isPending ||
+      deleteDeck.isPending ||
       addDeckCard.isPending ||
       updateDeckCard.isPending,
     createDeck: createDeck.mutateAsync,
+    renameDeck: renameDeck.mutateAsync,
+    deleteDeck: deleteDeck.mutateAsync,
     addDeckCard: addDeckCard.mutateAsync,
     updateDeckCard: updateDeckCard.mutateAsync,
   };

@@ -29,6 +29,57 @@
   border-radius: inherit;
 }
 
+.browser-card--proxy .browser-card__media {
+  outline: 3px dashed var(--text-accent);
+  outline-offset: -4px;
+}
+
+.browser-card--proxy .browser-card__media:focus-visible {
+  outline: 3px solid var(--text-accent);
+  outline-offset: 3px;
+}
+
+.browser-card--virtual .browser-card__media {
+  filter: grayscale(0.7);
+  opacity: 0.72;
+}
+
+.browser-card--virtual .browser-card__media:focus-visible {
+  opacity: 1;
+}
+
+.browser-card__kind-label {
+  position: absolute;
+  z-index: 1;
+  bottom: 0.55rem;
+  left: 0.55rem;
+  max-width: calc(100% - 1.1rem);
+  padding: 0.25rem 0.55rem;
+  overflow: hidden;
+  border: 1px solid var(--surface-border);
+  border-radius: 999px;
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--bg-main) 92%, transparent);
+  font: 700 0.7rem var(--font-ui);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.browser-card--proxy .browser-card__kind-label {
+  background:
+    repeating-linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--text-accent) 18%, var(--bg-main)) 0 3px,
+      var(--bg-main) 3px 6px
+    );
+}
+
+.browser-card--virtual .browser-card__kind-label {
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--bg-header) 92%, transparent);
+}
+
 .browser-card__placeholder {
   display: grid;
   width: 100%;

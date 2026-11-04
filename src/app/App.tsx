@@ -4,6 +4,7 @@ import { Outlet } from "react-router";
 import CardBrowserPage from "../features/card-browser/CardBrowserPage.tsx";
 import FavoritesPage from "../features/favorites/FavoritesPage.tsx";
 import BinderPage from "../features/binder/BinderPage.tsx";
+import DecksPage from "../features/decks/DecksPage.tsx";
 import "./App.css";
 import usePreFetchUrl from "../hooks/usePreFetchUrl.ts";
 
@@ -88,10 +89,5 @@ export function Binder() {
 }
 
 export function Decks() {
-  return (
-    <section className="app-v2__page">
-      <h1>Decks</h1>
-      <p>This is the decks page of the application.</p>
-    </section>
-  );
+  return <DecksPage />;
 }

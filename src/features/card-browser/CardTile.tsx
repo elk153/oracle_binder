@@ -8,7 +8,7 @@ import type { Binder } from "../binder/useBinders.ts";
 import type { CopyFormValues } from "../binder/BinderCopyForm.tsx";
 import BinderCopiesPopover from "../binder/BinderCopiesPopover.tsx";
 import DeckCardPopover from "../decks/DeckCardPopover.tsx";
-import type { DeckActions } from "../decks/useDeckManagement.ts";
+import type { DeckActions, DeckCard } from "../decks/useDeckManagement.ts";
 import type { CardAction, CardBrowserCard } from "./types.ts";
 import "./CardTile.css";
 
@@ -36,6 +36,8 @@ type CardTileProps = {
   onDeleteBinderCopy?: (copy: BinderCopy) => void;
   deckActions?: DeckActions;
   canManageDeck?: boolean;
+  deckEntryKind?: DeckCard["kind"];
+  showKindLabel?: boolean;
   showActions?: boolean;
 };
 
@@ -63,6 +65,8 @@ export default function CardTile({
   onDeleteBinderCopy,
   deckActions,
   canManageDeck = true,
+  deckEntryKind,
+  showKindLabel = true,
   showActions = true,
 }: CardTileProps) {
   const [showBack, setShowBack] = useState(false);
@@ -88,6 +92,14 @@ export default function CardTile({
     card.image_uris?.normal ??
     faces[0]?.image_uris?.normal;
   const imageAlt = activeFace?.name ?? card.name;
+  const entryKindLabel =
+    deckEntryKind === "binder"
+      ? "Binder copy"
+      : deckEntryKind === "proxy"
+        ? "Proxy"
+        : deckEntryKind === "virtual"
+          ? "Virtual"
+          : null;
 
   useEffect(() => {
     if (binderPopoverMode !== "pinned" && deckPopoverMode !== "pinned") return;
@@ -120,12 +132,16 @@ export default function CardTile({
   }, [binderPopoverMode, deckPopoverMode]);
 
   return (
-    <article className="browser-card">
+    <article
+      className={`browser-card${deckEntryKind ? ` browser-card--${deckEntryKind}` : ""}`}
+    >
       <button
         type="button"
         className="browser-card__media"
         onClick={() => onSelect?.(card)}
-        aria-label={selectLabel ?? `View details for ${card.name}`}
+        aria-label={`${selectLabel ?? `View details for ${card.name}`}${
+          entryKindLabel ? `, ${entryKindLabel}` : ""
+        }`}
       >
         {image ? (
           <img src={image} alt={imageAlt} loading="lazy" />
@@ -135,6 +151,11 @@ export default function CardTile({
           </span>
         )}
       </button>
+      {entryKindLabel && showKindLabel && (
+        <span className="browser-card__kind-label" aria-hidden="true">
+          {entryKindLabel}
+        </span>
+      )}
 
       {showActions && (
         <div className="browser-card__actions" aria-label={`${card.name} actions`}>

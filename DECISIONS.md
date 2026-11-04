@@ -382,12 +382,12 @@
 
 ## D-036: Deck pages and proxy/virtual visuals
 
-- Status: Evaluating
-- Date: 2026-10-28
+- Status: Implemented (typecheck, targeted ESLint and build pass; authenticated UI behavior not manually verified)
+- Date: 2026-11-04
 - Decision: Add a decks page mirroring the binder page (all view and deck list, covers by the same rule, NUQS state, `CardFilters` reuse). Reuse/commonalize Binder page and `CardTile` components where their behavior matches, and preserve the existing application styles. Proxies show a hashed border; virtual cards use a distinct muted style. Both must also be identifiable without relying on color alone.
 - Why: Same logic and visuals keep the app consistent.
 - Alternatives considered: Badges only (not what was requested).
-- Consequences: Extend the existing visual language with `src/theme.css` tokens and Binder component patterns; do not introduce a separate style system. Check: `npm run typecheck` and `npm run build` pass; the three card kinds are distinguishable in light and dark themes.
+- Consequences: `/v2/decks` now provides URL-backed All cards and Decks views, selected-deck filtering, shared Scryfall hydration, `CardFilters`/`CardTile` reuse, rarity/type/date-ranked covers, and rounded card-count pills beside deck names. The All cards view preserves every deck entry and shows its deck name/kind. Proxy entries use a dashed/hatched border and visible label; virtual entries use muted styling and a visible label. Decks can be created, renamed and deleted; deletion removes deck entries through the existing `ON DELETE CASCADE` while leaving linked Binder copies intact. No schema change was needed. Typecheck, targeted ESLint and build pass; authenticated behavior and light/dark visual contrast still need manual verification.
 - Source: "[Binder & Decks] Planning"
 
 ## D-037: Deck release checkpoint
