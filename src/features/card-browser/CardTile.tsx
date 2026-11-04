@@ -7,6 +7,8 @@ import type { BinderCopy } from "../binder/useBinderCopies.ts";
 import type { Binder } from "../binder/useBinders.ts";
 import type { CopyFormValues } from "../binder/BinderCopyForm.tsx";
 import BinderCopiesPopover from "../binder/BinderCopiesPopover.tsx";
+import DeckCardPopover from "../decks/DeckCardPopover.tsx";
+import type { DeckActions } from "../decks/useDeckManagement.ts";
 import type { CardAction, CardBrowserCard } from "./types.ts";
 import "./CardTile.css";
 
@@ -32,6 +34,8 @@ type CardTileProps = {
   ) => void;
   onRestoreBinderCopy?: (copy: BinderCopy) => void;
   onDeleteBinderCopy?: (copy: BinderCopy) => void;
+  deckActions?: DeckActions;
+  canManageDeck?: boolean;
   showActions?: boolean;
 };
 
@@ -57,13 +61,19 @@ export default function CardTile({
   onDisposeBinderCopy,
   onRestoreBinderCopy,
   onDeleteBinderCopy,
+  deckActions,
+  canManageDeck = true,
   showActions = true,
 }: CardTileProps) {
   const [showBack, setShowBack] = useState(false);
   const [binderPopoverMode, setBinderPopoverMode] = useState<
     "hover" | "pinned" | null
   >(null);
+  const [deckPopoverMode, setDeckPopoverMode] = useState<
+    "hover" | "pinned" | null
+  >(null);
   const binderPopoverRef = useRef<HTMLSpanElement>(null);
+  const deckPopoverRef = useRef<HTMLSpanElement>(null);
   const mouseIsHoveringFlip = useRef(false);
   const faces = card.card_faces ?? [];
   const canFlip =
@@ -80,14 +90,15 @@ export default function CardTile({
   const imageAlt = activeFace?.name ?? card.name;
 
   useEffect(() => {
-    if (binderPopoverMode !== "pinned") return;
+    if (binderPopoverMode !== "pinned" && deckPopoverMode !== "pinned") return;
 
     function closeOnOutsideClick(event: PointerEvent) {
-      if (
-        event.target instanceof Node &&
-        !binderPopoverRef.current?.contains(event.target)
-      ) {
+      if (!(event.target instanceof Node)) return;
+      if (!binderPopoverRef.current?.contains(event.target)) {
         setBinderPopoverMode(null);
+      }
+      if (!deckPopoverRef.current?.contains(event.target)) {
+        setDeckPopoverMode(null);
       }
     }
 
@@ -96,6 +107,7 @@ export default function CardTile({
         event.preventDefault();
         event.stopPropagation();
         setBinderPopoverMode(null);
+        setDeckPopoverMode(null);
       }
     }
 
@@ -105,7 +117,7 @@ export default function CardTile({
       document.removeEventListener("click", closeOnOutsideClick);
       document.removeEventListener("keydown", closeOnEscape);
     };
-  }, [binderPopoverMode]);
+  }, [binderPopoverMode, deckPopoverMode]);
 
   return (
     <article className="browser-card">
@@ -129,85 +141,119 @@ export default function CardTile({
           {CARD_ACTIONS.map(({ action, label, Icon }) => {
             const isFavoriteAction = action === "favorite";
             const isBinderAction = action === "binder";
+            const isDeckAction = action === "deck";
             const ownedBinderCount = binderCopies.filter(
               (copy) => copy.status === "owned",
             ).length;
+            const deckEntryCount =
+              deckActions?.deckCards.filter(
+                (entry) => entry.scryfall_id === card.id,
+              ).length ?? 0;
             const favoriteLabel = isFavorite
               ? "Remove from Favorites"
               : "Add to Favorites";
             const binderLabel = ownedBinderCount
               ? `${ownedBinderCount} binder ${ownedBinderCount === 1 ? "copy" : "copies"}`
               : "Add to Binder";
+            const deckLabel = deckEntryCount
+              ? `${deckEntryCount} ${deckEntryCount === 1 ? "deck entry" : "deck entries"}`
+              : "Add to Deck";
             const actionLabel = isFavoriteAction
               ? favoriteLabel
               : isBinderAction
                 ? binderLabel
-              : `${label} — under construction`;
+                : isDeckAction
+                  ? deckLabel
+                  : label;
             return (
               <span
                 key={action}
-                ref={isBinderAction ? binderPopoverRef : undefined}
+                ref={
+                  isBinderAction
+                    ? binderPopoverRef
+                    : isDeckAction
+                      ? deckPopoverRef
+                      : undefined
+                }
                 className="browser-card__action-wrap"
                 onPointerEnter={(event) => {
-                  if (
-                    isBinderAction &&
-                    canManageBinder &&
-                    event.pointerType === "mouse"
-                  ) {
+                  if (event.pointerType !== "mouse") return;
+                  if (isBinderAction && canManageBinder) {
                     setBinderPopoverMode((mode) => mode ?? "hover");
+                  } else if (isDeckAction && canManageDeck) {
+                    setDeckPopoverMode((mode) => mode ?? "hover");
                   }
                 }}
                 onPointerLeave={(event) => {
-                  if (
-                    isBinderAction &&
-                    binderPopoverMode === "hover" &&
-                    event.pointerType === "mouse"
-                  ) {
+                  if (event.pointerType !== "mouse") return;
+                  if (isBinderAction && binderPopoverMode === "hover") {
                     setBinderPopoverMode(null);
+                  } else if (isDeckAction && deckPopoverMode === "hover") {
+                    setDeckPopoverMode(null);
                   }
                 }}
                 onFocus={() => {
                   if (isBinderAction && canManageBinder) {
                     setBinderPopoverMode((mode) => mode ?? "hover");
+                  } else if (isDeckAction && canManageDeck) {
+                    setDeckPopoverMode((mode) => mode ?? "hover");
                   }
                 }}
                 onBlur={(event) => {
                   const nextTarget = event.relatedTarget;
-                  if (
-                    isBinderAction &&
-                    binderPopoverMode === "hover" &&
-                    (!(nextTarget instanceof Node) ||
-                      !event.currentTarget.contains(nextTarget))
-                  ) {
-                    setBinderPopoverMode(null);
+                  if (!(nextTarget instanceof Node) || !event.currentTarget.contains(nextTarget)) {
+                    if (isBinderAction && binderPopoverMode === "hover") {
+                      setBinderPopoverMode(null);
+                    } else if (isDeckAction && deckPopoverMode === "hover") {
+                      setDeckPopoverMode(null);
+                    }
                   }
                 }}
               >
                 <button
                   type="button"
-                  className={`browser-card__action${isFavoriteAction && isFavorite ? " browser-card__action--favorite-active" : ""}${isBinderAction && ownedBinderCount > 0 ? " browser-card__action--binder-active" : ""}`}
+                  className={`browser-card__action${isFavoriteAction && isFavorite ? " browser-card__action--favorite-active" : ""}${isBinderAction && ownedBinderCount > 0 ? " browser-card__action--binder-active" : ""}${isDeckAction && deckEntryCount > 0 ? " browser-card__action--deck-active" : ""}`}
                   aria-label={
                     isFavoriteAction
                       ? `${favoriteLabel}: ${card.name}`
                       : isBinderAction
                         ? `${canManageBinder ? binderLabel : "Sign in to manage Binder"}: ${card.name}`
-                        : `${label} action for ${card.name} (under construction)`
+                        : isDeckAction
+                          ? `${canManageDeck ? deckLabel : "Sign in to manage decks"}: ${card.name}`
+                          : `${label} action for ${card.name}`
                   }
-                  aria-pressed={isFavoriteAction ? isFavorite : isBinderAction ? ownedBinderCount > 0 : undefined}
+                  aria-pressed={
+                    isFavoriteAction
+                      ? isFavorite
+                      : isBinderAction
+                        ? ownedBinderCount > 0
+                        : isDeckAction
+                          ? deckEntryCount > 0
+                          : undefined
+                  }
                   aria-expanded={
-                    isBinderAction ? binderPopoverMode !== null : undefined
+                    isBinderAction
+                      ? binderPopoverMode !== null
+                      : isDeckAction
+                        ? deckPopoverMode !== null
+                        : undefined
                   }
                   title={`${actionLabel}${isFavoritePending && isFavoriteAction ? " — updating" : ""}`}
                   disabled={
                     (isFavoriteAction && isFavoritePending) ||
-                    (isBinderAction && isBinderPending)
+                    (isBinderAction && isBinderPending) ||
+                    (isDeckAction && Boolean(deckActions?.isPending))
                   }
                   onClick={() => {
                     if (isBinderAction && canManageBinder) {
                       setBinderPopoverMode((mode) =>
                         mode === "pinned" ? null : "pinned",
                       );
-                    } else if (isBinderAction) {
+                    } else if (isDeckAction && canManageDeck && deckActions) {
+                      setDeckPopoverMode((mode) =>
+                        mode === "pinned" ? null : "pinned",
+                      );
+                    } else if (isBinderAction || isDeckAction) {
                       onAction?.(action, card);
                     } else {
                       onAction?.(action, card);
@@ -220,12 +266,19 @@ export default function CardTile({
                       {ownedBinderCount}
                     </span>
                   )}
+                  {isDeckAction && deckEntryCount > 0 && (
+                    <span className="browser-card__deck-count" aria-hidden="true">
+                      {deckEntryCount}
+                    </span>
+                  )}
                 </button>
                 {isBinderAction && binderPopoverMode !== null && (
                   <BinderCopiesPopover
                     card={card}
                     copies={binderCopies}
                     binders={binders}
+                    deckCards={deckActions?.deckCards ?? []}
+                    decks={deckActions?.decks ?? []}
                     isBusy={isBinderPending}
                     onAdd={() => onAddBinderCopy?.(card)}
                     onUpdate={(copy, values) =>
@@ -239,6 +292,17 @@ export default function CardTile({
                     onClose={() => setBinderPopoverMode(null)}
                   />
                 )}
+                {isDeckAction &&
+                  deckPopoverMode !== null &&
+                  deckActions &&
+                  canManageDeck && (
+                    <DeckCardPopover
+                      card={card}
+                      copies={binderCopies}
+                      actions={deckActions}
+                      onClose={() => setDeckPopoverMode(null)}
+                    />
+                  )}
               </span>
             );
           })}

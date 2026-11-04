@@ -10,6 +10,7 @@ import CardTile from "./CardTile.tsx";
 import type { BinderCopy } from "../binder/useBinderCopies.ts";
 import type { Binder } from "../binder/useBinders.ts";
 import type { CopyFormValues } from "../binder/BinderCopyForm.tsx";
+import type { DeckActions } from "../decks/useDeckManagement.ts";
 import type { CardAction, CardBrowserCard, CardBrowserFace } from "./types.ts";
 import { isCardBrowserCard } from "./types.ts";
 import "./CardDetailsOverlay.css";
@@ -32,6 +33,8 @@ type CardDetailsOverlayProps = {
   ) => void;
   onRestoreBinderCopy: (copy: BinderCopy) => void;
   onDeleteBinderCopy: (copy: BinderCopy) => void;
+  deckActions: DeckActions;
+  canManageDeck: boolean;
   onClose: () => void;
 };
 
@@ -53,6 +56,8 @@ export default function CardDetailsOverlay({
   onDisposeBinderCopy,
   onRestoreBinderCopy,
   onDeleteBinderCopy,
+  deckActions,
+  canManageDeck,
   onClose,
 }: CardDetailsOverlayProps) {
   const dialogRef = useRef<HTMLElement>(null);
@@ -307,6 +312,8 @@ export default function CardDetailsOverlay({
                       onDisposeBinderCopy={onDisposeBinderCopy}
                       onRestoreBinderCopy={onRestoreBinderCopy}
                       onDeleteBinderCopy={onDeleteBinderCopy}
+                      deckActions={deckActions}
+                      canManageDeck={canManageDeck}
                     />
                   </article>
                 ))}

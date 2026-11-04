@@ -17,6 +17,7 @@ import useBinderManagement from "./useBinderManagement.ts";
 import AddBinderCopyDialog from "./AddBinderCopyDialog.tsx";
 import type { BinderCopy } from "./useBinderCopies.ts";
 import type { Binder } from "./useBinders.ts";
+import useDeckManagement from "../decks/useDeckManagement.ts";
 import "./BinderPage.css";
 
 const BINDER_VIEWS = ["all", "binders"] as const;
@@ -66,6 +67,7 @@ export default function BinderPage() {
   );
   const [moveDestination, setMoveDestination] = useState("");
   const binder = useBinderManagement(setNotice);
+  const decks = useDeckManagement();
   const { favoriteIds, isLoading: favoritesLoading } = useFavoriteIds();
   const toggleFavorite = useToggleFavorite();
   const ownedCopies = useMemo(
@@ -239,6 +241,10 @@ export default function BinderPage() {
     onRestoreBinderCopy: (copy: BinderCopy) => binder.restoreCopy(copy.id),
     onDeleteBinderCopy: (copy: BinderCopy) => binder.deleteCopy(copy.id),
   };
+  const deckActionProps = {
+    deckActions: decks,
+    canManageDeck: Boolean(user),
+  };
   const selectedCard = cards.find((card) => card.id === cardId);
   const covers = new Map<string, CardBrowserCard | undefined>();
   for (const target of binder.binders) {
@@ -288,6 +294,11 @@ export default function BinderPage() {
       {binder.realtimeError && (
         <p className="binder-page__message binder-page__message--error" role="alert">
           Updates from other devices may be delayed: {binder.realtimeError.message}
+        </p>
+      )}
+      {decks.error && (
+        <p className="binder-page__message" role="alert">
+          Could not load decks: {decks.error.message}
         </p>
       )}
       {cardsQuery.error && (
@@ -469,6 +480,7 @@ export default function BinderPage() {
                     isFavoritePending={favoritesLoading || toggleFavorite.isPending}
                     binderCopies={binder.copies.copiesByScryfallId.get(card.id) ?? []}
                     {...binderCardProps}
+                    {...deckActionProps}
                   />
                 </article>
               ))}
@@ -505,6 +517,7 @@ export default function BinderPage() {
           favoriteActionDisabled={favoritesLoading || toggleFavorite.isPending}
           binderCopiesByScryfallId={binder.copies.copiesByScryfallId}
           {...binderCardProps}
+          {...deckActionProps}
           onClose={() => setCardId(null)}
         />
       )}

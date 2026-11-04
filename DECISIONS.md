@@ -362,22 +362,22 @@
 
 ## D-034: Delete or dispose a copy that is in a deck
 
-- Status: Implemented (migration pending application and local pgTAP verification)
+- Status: Implemented (migration applied; local pgTAP verification pending)
 - Date: 2026-11-04
 - Decision: Add a Postgres function called through Supabase RPC that deletes or disposes a binder copy and, in the same transaction, converts its `deck_cards` row to `virtual`. The binder confirm dialog from D-029 then mentions the deck.
 - Why: Two steps must succeed or fail together; the client cannot guarantee that.
 - Alternatives considered: Two client calls (can leave a broken deck row); `ON DELETE CASCADE` (a card silently vanishes from the deck).
-- Consequences: Added an authenticated-only `SECURITY INVOKER` RPC that verifies ownership, performs the deck conversion and Binder status/delete operation atomically, and accepts only editable copy metadata. The Binder confirmation explains that a deck entry remains as virtual; both direct disposal controls and the edit form's status transition use the RPC. The paired rollback and pgTAP coverage include deletion, disposal, privilege boundaries, and a forced failure to verify rollback. The migration is not applied; regenerate `src/types/database.ts` from the linked project after application. Typecheck/build pass; local pgTAP verification remains pending until a local database is available.
+- Consequences: Added an authenticated-only `SECURITY INVOKER` RPC that verifies ownership, performs the deck conversion and Binder status/delete operation atomically, and accepts only editable copy metadata. The Binder confirmation explains that a deck entry remains as virtual; both direct disposal controls and the edit form's status transition use the RPC. The paired rollback and pgTAP coverage include deletion, disposal, privilege boundaries, and a forced failure to verify rollback. The migration is applied, as confirmed by the user; generated database types include its nullable disposal status. Typecheck/build pass; local pgTAP verification remains pending until a local database is available.
 - Source: "[Binder & Decks] Planning"
 
 ## D-035: Deck flows
 
-- Status: Evaluating
+- Status: Implemented (typecheck, targeted ESLint and build pass; authenticated UI behavior not manually verified)
 - Date: 2026-10-28
 - Decision: Enable the deck icon: add a binder copy (picker shows only copies not in a deck), add a proxy or a virtual card, switch a card between binder/proxy/virtual, move a copy between decks as an explicit action, and assign an owned copy to a virtual card. Binder copies show an "In deck: X" badge. Reuse or commonalize the Binder copy picker, form, popover and card actions where suitable instead of creating parallel components; retain the existing application styles.
 - Why: Decks should behave like the binder, as requested.
 - Alternatives considered: A separate deck-only interface (duplicate logic).
-- Consequences: Deck data loads with one query of ids and kinds, like binder copies. Removing a card from a deck offers back to binder, proxy or virtual. Keep shared components focused on common behavior and avoid a deck-specific visual system. Check: `npm run typecheck` and `npm run build` pass; every transition leaves consistent data.
+- Consequences: `useDeckManagement` loads user-scoped decks and entries, and patches the TanStack Query cache after create/add/update mutations. The shared `CardTile` deck action is available in Browser, Favorites, Binder and card-printing details; its popover creates decks, adds Binder/proxy/virtual entries, and changes an entry's kind, Binder copy or destination deck. Assigned Binder copies are excluded from other copy pickers, while the Binder copy popover displays the assigned deck name. D-034 invalidates deck entries when Binder copies are disposed or deleted. No schema change was needed. Typecheck, targeted ESLint and build pass; authenticated interactive behavior still needs manual verification.
 - Source: "[Binder & Decks] Planning"
 
 ## D-036: Deck pages and proxy/virtual visuals

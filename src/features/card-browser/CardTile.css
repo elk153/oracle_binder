@@ -75,6 +75,11 @@
   opacity: 1;
 }
 
+.browser-card__action--deck-active .nc-core {
+  fill: var(--text-accent);
+  opacity: 1;
+}
+
 .browser-card__binder-count {
   position: absolute;
   right: -0.3rem;
@@ -89,6 +94,38 @@
   color: var(--bg-main);
   background: var(--text-accent);
   font: 700 0.62rem var(--font-ui);
+}
+
+.browser-card__deck-count {
+  position: absolute;
+  right: -0.3rem;
+  bottom: -0.25rem;
+  display: grid;
+  min-width: 1rem;
+  height: 1rem;
+  padding: 0 0.1rem;
+  place-items: center;
+  border: 1px solid var(--bg-main);
+  border-radius: 999px;
+  color: var(--bg-main);
+  background: var(--text-accent);
+  font: 700 0.62rem var(--font-ui);
+}
+
+.deck-card-popover {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.deck-card-popover__create,
+.deck-card-popover__add {
+  margin: 0.45rem 0;
+}
+
+.deck-card-popover__error {
+  margin: 0.5rem 0 0;
+  color: var(--text-accent);
+  overflow-wrap: anywhere;
 }
 
 .browser-card__action svg {

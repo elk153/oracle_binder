@@ -12,6 +12,7 @@ import useFavoriteCards from "./useFavoriteCards.ts";
 import useBinderManagement from "../binder/useBinderManagement.ts";
 import AddBinderCopyDialog from "../binder/AddBinderCopyDialog.tsx";
 import type { BinderCopy } from "../binder/useBinderCopies.ts";
+import useDeckManagement from "../decks/useDeckManagement.ts";
 import "./FavoritesPage.css";
 
 const ACTION_LABELS: Record<CardAction, string> = {
@@ -33,6 +34,7 @@ export default function FavoritesPage() {
   const toggleFavorite = useToggleFavorite();
   const [notice, setNotice] = useState("");
   const binder = useBinderManagement(setNotice);
+  const decks = useDeckManagement();
   const cardId = searchParams.get("card");
   const invalidCardData = favoriteSource.cards.some(
     (card) => !isCardBrowserCard(card),
@@ -81,6 +83,11 @@ export default function FavoritesPage() {
   }, [searchParams, setSearchParams]);
 
   function handleAction(action: CardAction, card: CardBrowserCard) {
+    if (action === "deck") {
+      if (!user) setNotice("Sign in to manage decks.");
+      return;
+    }
+
     if (action !== "favorite") {
       setNotice(`${ACTION_LABELS[action]} for ${card.name} is under construction.`);
       return;
@@ -150,6 +157,11 @@ export default function FavoritesPage() {
           Could not load binders: {binder.bindersError.message}
         </p>
       )}
+      {decks.error && (
+        <p className="favorites-page__message favorites-page__message--error" role="alert">
+          Could not load decks: {decks.error.message}
+        </p>
+      )}
 
       {invalidCardData && (
         <p className="favorites-page__message favorites-page__message--error" role="alert">
@@ -203,6 +215,8 @@ export default function FavoritesPage() {
                 onDeleteBinderCopy={(copy: BinderCopy) =>
                   binder.deleteCopy(copy.id)
                 }
+                deckActions={decks}
+                canManageDeck={Boolean(user)}
               />
             ))}
           </div>
@@ -260,6 +274,8 @@ export default function FavoritesPage() {
           }
           onRestoreBinderCopy={(copy: BinderCopy) => binder.restoreCopy(copy.id)}
           onDeleteBinderCopy={(copy: BinderCopy) => binder.deleteCopy(copy.id)}
+          deckActions={decks}
+          canManageDeck={Boolean(user)}
           onClose={closeDetails}
         />
       )}

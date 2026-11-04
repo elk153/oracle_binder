@@ -3,6 +3,7 @@ import type { Tables } from "../../types/database.ts";
 import type { CardBrowserCard } from "../card-browser/types.ts";
 import BinderCopyForm, { type CopyFormValues } from "./BinderCopyForm.tsx";
 import type { BinderCopy } from "./useBinderCopies.ts";
+import type { Deck, DeckCard } from "../decks/useDeckManagement.ts";
 import "./Binder.css";
 
 type Binder = Tables<"binders">;
@@ -11,6 +12,8 @@ type BinderCopiesPopoverProps = {
   card: CardBrowserCard;
   copies: BinderCopy[];
   binders: Binder[];
+  deckCards: DeckCard[];
+  decks: Deck[];
   isBusy: boolean;
   onAdd: () => void;
   onUpdate: (copy: BinderCopy, values: CopyFormValues) => Promise<boolean>;
@@ -39,6 +42,8 @@ export default function BinderCopiesPopover({
   card,
   copies,
   binders,
+  deckCards,
+  decks,
   isBusy,
   onAdd,
   onUpdate,
@@ -84,65 +89,95 @@ export default function BinderCopiesPopover({
         </p>
       ) : (
         <ul className="binder-copy-popover__list">
-          {visibleCopies.map((copy, index) => (
-            <li key={copy.id} className="binder-copy-popover__copy">
-              <div className="binder-copy-popover__copy-heading">
-                <strong>Copy {index + 1}</strong>
-                <span>{copy.status.replaceAll("_", " ")}</span>
-              </div>
-              {editingCopyId === copy.id ? (
-                <BinderCopyForm
-                  cardName={card.name}
-                  binders={binders}
-                  initialCopy={copy}
-                  onSave={async (values) => {
-                    if (await onUpdate(copy, values)) {
-                      setEditingCopyId(null);
-                    }
-                  }}
-                  onCancel={() => setEditingCopyId(null)}
-                  isSaving={isBusy}
-                />
-              ) : (
-                <>
-                  <p>{describeCopy(copy, binders).join(" · ") || "No additional details"}</p>
-                  <div className="binder-copy-popover__actions">
-                    <button
-                      type="button"
-                      onClick={() => setEditingCopyId(copy.id)}
-                      disabled={isBusy}
-                    >
-                      Edit
-                    </button>
-                    {copy.status === "owned" ? (
-                      <>
-                        <button type="button" onClick={() => onDispose(copy, "sold")} disabled={isBusy}>
-                          Sold
-                        </button>
-                        <button type="button" onClick={() => onDispose(copy, "lost")} disabled={isBusy}>
-                          Lost
-                        </button>
+          {visibleCopies.map((copy, index) => {
+            const deckEntry = deckCards.find(
+              (entry) => entry.binder_card_id === copy.id,
+            );
+            const deckName = deckEntry
+              ? decks.find((deck) => deck.id === deckEntry.deck_id)?.name
+              : undefined;
+            return (
+              <li key={copy.id} className="binder-copy-popover__copy">
+                <div className="binder-copy-popover__copy-heading">
+                  <strong>Copy {index + 1}</strong>
+                  <span>{copy.status.replaceAll("_", " ")}</span>
+                  {deckEntry && (
+                    <span>In deck: {deckName ?? "Unknown deck"}</span>
+                  )}
+                </div>
+                {editingCopyId === copy.id ? (
+                  <BinderCopyForm
+                    cardName={card.name}
+                    binders={binders}
+                    initialCopy={copy}
+                    onSave={async (values) => {
+                      if (await onUpdate(copy, values)) {
+                        setEditingCopyId(null);
+                      }
+                    }}
+                    onCancel={() => setEditingCopyId(null)}
+                    isSaving={isBusy}
+                  />
+                ) : (
+                  <>
+                    <p>
+                      {describeCopy(copy, binders).join(" · ") ||
+                        "No additional details"}
+                    </p>
+                    <div className="binder-copy-popover__actions">
+                      <button
+                        type="button"
+                        onClick={() => setEditingCopyId(copy.id)}
+                        disabled={isBusy}
+                      >
+                        Edit
+                      </button>
+                      {copy.status === "owned" ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => onDispose(copy, "sold")}
+                            disabled={isBusy}
+                          >
+                            Sold
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onDispose(copy, "lost")}
+                            disabled={isBusy}
+                          >
+                            Lost
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onDispose(copy, "given_away")}
+                            disabled={isBusy}
+                          >
+                            Given away
+                          </button>
+                        </>
+                      ) : (
                         <button
                           type="button"
-                          onClick={() => onDispose(copy, "given_away")}
+                          onClick={() => onRestore(copy)}
                           disabled={isBusy}
                         >
-                          Given away
+                          Restore
                         </button>
-                      </>
-                    ) : (
-                      <button type="button" onClick={() => onRestore(copy)} disabled={isBusy}>
-                        Restore
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => onDelete(copy)}
+                        disabled={isBusy}
+                      >
+                        Delete
                       </button>
-                    )}
-                    <button type="button" onClick={() => onDelete(copy)} disabled={isBusy}>
-                      Delete
-                    </button>
-                  </div>
-                </>
-              )}
-            </li>
-          ))}
+                    </div>
+                  </>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>

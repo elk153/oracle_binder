@@ -5,6 +5,7 @@ import { supabase } from "../../services/supabaseClient.ts";
 import type { Tables, TablesInsert, TablesUpdate } from "../../types/database.ts";
 import useRealtimeInvalidation from "../../hooks/useRealtimeInvalidation.ts";
 import { clearLocalRealtimeChange, markLocalRealtimeChange } from "../../services/localRealtimeChanges.ts";
+import { deckCardsQueryKey } from "../decks/useDeckManagement.ts";
 
 const BINDER_COPIES_PAGE_SIZE = 500;
 
@@ -158,7 +159,7 @@ export default function useBinderCopies() {
         throw error;
       }
     },
-    onSuccess: (_result, { id, status, changes = {} }) =>
+    onSuccess: async (_result, { id, status, changes = {} }) => {
       queryClient.setQueryData<BinderCopy[]>(queryKey, (current) =>
         status === null
           ? current?.filter((copy) => copy.id !== id)
@@ -172,7 +173,11 @@ export default function useBinderCopies() {
                   }
                 : copy,
             ),
-      ),
+      );
+      await queryClient.invalidateQueries({
+        queryKey: deckCardsQueryKey(user?.id),
+      });
+    },
   });
 
   const moveCopies = useMutation<

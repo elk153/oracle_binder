@@ -15,6 +15,7 @@ import useScryfallCardsForIds from "../../hooks/useScryfallCardsForIds.ts";
 import useBinderManagement from "../binder/useBinderManagement.ts";
 import AddBinderCopyDialog from "../binder/AddBinderCopyDialog.tsx";
 import type { BinderCopy } from "../binder/useBinderCopies.ts";
+import useDeckManagement from "../decks/useDeckManagement.ts";
 import {
   getMulliganSets,
   isScryfallSet,
@@ -51,6 +52,7 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
   const [notice, setNotice] = useState("");
   const [signInPath, setSignInPath] = useState<string | null>(null);
   const binder = useBinderManagement(setNotice);
+  const decks = useDeckManagement();
   const searchQuery = searchParams.get("q")?.trim() ?? "";
   const cardId = searchParams.get("card");
   const isRandomRoute = mode === "mulligan" || pathname.endsWith("/random");
@@ -236,6 +238,15 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
       return;
     }
 
+    if (action === "deck") {
+      if (!user) {
+        const nextPath = `${location.pathname}${location.search}${location.hash}`;
+        setNotice("Sign in to manage decks.");
+        setSignInPath(`/v2/login?next=${encodeURIComponent(nextPath)}`);
+      }
+      return;
+    }
+
     if (action !== "favorite") {
       setNotice(`${ACTION_LABELS[action]} for ${card.name} is under construction.`);
       return;
@@ -287,6 +298,10 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
       binder.disposeCopy(copy.id, status),
     onRestoreBinderCopy: (copy: BinderCopy) => binder.restoreCopy(copy.id),
     onDeleteBinderCopy: (copy: BinderCopy) => binder.deleteCopy(copy.id),
+  };
+  const deckActionProps = {
+    deckActions: decks,
+    canManageDeck: Boolean(user),
   };
 
   return (
@@ -375,6 +390,11 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
           Binder updates from other devices may be delayed: {binder.realtimeError.message}
         </p>
       )}
+      {user && decks.error && (
+        <p className="card-browser__message card-browser__message--error" role="alert">
+          Could not load decks: {decks.error.message}
+        </p>
+      )}
 
       {invalidCardData && (
         <p className="card-browser__message card-browser__message--error" role="alert">
@@ -417,6 +437,7 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
                 isFavoritePending={favoriteActionDisabled}
                 binderCopies={binder.copies.copiesByScryfallId.get(card.id) ?? []}
                 {...binderCopyProps}
+                {...deckActionProps}
               />
             ))}
           </div>
@@ -466,6 +487,7 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
           favoriteActionDisabled={favoriteActionDisabled}
           binderCopiesByScryfallId={binder.copies.copiesByScryfallId}
           {...binderCopyProps}
+          {...deckActionProps}
           onClose={closeDetails}
         />
       )}
