@@ -202,12 +202,12 @@
 
 ## D-018: Cross-device favorites refresh and printing availability
 
-- Status: Implemented (Realtime migration pending application)
+- Status: Implemented
 - Date: 2026-10-27
 - Decision: Keep favorites synchronized across signed-in devices using Supabase Realtime notifications to refresh the authenticated user's favorites. In the card browser, also surface the user's favorited printing when it is absent from the current Scryfall name-search results. Deduplicate by Scryfall printing ID and apply the existing local filters and sorting to the combined results. Leave the daily seven-card set and unrelated searches unchanged.
 - Why: The current favorite-ID query only refreshes after local mutations or when it becomes stale; it does not notify another open device. Search results are also returned independently by Scryfall and may not include the exact printing saved as a favorite.
 - Alternatives considered: Rely on periodic or focus-triggered refetching (not immediate on an already-open device). Refresh only the favorite heart state (does not make the missing printing available in the browser).
-- Consequences: A reusable user-owned-table Realtime invalidation hook, bounded Scryfall hydration, and merging of matching missing favorite printings are implemented. Notifications invalidate/refetch under RLS and do not trust event payloads; local favorite mutation echoes are ignored. The D-031 migration enables the required publication membership and remains pending application. Search pagination, printing-ID deduplication and local filtering are preserved.
+- Consequences: A reusable user-owned-table Realtime invalidation hook, bounded Scryfall hydration, and merging of matching missing favorite printings are implemented. Notifications invalidate/refetch under RLS and do not trust event payloads; local favorite mutation echoes are ignored. The D-031 migration is applied; a read-only linked-project query on 2026-11-02 confirmed the three user-owned tables are in `supabase_realtime`. Cross-device behavior has not been separately exercised. Search pagination, printing-ID deduplication and local filtering are preserved.
 - Source: "[Supabase Realtime: Postgres Changes](https://supabase.com/docs/guides/realtime/postgres-changes)"; "[Supabase Realtime: Subscribing to Database Changes](https://supabase.com/docs/guides/realtime/subscribing-to-database-changes)"
 
 ## D-019: Select between Scryfall and personal collection search
@@ -227,7 +227,7 @@
 - Decision: Ship the binder completely (D-021 to D-032) before starting decks (D-033 to D-037). Each step below is its own decision, planned with a short plan before code and closed with its own check. A binder entry is one copy per row; "loose" is `binder_id = NULL`.
 - Why: Multiple copies with per-copy metadata do not fit favorites' `(user_id, scryfall_id)` key. Finishing the binder first gives decks a stable, documented base.
 - Alternatives considered: Interleaving binder and deck steps (deck rules would need tables that do not exist yet); a quantity column per card (cannot hold per-copy metadata); a real "Loose" binder row (special-case rename and delete rules).
-- Consequences: Order is fixed: A (D-021 to D-024, no database), B (D-025 to D-032, binder), C (D-033 to D-037, decks). Every migration needs explicit approval and a dry run, because one Supabase project serves development and production (D-014, D-015).
+- Consequences: Order is fixed: A (D-021 to D-024, no database), B (D-025 to D-032, binder), C (D-033 to D-037, decks). Deck implementation reuses or commonalizes suitable Binder components and retains the established UI styles rather than introducing a new visual system. Every migration needs explicit approval and a dry run, because one Supabase project serves development and production (D-014, D-015).
 - Source: "[Binder & Decks] Planning"
 
 ## D-021: Logout SVG icon
@@ -257,7 +257,7 @@
 - Decision: Rename the nav item label to "Binder", rename `CollectionIcon.tsx` to `BinderIcon.tsx`, change the route from `/v2/collection` to `/v2/binder`, and redirect the old path. Rename the `CardAction` value `collection` to `binder`.
 - Why: The feature is a binder; "collection" implies a different, undefined thing.
 - Alternatives considered: Keep the route and change only the label (path and label drift apart); no redirect (breaks existing links).
-- Consequences: The Binder route stays behind `RequireAuth`, and the old `/v2/collection` URL redirects to it. The card-action value is `binder`; personal-collection search scope remains distinct. Check: `npm run typecheck` and `npm run build` pass; `/v2/binder` is protected and `/v2/collection` redirects to it.
+- Consequences: The Binder route stays behind `RequireAuth`, and the old `/v2/collection` URL redirects to it. The card-action value is `binder`; personal-collection search scope remains distinct. This decision also establishes the shared implementation context for D-023 onward: reuse or commonalize suitable Binder components when implementing decks, and keep the existing application styles instead of creating a new UI style. Check: `npm run typecheck` and `npm run build` pass; `/v2/binder` is protected and `/v2/collection` redirects to it.
 - Source: "[Binder & Decks] Planning"
 
 ## D-024: Card details: P/T, color pills, rarity pill
@@ -304,20 +304,20 @@
 
 - Status: Implemented
 - Date: 2026-10-28
-- Decision: Clicking the binder icon opens an overlay to add a copy (defaults prefilled, all metadata optional, one-tap save). Clicking on an already-owned card adds another copy. Mutations return the written row (`.insert().select().single()`) and patch the cache with `setQueryData` instead of refetching.
+- Decision: Clicking the binder icon opens and pins the copies popover; choosing **Add another copy** opens the add-copy dialog (defaults prefilled, all metadata optional, one-tap save). Mutations return the written row (`.insert().select().single()`) and patch the cache with `setQueryData` instead of refetching.
 - Why: Multiple copies are allowed, and avoiding a refetch after each change follows the "minimize queries" goal.
 - Alternatives considered: Invalidate and refetch as favorites does (extra query per change); optimistic updates (more complexity, can come later).
-- Consequences: The accessible controlled form uses typed fields, defaults new copies to owned/loose, and stores rarity from the selected Scryfall card. Insert/update return rows and patch the cache; a local Realtime echo does not trigger a redundant refetch. Typecheck/build pass. Database writes were not exercised in browser verification to avoid changing the signed-in user's live data.
+- Consequences: The accessible controlled form uses typed fields, defaults new copies to owned/loose, and stores rarity from the selected Scryfall card. The dialog matches the card-details overlay styling and keeps Save/Cancel reachable while the form scrolls on short screens. Insert/update return rows and patch the cache; a local Realtime echo does not trigger a redundant refetch. Database writes were not exercised in browser verification to avoid changing the signed-in user's live data.
 - Source: "[Binder & Decks] Planning"
 
 ## D-029: Copy popover: view, edit, dispose, delete
 
 - Status: Implemented
 - Date: 2026-10-28
-- Decision: Hovering the binder icon on desktop, or tapping it on mobile, opens a popover listing the card's copies with their metadata. It also opens on keyboard focus. Modify/save/cancel switch a copy into edit mode. Per copy: **Delete** removes the row after a confirm; **Mark sold/lost/given away** changes `status` and sets `disposed_at`, keeping the data. A History toggle shows disposed copies, and **Restore** returns one to owned.
+- Decision: Hovering or keyboard-focusing the binder icon opens a transient popover; clicking or tapping it pins the popover open until it is closed, Escape is pressed, or the user clicks outside. The popover lists the card's copies with their metadata. Modify/save/cancel switch a copy into edit mode. Per copy: **Delete** removes the row after a confirm; **Mark sold/lost/given away** changes `status` and sets `disposed_at`, keeping the data. A History toggle shows disposed copies, and **Restore** returns one to owned.
 - Why: Deleting loses data; disposing keeps history that feeds the future sales and balance goals.
 - Alternatives considered: Hover-only metadata (not reachable on touch or keyboard); delete-only (loses history).
-- Consequences: Default Binder views and counts include only owned copies; History shows disposed copies. Status actions set `disposed_at`, restore clears disposal metadata, and permanent deletion requires confirmation. Edit failures leave the copy in edit mode and show an error notice. Browser inspection confirmed the popover and form; database writes were not exercised against live user data.
+- Consequences: Default Binder views and counts include only owned copies; History shows disposed copies. The card-content-style popover bounds its height to the viewport and scrolls the copy list. Status actions set `disposed_at`, restore clears disposal metadata, and permanent deletion requires confirmation. Edit failures leave the copy in edit mode and show an error notice. Browser inspection confirmed the popover and form; database writes were not exercised against live user data.
 - Source: "[Binder & Decks] Planning"
 
 ## D-030: Binder page: all-cards view and binder list
@@ -327,67 +327,67 @@
 - Decision: `/v2/binder` offers two views through NUQS (`?view=all|binders`, `?binder=<id>`). The all-cards view reuses `CardFilters` and the shared hydration. The binder list shows each binder with a cover chosen by rarity rank, then the Legendary supertype, then oldest added. A virtual "Loose" binder is always present and cannot be renamed or deleted. Users can create, rename and delete binders (with a confirm that states how many cards move to loose) and move copies, singly or in bulk.
 - Why: Covers computed from loaded copies avoid fetching every card. Loose as `NULL` keeps rules simple.
 - Alternatives considered: A stored cover id (needs manual upkeep); one table of all cards only (no binders).
-- Consequences: `/v2/binder` has URL-backed all-cards/binder-list views, local filters, bulk moves, binder CRUD, and a virtual Loose binder. Covers are hydrated in sequential Scryfall collection batches and ranked by rarity, Legendary supertype, then oldest copy. Typecheck/build pass; deleting binders was not performed against live user data.
+- Consequences: `/v2/binder` has URL-backed all-cards/binder-list views, local filters, bulk moves, binder CRUD, and a virtual Loose binder. Card entries and folder covers reuse the card-browser `CardTile`; covers are hydrated in sequential Scryfall collection batches and ranked by rarity, Legendary supertype, then oldest copy. Typecheck/build pass; deleting binders was not performed against live user data.
 - Source: "[Binder & Decks] Planning"
 
 ## D-031: Realtime refresh and personal search scope
 
-- Status: Implemented (migration pending application)
+- Status: Implemented
 - Date: 2026-10-28
 - Decision: Implement the reusable Realtime invalidation hook from D-018 and apply it to favorites and binder tables, with a migration adding them to the `supabase_realtime` publication. Update D-019's personal scope to include binder copies, deduplicated by Scryfall printing ID.
 - Why: Another open device should see binder changes, and personal search should cover what the user owns.
 - Alternatives considered: Refetch on window focus only (not immediate).
-- Consequences: The reusable Realtime hook invalidates the appropriate user-scoped query keys for favorites, binders and binder copies; local cache-patched mutation echoes are ignored. The generated migration adds all three tables to `supabase_realtime`, with a paired manual rollback and pgTAP publication test. The linked dry run lists the migration as pending; it was not applied. Cross-device refresh awaits application, and D-018/D-019 code is implemented.
+- Consequences: The reusable Realtime hook invalidates the appropriate user-scoped query keys for favorites, binders and binder copies; local cache-patched mutation echoes are ignored. The migration and paired manual rollback are present, with a pgTAP publication test. Linked migration history and a read-only publication query on 2026-11-02 confirm the migration is applied and all three tables are members of `supabase_realtime`. Cross-device UI behavior has not been separately verified; D-018/D-019 code is implemented.
 - Source: "[Binder & Decks] Planning"
 
 ## D-032: Binder release checkpoint
 
-- Status: Implemented (Realtime migration pending application)
+- Status: Implemented
 - Date: 2026-10-28
 - Decision: Stop and verify before decks: run `typecheck` and `build`, test by hand on desktop and mobile, and update `AGENTS.md` (binder becomes a feature, decks remain a goal) and `DECISIONS.md` statuses.
 - Why: Decks build on the binder, so it must be stable and documented first.
 - Alternatives considered: Document everything at the end (context drifts and errors compound).
-- Consequences: Typecheck and production build pass; desktop (1440px) and mobile (390px) browser checks covered Binder views, personal search, the copy popover and add form without writing to the signed-in user's live data. Targeted lint passes; full lint has 18 unrelated pre-existing errors. Local pgTAP could not run because no local database is available. The D-031 migration remains pending, so cross-device Realtime awaits its separate application. Deck work remains out of scope.
+- Consequences: Typecheck and production build pass; desktop (1440px) and mobile (390px) browser checks covered Binder views, personal search, shared card tiles, the pinned copy popover and scrollable add-copy dialog without writing to the signed-in user's live data. Targeted lint passes; full lint has 18 unrelated pre-existing errors (checked 2026-11-02). Linked migration history and publication membership are verified; cross-device UI behavior has not been separately tested. The local pgTAP suite was not run because a local database was unavailable at the last attempt. Deck work remains out of scope.
 - Source: "[Binder & Decks] Planning"
 
 ## D-033: Deck schema migration
 
-- Status: Evaluating
-- Date: 2026-10-28
+- Status: Implemented (migration applied; local pgTAP verification pending)
+- Date: 2026-11-02
 - Decision: One migration creates `decks (id, user_id, name, format, notes, timestamps)` and `deck_cards (id, user_id, deck_id ON DELETE CASCADE, kind binder|proxy|virtual, binder_card_id nullable, scryfall_id, timestamps)`. A partial unique index on `binder_card_id` allows one binder copy in one deck only. A check ties `kind = 'binder'` to a non-null `binder_card_id`. RLS policies verify ownership of `deck_id` and `binder_card_id`.
 - Why: The database, not the UI, guarantees the one-deck rule.
 - Alternatives considered: Separate tables per kind (more queries); a `quantity` column (cannot link copies).
-- Consequences: Needs explicit approval and a dry run. Row per copy means a 60-card deck has 60 rows, which is acceptable. Check: RLS tests pass, and inserting the same copy into two decks fails.
+- Consequences: The migration, paired manual rollback, and pgTAP tests are authored; linked migration history confirms `20261102174623` is applied. The schema uses owner-scoped RLS, least-privilege grants, timestamp triggers, and indexes for deck/card lookup, foreign-key deletion, and unique binder-copy assignment. `src/types/database.ts` was regenerated from the linked public schema. Typecheck and linked schema lint pass. The linked advisors reported no deck-specific security warnings; unused-index notices are expected before deck queries are in use. Local pgTAP remains unverified because no database was listening on port 54322. Acceptance check (pending local pgTAP): verify cross-user access denial, binder/proxy/virtual constraints, and that one binder copy cannot be assigned to two decks.
 - Source: "[Binder & Decks] Planning"
 
 ## D-034: Delete or dispose a copy that is in a deck
 
-- Status: Evaluating
-- Date: 2026-10-28
+- Status: Implemented (migration pending application and local pgTAP verification)
+- Date: 2026-11-04
 - Decision: Add a Postgres function called through Supabase RPC that deletes or disposes a binder copy and, in the same transaction, converts its `deck_cards` row to `virtual`. The binder confirm dialog from D-029 then mentions the deck.
 - Why: Two steps must succeed or fail together; the client cannot guarantee that.
 - Alternatives considered: Two client calls (can leave a broken deck row); `ON DELETE CASCADE` (a card silently vanishes from the deck).
-- Consequences: Needs migration approval. Reuses the ownership checks from D-033. Check: deleting a copy that is in a deck leaves a virtual card in that deck; a failure rolls back both.
+- Consequences: Added an authenticated-only `SECURITY INVOKER` RPC that verifies ownership, performs the deck conversion and Binder status/delete operation atomically, and accepts only editable copy metadata. The Binder confirmation explains that a deck entry remains as virtual; both direct disposal controls and the edit form's status transition use the RPC. The paired rollback and pgTAP coverage include deletion, disposal, privilege boundaries, and a forced failure to verify rollback. The migration is not applied; regenerate `src/types/database.ts` from the linked project after application. Typecheck/build pass; local pgTAP verification remains pending until a local database is available.
 - Source: "[Binder & Decks] Planning"
 
 ## D-035: Deck flows
 
 - Status: Evaluating
 - Date: 2026-10-28
-- Decision: Enable the deck icon: add a binder copy (picker shows only copies not in a deck), add a proxy or a virtual card, switch a card between binder/proxy/virtual, move a copy between decks as an explicit action, and assign an owned copy to a virtual card. Binder copies show an "In deck: X" badge. The overlay and popover reuse the D-028 and D-029 logic.
+- Decision: Enable the deck icon: add a binder copy (picker shows only copies not in a deck), add a proxy or a virtual card, switch a card between binder/proxy/virtual, move a copy between decks as an explicit action, and assign an owned copy to a virtual card. Binder copies show an "In deck: X" badge. Reuse or commonalize the Binder copy picker, form, popover and card actions where suitable instead of creating parallel components; retain the existing application styles.
 - Why: Decks should behave like the binder, as requested.
 - Alternatives considered: A separate deck-only interface (duplicate logic).
-- Consequences: Deck data loads with one query of ids and kinds, like binder copies. Removing a card from a deck offers back to binder, proxy or virtual. Check: `npm run typecheck` and `npm run build` pass; every transition leaves consistent data.
+- Consequences: Deck data loads with one query of ids and kinds, like binder copies. Removing a card from a deck offers back to binder, proxy or virtual. Keep shared components focused on common behavior and avoid a deck-specific visual system. Check: `npm run typecheck` and `npm run build` pass; every transition leaves consistent data.
 - Source: "[Binder & Decks] Planning"
 
 ## D-036: Deck pages and proxy/virtual visuals
 
 - Status: Evaluating
 - Date: 2026-10-28
-- Decision: Add a decks page mirroring the binder page (all view and deck list, covers by the same rule, NUQS state, `CardFilters` reuse). Proxies show a hashed border; virtual cards use a distinct muted style. Both must also be identifiable without relying on color alone.
+- Decision: Add a decks page mirroring the binder page (all view and deck list, covers by the same rule, NUQS state, `CardFilters` reuse). Reuse/commonalize Binder page and `CardTile` components where their behavior matches, and preserve the existing application styles. Proxies show a hashed border; virtual cards use a distinct muted style. Both must also be identifiable without relying on color alone.
 - Why: Same logic and visuals keep the app consistent.
 - Alternatives considered: Badges only (not what was requested).
-- Consequences: Styles use `src/theme.css` tokens. Check: `npm run typecheck` and `npm run build` pass; the three card kinds are distinguishable in light and dark themes.
+- Consequences: Extend the existing visual language with `src/theme.css` tokens and Binder component patterns; do not introduce a separate style system. Check: `npm run typecheck` and `npm run build` pass; the three card kinds are distinguishable in light and dark themes.
 - Source: "[Binder & Decks] Planning"
 
 ## D-037: Deck release checkpoint
@@ -397,5 +397,5 @@
 - Decision: Verify and document: run `typecheck` and `build`, test by hand on desktop and mobile, and update `AGENTS.md` (decks become a feature) and `DECISIONS.md` statuses.
 - Why: Same reason as D-032.
 - Alternatives considered: Skip the checkpoint (documentation drifts from the source).
-- Consequences: Closes the roadmap in D-020. Check: both commands pass and `AGENTS.md` matches the source.
+- Consequences: Closes the roadmap in D-020. Confirm shared Binder components and established styles were reused for decks, then check that both commands pass and `AGENTS.md` matches the source.
 - Source: "[Binder & Decks] Planning"

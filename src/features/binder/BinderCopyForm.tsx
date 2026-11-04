@@ -8,7 +8,14 @@ import type {
 type Binder = Tables<"binders">;
 export type CopyFormValues = Omit<
   BinderCopyUpdate,
-  "id" | "user_id" | "scryfall_id" | "rarity" | "created_at" | "updated_at"
+  | "id"
+  | "user_id"
+  | "scryfall_id"
+  | "rarity"
+  | "created_at"
+  | "updated_at"
+  | "disposed_at"
+  | "disposal_price"
 >;
 
 type BinderCopyFormProps = {

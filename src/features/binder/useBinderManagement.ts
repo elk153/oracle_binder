@@ -1,10 +1,24 @@
 import { useState } from "react";
 import type { CardBrowserCard } from "../card-browser/types.ts";
 import type { CopyFormValues } from "./BinderCopyForm.tsx";
-import useBinderCopies, { type BinderCopy } from "./useBinderCopies.ts";
+import useBinderCopies, {
+  type BinderCopy,
+} from "./useBinderCopies.ts";
 import useBinders from "./useBinders.ts";
 
 type Notify = (message: string) => void;
+
+function isDisposalStatus(
+  status: string,
+): status is "sold" | "lost" | "given_away" {
+  return status === "sold" || status === "lost" || status === "given_away";
+}
+
+function confirmDeckConversion(action: string): boolean {
+  return window.confirm(
+    `${action} If this copy is in a deck, its deck entry will remain as a virtual card.`,
+  );
+}
 
 export default function useBinderManagement(notify: Notify) {
   const [cardToAdd, setCardToAdd] = useState<CardBrowserCard | null>(null);
@@ -38,12 +52,30 @@ export default function useBinderManagement(notify: Notify) {
   async function updateCopy(copy: BinderCopy, values: CopyFormValues) {
     try {
       const nextStatus = values.status ?? copy.status;
+      if (copy.status === "owned" && nextStatus !== "owned") {
+        if (!isDisposalStatus(nextStatus)) {
+          throw new Error("Choose a valid disposal status.");
+        }
+        if (!confirmDeckConversion(`Mark this copy as ${nextStatus.replaceAll("_", " ")}?`)) {
+          return false;
+        }
+        const disposalChanges = { ...values };
+        delete disposalChanges.status;
+        await copies.removeOrDisposeCopy.mutateAsync({
+          id: copy.id,
+          status: nextStatus,
+          changes: disposalChanges,
+        });
+        notify("Binder copy updated.");
+        return true;
+      }
+
       const changes = {
         ...values,
         disposal_price:
           nextStatus === "owned"
             ? null
-            : values.disposal_price ?? copy.disposal_price,
+            : copy.disposal_price,
         disposed_at:
           nextStatus === "owned"
             ? null
@@ -66,10 +98,17 @@ export default function useBinderManagement(notify: Notify) {
     copyId: string,
     status: "sold" | "lost" | "given_away",
   ) {
+    if (
+      !confirmDeckConversion(
+        `Mark this copy as ${status.replaceAll("_", " ")}?`,
+      )
+    ) {
+      return;
+    }
     try {
-      await copies.updateCopy.mutateAsync({
+      await copies.removeOrDisposeCopy.mutateAsync({
         id: copyId,
-        changes: { status, disposed_at: new Date().toISOString() },
+        status,
       });
       notify(`Copy marked ${status.replaceAll("_", " ")}.`);
     } catch (error) {
@@ -102,9 +141,18 @@ export default function useBinderManagement(notify: Notify) {
   }
 
   async function deleteCopy(copyId: string) {
-    if (!window.confirm("Delete this binder copy permanently?")) return;
+    if (
+      !confirmDeckConversion(
+        "Delete this binder copy permanently?",
+      )
+    ) {
+      return;
+    }
     try {
-      await copies.deleteCopy.mutateAsync(copyId);
+      await copies.removeOrDisposeCopy.mutateAsync({
+        id: copyId,
+        status: null,
+      });
       notify("Binder copy deleted.");
     } catch (error) {
       notify(
@@ -118,7 +166,7 @@ export default function useBinderManagement(notify: Notify) {
   const isPending =
     copies.addCopy.isPending ||
     copies.updateCopy.isPending ||
-    copies.deleteCopy.isPending;
+    copies.removeOrDisposeCopy.isPending;
 
   return {
     copies,

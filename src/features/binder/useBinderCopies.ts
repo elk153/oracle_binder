@@ -11,6 +11,24 @@ const BINDER_COPIES_PAGE_SIZE = 500;
 export type BinderCopy = Tables<"binder_cards">;
 export type NewBinderCopy = Omit<TablesInsert<"binder_cards">, "user_id">;
 export type BinderCopyUpdate = TablesUpdate<"binder_cards">;
+export type BinderCopyDisposalChanges = Omit<
+  BinderCopyUpdate,
+  | "created_at"
+  | "disposed_at"
+  | "disposal_price"
+  | "id"
+  | "rarity"
+  | "scryfall_id"
+  | "status"
+  | "updated_at"
+  | "user_id"
+>;
+
+type RemoveOrDisposeBinderCopy = {
+  id: string;
+  status: "sold" | "lost" | "given_away" | null;
+  changes?: BinderCopyDisposalChanges;
+};
 
 export const binderCopiesQueryKey = (userId?: string) =>
   ["binderCopies", userId] as const;
@@ -120,25 +138,40 @@ export default function useBinderCopies() {
       ),
   });
 
-  const deleteCopy = useMutation<void, Error, string>({
-    mutationFn: async (id) => {
-      if (!user) throw new Error("Sign in to delete a binder copy.");
+  const removeOrDisposeCopy = useMutation<
+    void,
+    Error,
+    RemoveOrDisposeBinderCopy
+  >({
+    mutationFn: async ({ id, status, changes = {} }) => {
+      if (!user) throw new Error("Sign in to remove or dispose a binder copy.");
       markLocalRealtimeChange("binder_cards", user.id, [id]);
       try {
-        const { error } = await supabase
-          .from("binder_cards")
-          .delete()
-          .eq("user_id", user.id)
-          .eq("id", id);
+        const { error } = await supabase.rpc("remove_or_dispose_binder_copy", {
+          p_copy_id: id,
+          p_disposal_status: status,
+          p_copy_changes: changes,
+        });
         if (error) throw error;
       } catch (error) {
         clearLocalRealtimeChange("binder_cards", user.id, [id]);
         throw error;
       }
     },
-    onSuccess: (_result, id) =>
+    onSuccess: (_result, { id, status, changes = {} }) =>
       queryClient.setQueryData<BinderCopy[]>(queryKey, (current) =>
-        current?.filter((copy) => copy.id !== id),
+        status === null
+          ? current?.filter((copy) => copy.id !== id)
+          : current?.map((copy) =>
+              copy.id === id
+                ? {
+                    ...copy,
+                    ...changes,
+                    status,
+                    disposed_at: new Date().toISOString(),
+                  }
+                : copy,
+            ),
       ),
   });
 
@@ -180,7 +213,7 @@ export default function useBinderCopies() {
     copiesByScryfallId,
     addCopy,
     updateCopy,
-    deleteCopy,
+    removeOrDisposeCopy,
     moveCopies,
   };
 }

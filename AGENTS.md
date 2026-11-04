@@ -1,6 +1,6 @@
 # Agent Context
 
-Working map of the app for AI coding agents. Checked against the repository source on 26 Oct 2026. Where this file and the source disagree, the source wins; update this file when the architecture or behavior changes.
+Working map of the app for AI coding agents. Checked against the repository source on 2 Nov 2026. Where this file and the source disagree, the source wins; update this file when the architecture or behavior changes.
 
 ## How to work with me (read first)
 
@@ -33,10 +33,10 @@ Node 22 works. Install with `npm install`.
 | `npm run build` | production build into `dist/` | passes |
 | `npm run preview` | serve the build | works |
 | `npm run typecheck` | `tsc --noEmit` | passes |
-| `npm run lint` | ESLint | **fails: 18 pre-existing errors, 0 warnings** (checked 28 Oct 2026) |
+| `npm run lint` | ESLint | **fails: 18 pre-existing errors, 0 warnings** (checked 2 Nov 2026) |
 
 - No test framework or test script exists.
-- Current lint status (checked 28 Oct 2026): 18 errors, no warnings. Errors are unused parameters/imports in `src/assets/IconCards.jsx`, `src/assets/IconSearch.jsx`, renderer extras, plus conditional `useOracleText` calls and an unused import in the inactive `original-card-renderer/CardDetails/CardDetails.jsx`. Re-run lint before attributing errors to a change; the baseline can change.
+- Current lint status (checked 2 Nov 2026): 18 errors, no warnings. Errors are unused parameters in `src/assets/IconCards.jsx` and `src/assets/IconSearch.jsx`, unused imports and conditional `useOracleText` calls in the inactive `original-card-renderer/CardDetails/CardDetails.jsx`, and unused parameters in renderer extras. Re-run lint before attributing errors to a change; the baseline can change.
 - Run the narrowest check that fits. At minimum run `npm run typecheck` and `npm run build`.
 
 ## Routes
@@ -86,10 +86,10 @@ Defined in `src/app/router.tsx`. `/` redirects to `/v2/home`.
 - `src/features/card-browser/CardBrowserPage.tsx` handles `/v2/home`, `/v2/search`, and `/v2/search/random`. Home chooses a stable set per UTC day from released, non-digital, booster-focused Scryfall set types, requests unique cards in random order, and displays up to seven cards from the first result page. The set-type allowlist lives in `mulliganSets.ts`; Scryfall does not supply a direct booster-eligibility flag.
 - Name search uses the paginated `useScryfallCardPages` hook with an explicit load-more button; filters and sorting apply to cards loaded so far, plus matching favorited printings not on the current Scryfall pages. The `source=collection` scope searches deduplicated favorite and owned Binder printings; disposed Binder copies are excluded. The daily set uses `useScryfallCardsSearch` for a single page of up to seven cards. `?card=<id>` opens the details overlay without replacing the current search URL.
 - The protected `/v2/favorites` page uses `useFavoriteCards` to page Supabase favorites newest-first with a composite cursor, hydrates each batch of up to 75 card IDs through Scryfall's collection endpoint, preserves the Supabase ordering, and skips IDs no longer present in Scryfall. It reuses `CardFilters` to filter and sort currently loaded favorites.
-- `src/features/binder/` contains the paged `useBinderCopies` query, copy add/edit/dispose/history controls, and `/v2/binder`. Binder folders use `binder_id = NULL` for virtual Loose; each copy retains `user_id`. The binder icon shows owned-copy count and opens a touch-, hover- and keyboard-accessible popover. Adding, editing, disposing, restoring and deleting copies patch the TanStack Query cache.
-- `BinderPage.tsx` provides URL-backed `?view=all|binders` and `?binder=<id>` views, local filters, bulk and per-copy moves, binder CRUD, and rarity/supertype/date-ranked covers hydrated in bounded batches through the shared Scryfall collection service.
+- `src/features/binder/` contains the paged `useBinderCopies` query, copy add/edit/dispose/history controls, and `/v2/binder`. Binder folders use `binder_id = NULL` for virtual Loose; each copy retains `user_id`. The binder icon shows owned-copy count and opens a touch-, hover- and keyboard-accessible popover; clicking pins it open until it is closed, Escape is pressed, or the user clicks outside. The copy dialog and popover use an overlay-matched style, with scrollable content for long forms and histories. Adding, editing, disposing, restoring and deleting copies patch the TanStack Query cache.
+- `BinderPage.tsx` provides URL-backed `?view=all|binders` and `?binder=<id>` views, local filters, bulk and per-copy moves, binder CRUD, and rarity/supertype/date-ranked covers hydrated in bounded batches through the shared Scryfall collection service. Binder cards and folder covers reuse `CardTile` from the card browser.
 - `CardDetailsOverlay.tsx` loads card rulings and printings through cached queries. In the card-content panel it shows mana cost beside power/toughness, loyalty or defense, then WUBRG color circles and a rarity pill; the rows appear between the type line and oracle text for each rendered face. Print entries show current Scryfall EUR / foil EUR prices and reuse `CardTile` for flip, favorites, binder and deck actions.
-- Supabase user-owned tables use the reusable `useRealtimeInvalidation` hook; Realtime payloads invalidate and refetch under RLS, while local mutation echoes are ignored after cache patching. The Realtime publication migration is pending application to the linked project.
+- Supabase user-owned tables use the reusable `useRealtimeInvalidation` hook; Realtime payloads invalidate and refetch under RLS, while local mutation echoes are ignored after cache patching. Migration `20261028113029_binder_realtime` is applied to the linked project; a read-only check on 2 Nov 2026 confirmed `favorites`, `binders`, and `binder_cards` are in `supabase_realtime`. Cross-device UI behavior has not been separately tested.
 - `src/features/navigation/` holds the responsive navbar. On mobile, tapping the search icon focuses and expands the input while hiding nav links; Enter or tapping the icon again submits, and Escape closes the field. Favorites and Binder are functional; Decks and advanced search route to placeholders.
 - `src/features/navigation/README.md` may not reflect the flat source layout; verify its instructions against the files before following them.
 

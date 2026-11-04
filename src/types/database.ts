@@ -112,6 +112,84 @@ export type Database = {
         }
         Relationships: []
       }
+      deck_cards: {
+        Row: {
+          binder_card_id: string | null
+          created_at: string
+          deck_id: string
+          id: string
+          kind: string
+          scryfall_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          binder_card_id?: string | null
+          created_at?: string
+          deck_id: string
+          id?: string
+          kind: string
+          scryfall_id: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          binder_card_id?: string | null
+          created_at?: string
+          deck_id?: string
+          id?: string
+          kind?: string
+          scryfall_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deck_cards_binder_card_id_fkey"
+            columns: ["binder_card_id"]
+            isOneToOne: false
+            referencedRelation: "binder_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deck_cards_deck_id_fkey"
+            columns: ["deck_id"]
+            isOneToOne: false
+            referencedRelation: "decks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      decks: {
+        Row: {
+          created_at: string
+          format: string | null
+          id: string
+          name: string
+          notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          format?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          format?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       favorites: {
         Row: {
           created_at: string
@@ -135,7 +213,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      remove_or_dispose_binder_copy: {
+        Args: {
+          p_copy_changes: Json
+          p_copy_id: string
+          p_disposal_status: string | null
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
