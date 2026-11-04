@@ -1,6 +1,6 @@
 # Agent Context
 
-Working map of the app for AI coding agents. Checked against the repository source on 2 Nov 2026. Where this file and the source disagree, the source wins; update this file when the architecture or behavior changes.
+Working map of the app for AI coding agents. Checked against the repository source on 4 Nov 2026. Where this file and the source disagree, the source wins; update this file when the architecture or behavior changes.
 
 ## How to work with me (read first)
 
@@ -18,10 +18,10 @@ The developer is learning React and TypeScript and wants to understand every cha
 - React 19 + Vite SPA that finds Magic: The Gathering cards through the public Scryfall API (`https://api.scryfall.com`). Routing uses `react-router` 8 (`createBrowserRouter`).
 - The app currently ships **two layouts** side by side, mounted at different URL prefixes:
   - **`/v1`: the original card browser.** Random card, name search, card detail overlay, rulings, legalities, printings, and per-printing EUR / foil EUR prices. Its result list uses the original card renderer and the `card-filters/` table.
-  - **`/v2`: the current default card browser.** Home shows a daily seven-card set; search results support local color, rarity, type and sorting controls; card details show artwork, rules/legalities and printings with current EUR / foil EUR prices. Favorites are saved to Supabase and displayed in a paginated favorites page. The Binder tracks per-copy metadata, folders, loose copies and disposed-copy history. Decks supports card entry management, an All cards view, deck covers/counts, and deck create/rename/delete. Advanced search remains a placeholder.
+  - **`/v2`: the current default card browser.** Home shows a daily seven-card set; search results support local color, rarity, type and sorting controls; card details show artwork, rules/legalities and printings with current EUR / foil EUR prices. Favorites are saved to Supabase and displayed in a paginated favorites page. The Binder tracks per-copy metadata, folders, loose copies and disposed-copy history. Decks is an implemented feature for creating and managing decks and their Binder, proxy and virtual card entries, with All cards and deck-list views. Advanced search remains a placeholder.
 - Both layouts have dark/light theme controls. Theme state is shared through React context, defaults to dark on each page load, and is not persisted.
 - No custom application backend or user database. Supabase Auth provides managed email/password signup and sign-in; account data is managed by Supabase. TanStack Query caches remote data in memory and persists some of it in browser `localStorage`.
-- Binder copies track acquisition/location details and disposal status. Separate collection records, full deck-building tools, price history, sales and balance remain **goals, not features**. Never imply they exist.
+- Binder copies track acquisition/location details and disposal status. Basic deck and card-entry management is implemented; full deck-building tools such as format validation, collection valuation and price history, sales and balance remain **goals, not features**. Never imply they exist.
 
 ## Commands and current status
 
@@ -33,10 +33,10 @@ Node 22 works. Install with `npm install`.
 | `npm run build` | production build into `dist/` | passes |
 | `npm run preview` | serve the build | works |
 | `npm run typecheck` | `tsc --noEmit` | passes |
-| `npm run lint` | ESLint | **fails: 18 pre-existing errors, 0 warnings** (checked 2 Nov 2026) |
+| `npm run lint` | ESLint | **fails: 18 pre-existing errors, 0 warnings** (checked 4 Nov 2026) |
 
 - No test framework or test script exists.
-- Current lint status (checked 2 Nov 2026): 18 errors, no warnings. Errors are unused parameters in `src/assets/IconCards.jsx` and `src/assets/IconSearch.jsx`, unused imports and conditional `useOracleText` calls in the inactive `original-card-renderer/CardDetails/CardDetails.jsx`, and unused parameters in renderer extras. Re-run lint before attributing errors to a change; the baseline can change.
+- Current lint status (checked 4 Nov 2026): 18 errors, no warnings. Errors are unused parameters in `src/assets/IconCards.jsx` and `src/assets/IconSearch.jsx`, unused imports and conditional `useOracleText` calls in the inactive `original-card-renderer/CardDetails/CardDetails.jsx`, and unused parameters in renderer extras. Re-run lint before attributing errors to a change; the baseline can change.
 - Run the narrowest check that fits. At minimum run `npm run typecheck` and `npm run build`.
 
 ## Routes
@@ -90,7 +90,7 @@ Defined in `src/app/router.tsx`. `/` redirects to `/v2/home`.
 - `src/features/binder/` contains the paged `useBinderCopies` query, copy add/edit/dispose/history controls, and `/v2/binder`. Binder folders use `binder_id = NULL` for virtual Loose; each copy retains `user_id`. The binder icon shows owned-copy count and opens a touch-, hover- and keyboard-accessible popover; clicking pins it open until it is closed, Escape is pressed, or the user clicks outside. The copy dialog and popover use an overlay-matched style, with scrollable content for long forms and histories. Adding, editing, disposing, restoring and deleting copies patch the TanStack Query cache. Binder copies assigned to decks show their deck name; D-034 disposal/deletion atomically converts the associated deck entry to virtual and invalidates deck-card data.
 - `BinderPage.tsx` provides URL-backed `?view=all|binders` and `?binder=<id>` views, local filters, bulk and per-copy moves, binder CRUD, and rarity/supertype/date-ranked covers hydrated in bounded batches through the shared Scryfall collection service. Binder cards and folder covers reuse `CardTile` from the card browser.
 - `CardDetailsOverlay.tsx` loads card rulings and printings through cached queries. In the card-content panel it shows mana cost beside power/toughness, loyalty or defense, then WUBRG color circles and a rarity pill; the rows appear between the type line and oracle text for each rendered face. Print entries show current Scryfall EUR / foil EUR prices and reuse `CardTile` for flip, favorites, binder and deck actions.
-- `src/features/decks/` provides user-scoped deck queries/mutations, the shared card-action popover, and `/v2/decks`. The page uses URL-backed `?view=all|decks` and `?deck=<id>`, hydrates printings through the shared collection service, and reuses `CardFilters` and `CardTile`. Deck covers use rarity/type/date ranking; each shows its name and a rounded entry-count pill. The All cards view shows every entry (including the same printing in different decks) with its deck name and kind. Proxy entries have a dashed/hatched treatment and visible label; virtual entries are muted and visibly labeled. Deck deletion removes its entries via the existing database cascade; Binder copies remain in Binder.
+- `src/features/decks/` provides user-scoped deck queries/mutations, the shared card-action popover, and `/v2/decks`. The page uses URL-backed `?view=all|decks` and `?deck=<id>`, hydrates printings through the shared collection service, and reuses `CardFilters` and `CardTile`. Deck covers use rarity/type/date ranking; each shows its name and a rounded entry-count pill. The All cards view shows every entry (including the same printing in different decks) with a kind pill below each card; Binder entries identify the owning binder or Loose. Proxy entries have a thin dashed accent outline and matching subtly tinted pill; virtual entries are muted and visibly labeled. Deck deletion removes its entries via the existing database cascade; Binder copies remain in Binder. D-037 browser checks on 4 Nov 2026 confirmed the authenticated Niv-Mizzet Reborn Binder copy in Farde noire was added to `test`, its entry persisted after reload, and the deck icon showed one entry. All cards, deck list, selected-deck and popover views were checked at 1440px and 390px with no horizontal overflow.
 - Supabase user-owned tables use the reusable `useRealtimeInvalidation` hook; Realtime payloads invalidate and refetch under RLS, while local mutation echoes are ignored after cache patching. Migration `20261028113029_binder_realtime` is applied to the linked project; a read-only check on 2 Nov 2026 confirmed `favorites`, `binders`, and `binder_cards` are in `supabase_realtime`. Cross-device UI behavior has not been separately tested.
 - `src/features/navigation/` holds the responsive navbar. On mobile, tapping the search icon focuses and expands the input while hiding nav links; Enter or tapping the icon again submits, and Escape closes the field. Favorites, Binder, and the Decks page are functional; advanced search routes to a placeholder. Deck entries are managed through the shared card-tile action.
 - `src/features/navigation/README.md` may not reflect the flat source layout; verify its instructions against the files before following them.
@@ -132,7 +132,7 @@ Defined in `src/app/router.tsx`. `/` redirects to `/v2/home`.
 
 ## Planned, not implemented
 
-Full deck-building tools such as format validation, collection valuation and price history, sales and balance tracking, and true server-side/advanced search remain planned. The Decks page and basic per-card entry management are implemented, but this is not a complete deck-construction workflow. V2 search is a name search with local result filters, not advanced Scryfall search. The advanced-search page remains a placeholder.
+Full deck-building tools such as format validation, collection valuation and price history, sales and balance tracking, and true server-side/advanced search remain planned. The Decks page and basic per-card entry management are implemented features, but they do not yet provide a complete deck-construction workflow. V2 search is a name search with local result filters, not advanced Scryfall search. The advanced-search page remains a placeholder.
 
 ## TypeScript
 

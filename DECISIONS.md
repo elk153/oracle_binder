@@ -372,30 +372,30 @@
 
 ## D-035: Deck flows
 
-- Status: Implemented (typecheck, targeted ESLint and build pass; authenticated UI behavior not manually verified)
+- Status: Implemented (typecheck/build pass; authenticated positive control verified 2026-11-04)
 - Date: 2026-10-28
 - Decision: Enable the deck icon: add a binder copy (picker shows only copies not in a deck), add a proxy or a virtual card, switch a card between binder/proxy/virtual, move a copy between decks as an explicit action, and assign an owned copy to a virtual card. Binder copies show an "In deck: X" badge. Reuse or commonalize the Binder copy picker, form, popover and card actions where suitable instead of creating parallel components; retain the existing application styles.
 - Why: Decks should behave like the binder, as requested.
 - Alternatives considered: A separate deck-only interface (duplicate logic).
-- Consequences: `useDeckManagement` loads user-scoped decks and entries, and patches the TanStack Query cache after create/add/update mutations. The shared `CardTile` deck action is available in Browser, Favorites, Binder and card-printing details; its popover creates decks, adds Binder/proxy/virtual entries, and changes an entry's kind, Binder copy or destination deck. Assigned Binder copies are excluded from other copy pickers, while the Binder copy popover displays the assigned deck name. D-034 invalidates deck entries when Binder copies are disposed or deleted. No schema change was needed. Typecheck, targeted ESLint and build pass; authenticated interactive behavior still needs manual verification.
+- Consequences: `useDeckManagement` loads user-scoped decks and entries, and patches the TanStack Query cache after create/add/update mutations. The shared `CardTile` deck action is available in Browser, Favorites, Binder and card-printing details; its popover creates decks, adds Binder/proxy/virtual entries, and changes an entry's kind, Binder copy or destination deck. Assigned Binder copies are excluded from other copy pickers, while the Binder copy popover displays the assigned deck name. D-034 invalidates deck entries when Binder copies are disposed or deleted. No schema change was needed. In the authenticated positive control on 2026-11-04, the Niv-Mizzet Reborn Binder copy was added to the existing `test` deck; it persisted after reload and the deck icon showed one entry. Typecheck and build pass; full lint still reports 18 pre-existing errors.
 - Source: "[Binder & Decks] Planning"
 
 ## D-036: Deck pages and proxy/virtual visuals
 
-- Status: Implemented (typecheck, targeted ESLint and build pass; authenticated UI behavior not manually verified)
+- Status: Implemented (authenticated desktop/mobile checks and typecheck/build pass; light/dark contrast not separately checked)
 - Date: 2026-11-04
-- Decision: Add a decks page mirroring the binder page (all view and deck list, covers by the same rule, NUQS state, `CardFilters` reuse). Reuse/commonalize Binder page and `CardTile` components where their behavior matches, and preserve the existing application styles. Proxies show a hashed border; virtual cards use a distinct muted style. Both must also be identifiable without relying on color alone.
+- Decision: Add a decks page mirroring the binder page (all view and deck list, covers by the same rule, NUQS state, `CardFilters` reuse). Reuse/commonalize Binder page and `CardTile` components where their behavior matches, and preserve the existing application styles. Proxies use a thin dashed accent outline and a matching subtle pill; virtual cards use a distinct muted style. Both must also be identifiable without relying on color alone.
 - Why: Same logic and visuals keep the app consistent.
 - Alternatives considered: Badges only (not what was requested).
-- Consequences: `/v2/decks` now provides URL-backed All cards and Decks views, selected-deck filtering, shared Scryfall hydration, `CardFilters`/`CardTile` reuse, rarity/type/date-ranked covers, and rounded card-count pills beside deck names. The All cards view preserves every deck entry and shows its deck name/kind. Proxy entries use a dashed/hatched border and visible label; virtual entries use muted styling and a visible label. Decks can be created, renamed and deleted; deletion removes deck entries through the existing `ON DELETE CASCADE` while leaving linked Binder copies intact. No schema change was needed. Typecheck, targeted ESLint and build pass; authenticated behavior and light/dark visual contrast still need manual verification.
+- Consequences: `/v2/decks` now provides URL-backed All cards and Decks views, selected-deck filtering, shared Scryfall hydration, `CardFilters`/`CardTile` reuse, rarity/type/date-ranked covers, and rounded card-count pills beside deck names. The All cards view preserves every deck entry and shows a pill below each card; Binder entries name their folder or Loose. Proxy entries use a thin dashed outline and subtly tinted pill; virtual entries use muted styling. Decks can be created, renamed and deleted; deletion removes deck entries through the existing `ON DELETE CASCADE` while leaving linked Binder copies intact. No schema change was needed. Authenticated desktop and 390px mobile checks on 2026-11-04 covered All cards, deck list, selected deck, entry pills and the deck popover without horizontal overflow. Light/dark visual contrast was not separately checked.
 - Source: "[Binder & Decks] Planning"
 
 ## D-037: Deck release checkpoint
 
-- Status: Evaluating
-- Date: 2026-10-28
+- Status: Implemented
+- Date: 2026-11-04
 - Decision: Verify and document: run `typecheck` and `build`, test by hand on desktop and mobile, and update `AGENTS.md` (decks become a feature) and `DECISIONS.md` statuses.
 - Why: Same reason as D-032.
 - Alternatives considered: Skip the checkpoint (documentation drifts from the source).
-- Consequences: Closes the roadmap in D-020. Confirm shared Binder components and established styles were reused for decks, then check that both commands pass and `AGENTS.md` matches the source.
+- Consequences: Closes the roadmap in D-020. Decks is now documented as an implemented feature; full deck-construction tools remain planned. `CardTile`, `CardFilters`, Binder copy controls and the established styles are reused. `npm run typecheck` and `npm run build` pass; build retains the >500 kB chunk advisory. `npm run lint` remains at 18 pre-existing errors and 0 warnings. Authenticated desktop checks at 1440px and mobile checks at 390px covered All cards, deck list, selected-deck filtering, entry pills and the deck action popover with no horizontal overflow. The Niv-Mizzet Reborn Binder-copy-to-`test` positive control persisted after reload and updated the deck icon count. The current `/v2/decks` feature is documented in `AGENTS.md`; local pgTAP verification remains pending as recorded in D-033/D-034.
 - Source: "[Binder & Decks] Planning"
