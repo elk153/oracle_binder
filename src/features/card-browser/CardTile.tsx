@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import BinderIcon from "../../assets/navigation/BinderIcon.tsx";
-import DecksIcon from "../../assets/navigation/DecksIcon.tsx";
-import FavoritesIcon from "../../assets/navigation/FavoritesIcon.tsx";
-import IconTurnAround from "../../assets/IconTurnAround.tsx";
+import BinderIcon from "../../assets/icons/navigation/BinderIcon.tsx";
+import DecksIcon from "../../assets/icons/navigation/DecksIcon.tsx";
+import FavoritesIcon from "../../assets/icons/navigation/FavoritesIcon.tsx";
+import IconTurnAround from "../../assets/icons/IconTurnAround.tsx";
 import type { BinderCopy } from "../binder/useBinderCopies.ts";
 import type { Binder } from "../binder/useBinders.ts";
 import type { CopyFormValues } from "../binder/BinderCopyForm.tsx";

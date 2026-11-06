@@ -1,9 +1,0 @@
-.cards-list{
-    display: flex;
-    flex-wrap: wrap;
-    width: 100vw;
-    box-sizing: border-box;
-    padding: 1rem;
-    gap: 2rem;
-    justify-content: center;
-}   

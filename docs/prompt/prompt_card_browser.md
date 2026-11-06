@@ -1,5 +1,9 @@
 # Prompt draft file
 
+> Historical planning prompt. The AppV2 card browser has since been implemented,
+> and the V1 layout has been removed. Do not treat this draft as current work;
+> use [AGENTS.md](../../AGENTS.md) and the source code as the source of truth.
+
 ## creating a card browser feature for AppV2
 
 ### context

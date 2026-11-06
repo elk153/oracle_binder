@@ -1,11 +1,10 @@
-export type FilterFeature = "v1" | "search" | "advancedSearch" | "collection" | "decks";
+export type FilterFeature = "search" | "advancedSearch" | "collection" | "decks";
 export type FilterCategory = "colors" | "rarity" | "type" | "sort";
 
 export const FILTER_CATEGORIES_BY_FEATURE: Record<
   FilterFeature,
   readonly FilterCategory[]
 > = {
-  v1: ["colors", "rarity", "type", "sort"],
   search: ["colors", "rarity", "type", "sort"],
   advancedSearch: ["colors", "rarity", "type", "sort"],
   collection: ["colors", "rarity", "type"],

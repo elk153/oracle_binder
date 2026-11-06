@@ -1,5 +1,6 @@
 import { useTheme } from "../../app/AppProviders/ThemeContext.ts";
-import { NavMoonIcon, NavSunIcon } from "./NavThemeIcons.tsx";
+import NavMoonIcon from "../../assets/icons/navigation/NavMoonIcon.tsx";
+import NavSunIcon from "../../assets/icons/navigation/NavSunIcon.tsx";
 import "./NavThemeToggle.css";
 
 /**

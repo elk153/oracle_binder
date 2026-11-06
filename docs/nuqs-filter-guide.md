@@ -1,6 +1,6 @@
 # Card filters with nuqs + TanStack Table
 
-Filters and sorting for the `/v1` card list, stored in the URL. Built against branch `typescript` at commit `5f79767`, with `nuqs` 2.10 and `@tanstack/react-table` 9.3 (v9 is a different API from most tutorials, which show v8).
+Filters and sorting for the V2 card browser and favorites page, stored in the URL. The implementation uses `nuqs` and `@tanstack/react-table` 9 (v9 has a different API from most tutorials, which show v8).
 
 ## Apply it
 
@@ -10,7 +10,7 @@ npm install                    # installs nuqs and @tanstack/react-table
 npm run dev
 ```
 
-Try: `/v1/cards/elf?colors=G&rarity=common,uncommon&sort=cmc&dir=desc`, then change a filter and watch the URL change. Press Back, reload, and share the link; the filters survive all three.
+Try: `/v2/search?q=elf&colors=G&rarity=common,uncommon&sort=cmc&dir=desc`, then change a filter and watch the URL change. Press Back, reload, and share the link; the filters survive all three.
 
 ## The idea in one picture
 
@@ -46,19 +46,19 @@ All new code is TypeScript, in `src/features/card-filters/`.
 | 5 | `columns.ts` | Register table features and define columns. A column says how to read a value from a card and how it filters or sorts. |
 | 6 | `useCardsTable.ts` | Read the URL with `useQueryStates`, convert to `columnFilters` and `sorting`, call `useTable`. |
 | 7 | `CardFilters.tsx` + `.css` | Buttons, input and select that call `setFilters`. |
-| 8 | `CardsList.jsx` | Call the hook, render `table.getRowModel().rows`, show `<CardFilters>`. |
+| 8 | `CardBrowserPage.tsx` and `FavoritesPage.tsx` | Use the hook and render `<CardFilters>` over loaded results. |
 
 ## Behavior to know
 
 - **Colors** match any selected color; `C` means colorless. Double-faced cards use the front face's colors.
 - **Type** is a case-insensitive "contains" on the type line (`creature` matches "Legendary Creature — Elf").
 - **Price sort** puts cards with no price last in both directions.
-- **A new name search resets the filters**, because the navbar navigates to a new path without a query string. This is usually what you want.
+- The navbar changes the `q` search parameter while retaining other query parameters, so active filters remain in the URL when searching for another name.
 - Opening a card and pressing Back keeps the filters (they are in the URL you return to).
 
 ## Limits (read before building on this)
 
-- **Only the first page of Scryfall results is filtered.** The app fetches one page (up to 175 cards). Filtering "red" over a name search only filters those cards. For true filtering, use Scryfall's own syntax in the query (`c:r t:creature`) and send the filters to the API; then the table becomes display-only (`manualFiltering: true`). That is also the model for Supabase later: URL state becomes the query key and the database does the filtering.
+- **Only cards loaded so far are filtered.** Name search loads paginated Scryfall results; filtering applies to the cards currently loaded. For true server-side filtering, use Scryfall's own syntax in the query (`c:r t:creature`) and send the filters to the API; then the table becomes display-only (`manualFiltering: true`). That is also the model for Supabase: URL state becomes the query key and the database does the filtering.
 - **`.tsx` files are not linted** because of the glob typo in `eslint.config.js` (`ts, tsx` has a space). The new `.ts` files are linted; `CardFilters.tsx` is not until you fix it.
 - **Not yet tested in a browser.** I verified: typecheck, production build, and the filter and sort logic against sample cards (single and double-faced, colorless, missing prices), and that the patch applies to a fresh clone. I could not click through the UI, so test the checklist below.
 
@@ -75,5 +75,5 @@ All new code is TypeScript, in `src/features/card-filters/`.
 
 - Fix the ESLint glob, then fix whatever new `.tsx` lint errors appear.
 - Add a numeric `cmc` range filter (`parseAsInteger`) to practice a second parser type.
-- Move the filters to `/v2/search/advanced` when that page is built; the hook and component are not tied to `/v1`.
+- Extend the filters for `/v2/search/advanced` when that page is implemented; the hook and component are shared with the current V2 browser and favorites page.
 - Move filtering server-side (Scryfall query, later Supabase) when one page of results is not enough.

@@ -1,6 +1,6 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
-import type { ApiParams, ApiRecord } from "../services/createApiClient.ts";
-import type { CardSource } from "../features/card-browser/types.ts";
+import type { ApiParams, ApiRecord } from "../../services/createApiClient.ts";
+import type { CardSource } from "./types.ts";
 
 type ScryfallCardPage = {
   cards: ApiRecord[];

@@ -19,21 +19,21 @@ Naming and usage rules for each file format in this repo (branch `typescript`). 
 ### `.jsx` — JavaScript + JSX (legacy, being migrated)
 
 - **Use for:** existing components only. Do not create new `.jsx` files.
-- **Observed:** components in PascalCase (`FloatingNavBar.jsx`, `CardOverlay.jsx`), icons as `Icon<Name>.jsx`, router as `router.jsx` (lowercase, not a component).
+- **Observed:** components in PascalCase (`NavBar.tsx`, `CardDetailsOverlay.tsx`), icons as `Icon<Name>.tsx`, router as `router.tsx` (lowercase, not a component).
 - **Rule:** when converting, rename to `.tsx` in the same commit, then run `npm run typecheck`. Some hooks are `.jsx` without any JSX (`useOracleText.jsx`, `useScryfallCardsSearch.jsx`); they should become `.ts`.
 
 ### `.js` — JavaScript, no JSX (legacy and config)
 
 - **Use for:** config files that must stay JS, plus existing hooks and services.
-- **Observed:** `eslint.config.js`, `vite.config.js` (config, lowercase with `.config`); hooks `useFetchUrl.js`, `usePreFetchUrl.js`, `useScrollDirection.js`; services `createApiClient.js`, `getCardPrices.js`; helpers `normalizeCard.js`, `scryfallCardLayouts.js`.
+- **Observed:** `eslint.config.js`, `vite.config.js` (config, lowercase with `.config`); hooks `useFetchUrl.ts`, `usePreFetchUrl.ts`, `useScrollVisibility.ts`; services `createApiClient.ts`, `fetchScryfallCards.ts`; helpers `normalizeCard.js`, `scryfallCardLayouts.js`.
 - **Rule:** camelCase. New non-config code should be `.ts`.
 
 ## Styles
 
 ### `.css` — Stylesheets
 
-- **Observed:** one CSS file beside each component with the same name (`Card.jsx` + `Card.css`). Global styles: `style.css` (repo root), `src/app/App.css`, and `public/theme.css` (design tokens).
-- **Rule:** component CSS lives in the component's folder and shares its name. Colors, spacing and fonts come from the tokens in `public/theme.css` (CSS variables); do not hard-code new colors. Global rules go only in the global files.
+- **Observed:** one CSS file beside each component with the same name. Global styles: `style.css` (repo root), `src/app/App.css`, and `src/theme.css` (design tokens).
+- **Rule:** component CSS lives in the component's folder and shares its name. Colors, spacing and fonts come from the tokens in `src/theme.css` (CSS variables); do not hard-code new colors. Global rules go only in the global files.
 
 ## Docs and diagrams
 

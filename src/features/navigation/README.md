@@ -1,25 +1,24 @@
-# Eerie Nav — desktop header + mobile floating bar
+# V2 Navigation — desktop header + mobile floating bar
 
-Two breakpoints, one shared visual language. Built directly against the
-`theme.css` tokens you pasted (`--bg-header`, `--bg-card`, `--btn-gold`,
-`--text-accent`, `--eerie-glow`, etc.) — no new palette was invented.
+The V2 navbar renders a desktop header and a mobile floating bar, with one
+shared visual language driven by the tokens in `src/theme.css`.
 
 ## Files
 
 ```text
-navbar/
-├── NavBar.jsx              — drop-in root component (renders both bars)
-├── NavBarDesktop.jsx        — top header, icon + title, hides on scroll
-├── NavBarMobile.jsx         — bottom floating pill, icon-only, hides on scroll
-├── NavSearchField.jsx       — shared quick-search / random input
-├── navItems.js              — single source of truth for the 5 options
-├── hooks/
-│   └── useScrollVisibility.js  — shared show/hide-on-scroll logic
-├── icons/
-│   └── NavIcons.jsx         — 6 icons, each with a trace + core layer
-├── navbar-shared.css        — the reusable "floating bar" surface + glow
-├── navbar-desktop.css       — desktop-only positioning
-└── navbar-mobile.css        — mobile-only positioning
+src/features/navigation/
+├── NavBar.tsx               — root component, search routing and auth actions
+├── NavBarDesktop.tsx        — desktop header
+├── NavBarMobile.tsx         — mobile floating bar
+├── NavSearchField.tsx       — shared quick-search / random input
+├── navItems.ts              — navigation destinations
+├── NavThemeToggle.tsx       — theme control
+├── navbar-shared.css        — shared surface, icon and label styles
+├── navbar-desktop.css       — desktop positioning
+└── navbar-mobile.css        — mobile positioning
+
+src/assets/icons/navigation/
+└── individual SVG icon components
 ```
 
 In the current V2 app, the Binder item opens `/v2/binder`; the former
@@ -27,7 +26,7 @@ In the current V2 app, the Binder item opens `/v2/binder`; the former
 
 ## How the "reuse the floating bar" ask was implemented
 
-`navbar-shared.css` owns everything visual: the glass gradient surface,
+`navbar-shared.css` owns the shared visual treatment: the glass gradient surface,
 the gold hairline border, `box-shadow: var(--eerie-glow)`, the blur, and
 the icon/label glow mechanic. Both `<header class="nav-surface">` (desktop)
 and `<nav class="nav-surface">` (mobile) point at the exact same class —
@@ -42,7 +41,7 @@ under a cursor.
 
 ## The glow mechanic (the "Ring inscription" effect)
 
-Every icon in `NavIcons.jsx` is drawn as two layers:
+The navigation SVG components are drawn as two layers:
 
 - `.nc-trace` — an outline that's always faintly present (never fully
   invisible, so the icon reads at rest)
@@ -75,14 +74,12 @@ system-safe if you don't.
 
 ## Assumptions made (flag if wrong)
 
-- **Routing:** `react-router-dom` (`useLocation` / `useNavigate`). If
-  you're on Next.js or another router, swap those two hooks out in
-  `NavBarDesktop.jsx` / `NavBarMobile.jsx` — everything else is
-  router-agnostic.
+- **Routing:** `react-router` (`useNavigate`). `NavBar` is mounted in the
+  `/v2` layout, so its relative search destinations resolve under `/v2`.
 - **Search behavior:** empty submit → `search/random`, non-empty →
-  `search?q=<term>`. These destinations are route-relative to the
-  version layout that renders the navbar. Adjust them in each bar's
-  `handleSearch` if the child routes change.
+  `search?q=<term>`. These destinations are route-relative to the V2 layout.
+  Search keeps other query parameters, including active filters. The handler
+  lives in `NavBar.tsx`.
 - **Breakpoint:** 861px is the desktop/mobile split (matches common
   tablet-portrait cutoffs). Change the `min-width` in both CSS files if
   your app uses a different one.
@@ -93,10 +90,10 @@ system-safe if you don't.
 ## Usage
 
 ```jsx
-// App.jsx, inside your Router
-import NavBar from "./navbar/NavBar";
+// src/app/App.tsx, inside the /v2 route
+import NavBar from "../features/navigation/NavBar.tsx";
 
-function App() {
+function AppV2() {
   return (
     <>
       <NavBar />

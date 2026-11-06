@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import createApiClient, { type ApiParams, type ApiRecord } from "../services/createApiClient.ts";
+import createApiClient, { type ApiParams, type ApiRecord } from "../../services/createApiClient.ts";
 
 const scryfallClient = createApiClient("https://api.scryfall.com");
 

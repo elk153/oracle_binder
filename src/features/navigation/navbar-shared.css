@@ -74,7 +74,7 @@
 /* ---------------------------------------------------------------------
    Nav item button reset + the "empty until selected" glow mechanic.
 
-   Each icon is drawn with two layers (see icons/NavIcons.jsx):
+   Each navigation icon is drawn with two layers (see src/assets/icons/navigation/):
      .nc-trace  the always-visible etched outline
      .nc-core   the sunken interior — dark at rest, glowing when active
 

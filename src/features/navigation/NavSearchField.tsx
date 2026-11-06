@@ -1,5 +1,5 @@
 import { useRef, useState, type FormEvent } from "react";
-import QuickSearchIcon from "../../assets/navigation/QuickSearchIcon.tsx";
+import QuickSearchIcon from "../../assets/icons/navigation/QuickSearchIcon.tsx";
 
 type NavSearchFieldProps = {
   onSearch?: (query: string) => void;

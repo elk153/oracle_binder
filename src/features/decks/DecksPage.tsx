@@ -17,7 +17,7 @@ import AddBinderCopyDialog from "../binder/AddBinderCopyDialog.tsx";
 import type { BinderCopy } from "../binder/useBinderCopies.ts";
 import type { Deck, DeckCard } from "./useDeckManagement.ts";
 import useDeckManagement from "./useDeckManagement.ts";
-import { useFavoriteIds, useToggleFavorite } from "../favorites/useFavorites.ts";
+import useFavoriteCardAction from "../favorites/useFavoriteCardAction.ts";
 import "./DecksPage.css";
 
 const DECK_VIEWS = ["all", "decks"] as const;
@@ -61,12 +61,12 @@ export default function DecksPage() {
   const [notice, setNotice] = useState("");
   const decks = useDeckManagement();
   const binder = useBinderManagement(setNotice);
+  const favorites = useFavoriteCardAction();
   const {
     favoriteIds,
     isLoading: favoritesLoading,
     error: favoritesError,
-  } = useFavoriteIds();
-  const toggleFavorite = useToggleFavorite();
+  } = favorites;
 
   const cardIds = useMemo(
     () =>
@@ -196,20 +196,15 @@ export default function DecksPage() {
 
   function handleCardAction(action: CardAction, card: CardBrowserCard) {
     if (action !== "favorite" || !user) return;
-    const wasFavorite = favoriteIds.has(card.id);
-    toggleFavorite.mutate(
-      { userId: user.id, scryfallId: card.id, isFavorite: wasFavorite },
-      {
-        onSuccess: () =>
-          setNotice(
-            wasFavorite
-              ? `Removed ${card.name} from Favorites.`
-              : `Added ${card.name} to Favorites.`,
-          ),
-        onError: (error) =>
-          setNotice(`Could not update Favorites: ${error.message}`),
-      },
-    );
+    favorites.toggleCardFavorite(card, user.id, {
+      onSuccess: (wasFavorite) =>
+        setNotice(
+          wasFavorite
+            ? `Removed ${card.name} from Favorites.`
+            : `Added ${card.name} to Favorites.`,
+        ),
+      onError: (error) => setNotice(`Could not update Favorites: ${error.message}`),
+    });
   }
 
   const binderActionDisabled =
@@ -466,7 +461,7 @@ export default function DecksPage() {
                       isFavoritePending={
                         favoritesLoading ||
                         Boolean(favoritesError) ||
-                        toggleFavorite.isPending
+                        favorites.isPending
                       }
                       binderCopies={binder.copies.copiesByScryfallId.get(card.id) ?? []}
                       {...binderCardProps}
@@ -528,7 +523,7 @@ export default function DecksPage() {
           favoriteActionDisabled={
             favoritesLoading ||
             Boolean(favoritesError) ||
-            toggleFavorite.isPending
+            favorites.isPending
           }
           binderCopiesByScryfallId={binder.copies.copiesByScryfallId}
           {...binderCardProps}

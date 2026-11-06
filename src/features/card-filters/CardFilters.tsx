@@ -32,7 +32,7 @@ export default function CardFilters({
   onReset,
   shown,
   total,
-  feature = "v1",
+  feature = "search",
   layout = "inline",
 }: Props) {
   const visible = useScrollVisibility({ threshold: 10, topGuard: 48 });
@@ -55,7 +55,7 @@ export default function CardFilters({
               aria-pressed={filters.colors.includes(color)}
               onClick={() => setFilters({ colors: toggle(filters.colors, color) })}
             >
-              {feature === "v1" ? color : COLOR_LABELS[color]}
+              {COLOR_LABELS[color]}
             </button>
           ))}
         </div>
@@ -70,7 +70,7 @@ export default function CardFilters({
               aria-pressed={filters.rarity.includes(rarity)}
               onClick={() => setFilters({ rarity: toggle(filters.rarity, rarity) })}
             >
-              {feature === "v1" ? rarity : RARITY_LABELS[rarity]}
+              {RARITY_LABELS[rarity]}
             </button>
           ))}
         </div>
@@ -98,7 +98,7 @@ export default function CardFilters({
             <option value="">Sort: default</option>
             {SORT_KEYS.map((key) => (
               <option key={key} value={key}>
-                {feature === "v1" ? key : SORT_LABELS[key]}
+                {SORT_LABELS[key]}
               </option>
             ))}
           </select>

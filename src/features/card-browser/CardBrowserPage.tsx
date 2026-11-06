@@ -1,30 +1,18 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router";
 import CardFilters from "../card-filters/CardFilters.tsx";
 import { useCardsTable } from "../card-filters/useCardsTable.ts";
 import CardTile from "./CardTile.tsx";
 import CardDetailsOverlay from "./CardDetailsOverlay.tsx";
-import type { CardAction, CardBrowserCard, CardSource } from "./types.ts";
-import { isCardBrowserCard } from "./types.ts";
+import type { CardAction, CardBrowserCard } from "./types.ts";
 import { useAuth } from "../../app/AppProviders/AuthContext.ts";
-import { useFavoriteIds, useToggleFavorite } from "../favorites/useFavorites.ts";
-import useScryfallCardsSearch from "../../hooks/useScryfallCardsSearch.ts";
-import useScryfallCardPages from "../../hooks/useScryfallCardPages.ts";
-import useFetchUrl from "../../hooks/useFetchUrl.ts";
-import useScryfallCardsForIds from "../../hooks/useScryfallCardsForIds.ts";
+import useFavoriteCardAction from "../favorites/useFavoriteCardAction.ts";
 import useBinderManagement from "../binder/useBinderManagement.ts";
 import AddBinderCopyDialog from "../binder/AddBinderCopyDialog.tsx";
 import type { BinderCopy } from "../binder/useBinderCopies.ts";
 import useDeckManagement from "../decks/useDeckManagement.ts";
-import {
-  getMulliganSets,
-  isScryfallSet,
-  selectDailyMulliganSet,
-} from "./mulliganSets.ts";
+import useCardBrowserResults from "./useCardBrowserResults.ts";
 import "./CardBrowserPage.css";
-
-const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
-const NO_DATA: unknown[] = [];
 
 const ACTION_LABELS: Record<CardAction, string> = {
   favorite: "Favorites",
@@ -41,166 +29,45 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
   const location = useLocation();
   const { pathname } = location;
   const { user, isLoading: isAuthLoading } = useAuth();
+  const favorites = useFavoriteCardAction();
   const {
     favoriteIds,
     ids: favoriteIdList,
     isLoading: areFavoritesLoading,
     error: favoritesError,
     realtimeError: favoritesRealtimeError,
-  } = useFavoriteIds();
-  const toggleFavorite = useToggleFavorite();
+  } = favorites;
   const [notice, setNotice] = useState("");
   const [signInPath, setSignInPath] = useState<string | null>(null);
   const binder = useBinderManagement(setNotice);
   const decks = useDeckManagement();
-  const searchQuery = searchParams.get("q")?.trim() ?? "";
   const cardId = searchParams.get("card");
-  const isRandomRoute = mode === "mulligan" || pathname.endsWith("/random");
-  const isPersonalSearch =
-    !isRandomRoute && searchParams.get("source") === "collection";
-  const [dailyDay, setDailyDay] = useState(() =>
-    Math.floor(Date.now() / MILLISECONDS_PER_DAY),
-  );
-
-  useEffect(() => {
-    const nextUtcMidnight = (dailyDay + 1) * MILLISECONDS_PER_DAY;
-    const timer = window.setTimeout(
-      () => setDailyDay(Math.floor(Date.now() / MILLISECONDS_PER_DAY)),
-      nextUtcMidnight - Date.now(),
-    );
-    return () => window.clearTimeout(timer);
-  }, [dailyDay]);
-  const setsQuery = useFetchUrl(
-    "scryfallSets",
-    "https://api.scryfall.com/sets",
-  );
-  const rawSets = setsQuery.data ?? NO_DATA;
-  const invalidSetData = rawSets.some((value) => !isScryfallSet(value));
-  const availableSets = useMemo(
-    () =>
-      invalidSetData
-        ? []
-        : getMulliganSets(rawSets.filter(isScryfallSet)),
-    [invalidSetData, rawSets],
-  );
-  const mulliganSet = isRandomRoute
-    ? selectDailyMulliganSet(availableSets, dailyDay)
-    : undefined;
-  const mulliganQuery = mulliganSet
-    ? `set:${mulliganSet.code}`
-    : "";
-  const routeParam = isRandomRoute
-    ? mulliganSet
-      ? "cards/search"
-      : null
-    : searchQuery && !isPersonalSearch
-      ? "cards/search"
-      : null;
-  const queryParams = isRandomRoute
-    ? { q: mulliganQuery, unique: "cards", order: "random", format: "json" }
-    : { q: searchQuery, format: "json" };
-  const querySeed = isRandomRoute ? dailyDay : 0;
-  const singlePageSearch = useScryfallCardsSearch(
-    isRandomRoute ? routeParam : null,
-    queryParams,
-    querySeed,
-  );
-  const paginatedSearch = useScryfallCardPages(
-    !isRandomRoute && routeParam ? queryParams : null,
-    querySeed,
-  );
-  const searchCardSource: CardSource = isRandomRoute
-    ? {
-        cards: singlePageSearch.data ?? [],
-        isLoading: singlePageSearch.isLoading,
-        isFetchingNextPage: false,
-        hasNextPage: false,
-        fetchNextPage: () => {},
-        error: singlePageSearch.error,
-      }
-    : paginatedSearch;
-  const personalCardIds = useMemo(
-    () => {
-      if (!isPersonalSearch) {
-        return isRandomRoute || !searchQuery ? [] : favoriteIdList;
-      }
-      return [...new Set([
-        ...favoriteIdList,
-        ...binder.copies.copies
-          .filter((copy) => copy.status === "owned")
-          .map((copy) => copy.scryfall_id),
-      ])].sort();
-    },
-    [
-      isPersonalSearch,
-      isRandomRoute,
-      searchQuery,
-      favoriteIdList,
-      binder.copies.copies,
-    ],
-  );
-  const personalCardsQuery = useScryfallCardsForIds(
-    "personal",
-    personalCardIds,
-    Boolean(user) &&
-      !areFavoritesLoading &&
-      (!isPersonalSearch || !binder.copies.isLoading),
-  );
-  const displayCards = useMemo(() => {
-    const searchCards = searchCardSource.cards;
-    if (isPersonalSearch) {
-      return personalCardsQuery.data ?? [];
-    }
-
-    if (isRandomRoute || !searchQuery || !user) return searchCards;
-    const searchCardIds = new Set(
-      searchCards
-        .filter(isCardBrowserCard)
-        .map((card) => card.id),
-    );
-    const matchingFavorites = (personalCardsQuery.data ?? []).filter(
-      (card) =>
-        favoriteIds.has(card.id) &&
-        isCardBrowserCard(card) &&
-        card.name.toLocaleLowerCase().includes(searchQuery.toLocaleLowerCase()) &&
-        !searchCardIds.has(card.id),
-    );
-    return [...searchCards, ...matchingFavorites];
-  }, [
-    searchCardSource.cards,
-    isPersonalSearch,
-    personalCardsQuery.data,
-    isRandomRoute,
+  const {
     searchQuery,
+    isRandomRoute,
+    isPersonalSearch,
+    setsQuery,
+    invalidSetData,
+    mulliganSet,
+    routeParam,
+    cardSource,
+    cards,
+    invalidCardData,
+    personalCardsError,
+  } = useCardBrowserResults({
+    mode,
+    pathname,
+    searchParams,
     user,
     favoriteIds,
-  ]);
-  const cardSource: CardSource = {
-    ...searchCardSource,
-    cards: displayCards,
-    isLoading: isPersonalSearch
-      ? areFavoritesLoading || binder.copies.isLoading || personalCardsQuery.isLoading
-      : searchCardSource.isLoading,
-    hasNextPage: isPersonalSearch ? false : searchCardSource.hasNextPage,
-    error: isPersonalSearch
-      ? favoritesError ??
-        favoritesRealtimeError ??
-        binder.copies.error ??
-        personalCardsQuery.error ??
-        null
-      : searchCardSource.error,
-  };
-  const rawCards = cardSource.cards;
-  const invalidCardData = rawCards?.some((card) => !isCardBrowserCard(card)) ?? false;
-  const cards = useMemo<CardBrowserCard[]>(
-    () =>
-      rawCards && !invalidCardData
-        ? isRandomRoute
-          ? rawCards.filter(isCardBrowserCard).slice(0, 7)
-          : rawCards.filter(isCardBrowserCard)
-        : [],
-    [rawCards, invalidCardData, isRandomRoute],
-  );
+    favoriteIdList,
+    areFavoritesLoading,
+    favoritesError,
+    favoritesRealtimeError,
+    binderCopies: binder.copies.copies,
+    areBinderCopiesLoading: binder.copies.isLoading,
+    binderCopiesError: binder.copies.error,
+  });
   const { table, filters, setFilters, resetFilters } = useCardsTable(cards);
   const rows = table.getRowModel().rows;
   const cardsById = useMemo(
@@ -259,27 +126,27 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
       return;
     }
 
-    const wasFavorite = favoriteIds.has(card.id);
-    toggleFavorite.mutate(
-      { userId: user.id, scryfallId: card.id, isFavorite: wasFavorite },
-      {
-        onSuccess: () =>
-          setNotice(
-            wasFavorite
-              ? `Removed ${card.name} from Favorites.`
-              : `Added ${card.name} to Favorites.`,
-          ),
-        onError: (error) =>
-          setNotice(`Could not update Favorites for ${card.name}: ${error.message}`),
-      },
-    );
+    favorites.toggleCardFavorite(card, user.id, {
+      onSuccess: (wasFavorite) =>
+        setNotice(
+          wasFavorite
+            ? `Removed ${card.name} from Favorites.`
+            : `Added ${card.name} to Favorites.`,
+        ),
+      onError: (error) =>
+        setNotice(
+          `Could not update Favorites for ${card.name}: ${
+            error.message
+          }`,
+        ),
+    });
   }
 
   const favoriteActionDisabled =
     isAuthLoading ||
     areFavoritesLoading ||
     Boolean(favoritesError) ||
-    toggleFavorite.isPending;
+    favorites.isPending;
   const binderActionDisabled =
     isAuthLoading ||
     binder.bindersLoading ||
@@ -370,9 +237,9 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
           Favorites updates from other devices may be delayed: {favoritesRealtimeError.message}
         </p>
       )}
-      {user && personalCardsQuery.error && !cardSource.error && (
+      {user && personalCardsError && !cardSource.error && (
         <p className="card-browser__message card-browser__message--error" role="alert">
-          Could not load owned card printings: {personalCardsQuery.error.message}
+          Could not load owned card printings: {personalCardsError.message}
         </p>
       )}
       {user && binder.copies.error && (

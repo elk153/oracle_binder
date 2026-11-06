@@ -1,8 +1,8 @@
-import HomeIcon from "../../assets/navigation/HomeIcon.tsx";
-import AdvancedSearchIcon from "../../assets/navigation/AdvancedSearchIcon.tsx";
-import FavoritesIcon from "../../assets/navigation/FavoritesIcon.tsx";
-import BinderIcon from "../../assets/navigation/BinderIcon.tsx";
-import DecksIcon from "../../assets/navigation/DecksIcon.tsx";
+import HomeIcon from "../../assets/icons/navigation/HomeIcon.tsx";
+import AdvancedSearchIcon from "../../assets/icons/navigation/AdvancedSearchIcon.tsx";
+import FavoritesIcon from "../../assets/icons/navigation/FavoritesIcon.tsx";
+import BinderIcon from "../../assets/icons/navigation/BinderIcon.tsx";
+import DecksIcon from "../../assets/icons/navigation/DecksIcon.tsx";
 
 // Single source of truth for the 5 options. Both NavBarDesktop and
 // NavBarMobile map over this so labels/icons/paths never drift apart.

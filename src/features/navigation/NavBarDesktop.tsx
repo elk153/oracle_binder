@@ -4,7 +4,7 @@ import { resolvePath, useLocation, useNavigate, useResolvedPath } from "react-ro
 import navItems from "./navItems";
 import NavSearchField from "./NavSearchField";
 import NavThemeToggle from "./NavThemeToggle.tsx";
-import LogoutIcon from "../../assets/navigation/LogoutIcon.tsx";
+import LogoutIcon from "../../assets/icons/navigation/LogoutIcon.tsx";
 import useScrollVisibility from "../../hooks/useScrollVisibility";
 
 export default function NavBarDesktop({

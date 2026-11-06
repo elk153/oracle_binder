@@ -11,7 +11,7 @@ import CardDetailsOverlay from "../card-browser/CardDetailsOverlay.tsx";
 import CardFilters from "../card-filters/CardFilters.tsx";
 import { useCardsTable } from "../card-filters/useCardsTable.ts";
 import { useAuth } from "../../app/AppProviders/AuthContext.ts";
-import { useFavoriteIds, useToggleFavorite } from "../favorites/useFavorites.ts";
+import useFavoriteCardAction from "../favorites/useFavoriteCardAction.ts";
 import useScryfallCardsForIds from "../../hooks/useScryfallCardsForIds.ts";
 import useBinderManagement from "./useBinderManagement.ts";
 import AddBinderCopyDialog from "./AddBinderCopyDialog.tsx";
@@ -68,8 +68,8 @@ export default function BinderPage() {
   const [moveDestination, setMoveDestination] = useState("");
   const binder = useBinderManagement(setNotice);
   const decks = useDeckManagement();
-  const { favoriteIds, isLoading: favoritesLoading } = useFavoriteIds();
-  const toggleFavorite = useToggleFavorite();
+  const favorites = useFavoriteCardAction();
+  const { favoriteIds, isLoading: favoritesLoading } = favorites;
   const ownedCopies = useMemo(
     () => binder.copies.copies.filter((copy) => copy.status === "owned"),
     [binder.copies.copies],
@@ -207,20 +207,15 @@ export default function BinderPage() {
 
   function handleCardAction(action: CardAction, card: CardBrowserCard) {
     if (action !== "favorite" || !user) return;
-    const wasFavorite = favoriteIds.has(card.id);
-    toggleFavorite.mutate(
-      { userId: user.id, scryfallId: card.id, isFavorite: wasFavorite },
-      {
-        onSuccess: () =>
-          setNotice(
-            wasFavorite
-              ? `Removed ${card.name} from Favorites.`
-              : `Added ${card.name} to Favorites.`,
-          ),
-        onError: (error) =>
-          setNotice(`Could not update Favorites: ${error.message}`),
-      },
-    );
+    favorites.toggleCardFavorite(card, user.id, {
+      onSuccess: (wasFavorite) =>
+        setNotice(
+          wasFavorite
+            ? `Removed ${card.name} from Favorites.`
+            : `Added ${card.name} to Favorites.`,
+        ),
+      onError: (error) => setNotice(`Could not update Favorites: ${error.message}`),
+    });
   }
 
   const binderActionDisabled =
@@ -477,7 +472,7 @@ export default function BinderPage() {
                     onSelect={() => setCardId(card.id)}
                     onAction={handleCardAction}
                     isFavorite={favoriteIds.has(card.id)}
-                    isFavoritePending={favoritesLoading || toggleFavorite.isPending}
+                    isFavoritePending={favoritesLoading || favorites.isPending}
                     binderCopies={binder.copies.copiesByScryfallId.get(card.id) ?? []}
                     {...binderCardProps}
                     {...deckActionProps}
@@ -514,7 +509,7 @@ export default function BinderPage() {
           fallbackCard={selectedCard}
           onAction={handleCardAction}
           favoriteIds={favoriteIds}
-          favoriteActionDisabled={favoritesLoading || toggleFavorite.isPending}
+          favoriteActionDisabled={favoritesLoading || favorites.isPending}
           binderCopiesByScryfallId={binder.copies.copiesByScryfallId}
           {...binderCardProps}
           {...deckActionProps}

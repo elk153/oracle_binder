@@ -1,6 +1,6 @@
 # Agent Context
 
-Working map of the app for AI coding agents. Checked against the repository source on 4 Nov 2026. Where this file and the source disagree, the source wins; update this file when the architecture or behavior changes.
+Working map of the app for AI coding agents. Checked against the repository source on 6 Nov 2026. Where this file and the source disagree, the source wins; update this file when the architecture or behavior changes.
 
 ## How to work with me (read first)
 
@@ -16,10 +16,8 @@ The developer is learning React and TypeScript and wants to understand every cha
 ## App at a glance
 
 - React 19 + Vite SPA that finds Magic: The Gathering cards through the public Scryfall API (`https://api.scryfall.com`). Routing uses `react-router` 8 (`createBrowserRouter`).
-- The app currently ships **two layouts** side by side, mounted at different URL prefixes:
-  - **`/v1`: the original card browser.** Random card, name search, card detail overlay, rulings, legalities, printings, and per-printing EUR / foil EUR prices. Its result list uses the original card renderer and the `card-filters/` table.
-  - **`/v2`: the current default card browser.** Home shows a daily seven-card set; search results support local color, rarity, type and sorting controls; card details show artwork, rules/legalities and printings with current EUR / foil EUR prices. Favorites are saved to Supabase and displayed in a paginated favorites page. The Binder tracks per-copy metadata, folders, loose copies and disposed-copy history. Decks is an implemented feature for creating and managing decks and their Binder, proxy and virtual card entries, with All cards and deck-list views. Advanced search remains a placeholder.
-- Both layouts have dark/light theme controls. Theme state is shared through React context, defaults to dark on each page load, and is not persisted.
+- The app has one V2 layout. Home shows a daily seven-card set; search results support local color, rarity, type and sorting controls; card details show artwork, rules/legalities and printings with current EUR / foil EUR prices. Favorites are saved to Supabase and displayed in a paginated favorites page. The Binder tracks per-copy metadata, folders, loose copies and disposed-copy history. Decks supports managing Binder, proxy and virtual card entries, with All cards and deck-list views. Advanced search remains a placeholder.
+- The V2 layout has a dark/light theme control. Theme state is shared through React context, defaults to dark on each page load, and is not persisted.
 - No custom application backend or user database. Supabase Auth provides managed email/password signup and sign-in; account data is managed by Supabase. TanStack Query caches remote data in memory and persists some of it in browser `localStorage`.
 - Binder copies track acquisition/location details and disposal status. Basic deck and card-entry management is implemented; full deck-building tools such as format validation, collection valuation and price history, sales and balance remain **goals, not features**. Never imply they exist.
 
@@ -33,10 +31,10 @@ Node 22 works. Install with `npm install`.
 | `npm run build` | production build into `dist/` | passes |
 | `npm run preview` | serve the build | works |
 | `npm run typecheck` | `tsc --noEmit` | passes |
-| `npm run lint` | ESLint | **fails: 18 pre-existing errors, 0 warnings** (checked 4 Nov 2026) |
+| `npm run lint` | ESLint | **fails: 6 pre-existing errors, 0 warnings** (checked 6 Nov 2026) |
 
 - No test framework or test script exists.
-- Current lint status (checked 4 Nov 2026): 18 errors, no warnings. Errors are unused parameters in `src/assets/IconCards.jsx` and `src/assets/IconSearch.jsx`, unused imports and conditional `useOracleText` calls in the inactive `original-card-renderer/CardDetails/CardDetails.jsx`, and unused parameters in renderer extras. Re-run lint before attributing errors to a change; the baseline can change.
+- Lint status varies as the code changes; rerun lint before attributing errors to a change.
 - Run the narrowest check that fits. At minimum run `npm run typecheck` and `npm run build`.
 
 ## Routes
@@ -46,10 +44,6 @@ Defined in `src/app/router.tsx`. `/` redirects to `/v2/home`.
 | Path | Renders |
 | --- | --- |
 | `/` | redirects to `/v2/home` |
-| `/v1` | redirects to `/v1/random` |
-| `/v1/random` | random card, via `CardsList` |
-| `/v1/cards/:searchQuery` | name search results, via `CardsList` |
-| `/v1/card/:cardId` | declares `CardOverlay` (see gotchas) |
 | `/v2` | redirects to `/v2/home` (route loader) |
 | `/v2/home` | daily seven-card set (`CardBrowserPage` in mulligan mode) |
 | `/v2/login` | email/password signup and sign-in |
@@ -62,31 +56,15 @@ Defined in `src/app/router.tsx`. `/` redirects to `/v2/home`.
 | `/v2/search/advanced` | placeholder page exported from `src/app/App.tsx` |
 | `/v2/collection` | redirects to `/v2/binder` |
 
-## v1 flow (original browser)
+## V2 flow
 
-1. `index.html` links root `style.css` and loads `/src/main.tsx`; it holds `#root` and the splash elements. `main.tsx` imports `src/theme.css` and mounts `AppProviders` in `StrictMode`.
-2. `AppProviders.tsx` nests `ThemeProvider` > `PersistenceProvider` > `QueryDevToolsProvider` (receives `queryClient` as a prop) > `RouterProvider`.
-3. `src/app/App.jsx` is the v1 layout route. It owns search and card queries, `FloatingNavBar`, outlet context (`scryfallCards`, `isLoadingCards`, `onCardSelect`), the splash transition, and the overlay.
-4. `src/features/scryfall-card-renderer/CardsList/CardsList.jsx` renders results. Despite the folder name, it renders `original-card-renderer/Card/Card.jsx` for each item. It uses `card-filters/` to filter and sort the current Scryfall result set; filter values are synchronized to URL search parameters using `nuqs`.
-5. Clicking a card calls `navigate("card/<id>", { state: { fromList: true } })`. `App.jsx` renders `CardOverlay` in `.top-layer` using its own fetched/selected card.
-
-### Gotchas to preserve
-
-- The routed `CardOverlay` from the router receives no `card` prop and returns `null`. The visible overlay is rendered by `App.jsx`. Understand this before changing card-route rendering.
-- **Navigation is route-relative** (recent change "changed to relative navigation"): `navigate("random")`, `navigate("cards/<name>")`, `navigate("card/<id>")`, and `isRandomRoute` uses `useResolvedPath("random")`. Do not replace these with absolute paths like `/random`; they resolve against the layout that renders them (`/v1` or `/v2`).
-- Closing the overlay: if `location.state.fromList`, `navigate(-1)`; otherwise go to `cards/<encoded card name>`.
-- Random: the seed (`Date.now()`) is part of the query key; submitting an empty search changes it.
-- Keep route params URI-safe (`encodeURIComponent` / `decodeURIComponent`).
-- Card symbols are prefetched in `App.jsx` with `usePreFetchUrl("cardSymbols", ".../symbology", Infinity)` and also read by `useOracleText`.
-- Filters only operate on the cards already returned by the current Scryfall query; they do not issue advanced Scryfall searches.
-- Theme context is provided above the router by `AppProviders`. The v1 floating navbar and v2 desktop/mobile navbars each have a theme toggle. The provider currently initializes to dark and does not save a selection across reloads.
-
-## v2 flow (current default browser)
-
+- `index.html` loads `/src/main.tsx`; `main.tsx` imports `src/theme.css` and mounts `AppProviders` in `StrictMode`.
+- `AppProviders.tsx` nests `ThemeProvider` > `PersistenceProvider` > `QueryDevToolsProvider` (receives `queryClient` as a prop) > `RouterProvider`.
 - `src/app/App.tsx` renders the V2 `NavBar`, prefetches Scryfall card symbols and set metadata, and renders child routes through `<Outlet />`. The Home route renders `CardBrowserPage` in mulligan mode.
 - `src/features/card-browser/CardBrowserPage.tsx` handles `/v2/home`, `/v2/search`, and `/v2/search/random`. Home chooses a stable set per UTC day from released, non-digital, booster-focused Scryfall set types, requests unique cards in random order, and displays up to seven cards from the first result page. The set-type allowlist lives in `mulliganSets.ts`; Scryfall does not supply a direct booster-eligibility flag.
 - Name search uses the paginated `useScryfallCardPages` hook with an explicit load-more button; filters and sorting apply to cards loaded so far, plus matching favorited printings not on the current Scryfall pages. The `source=collection` scope searches deduplicated favorite and owned Binder printings; disposed Binder copies are excluded. The daily set uses `useScryfallCardsSearch` for a single page of up to seven cards. `?card=<id>` opens the details overlay without replacing the current search URL.
 - The protected `/v2/favorites` page uses `useFavoriteCards` to page Supabase favorites newest-first with a composite cursor, hydrates each batch of up to 75 card IDs through Scryfall's collection endpoint, preserves the Supabase ordering, and skips IDs no longer present in Scryfall. It reuses `CardFilters` to filter and sort currently loaded favorites.
+- `features/favorites/useFavoriteCardAction.ts` shares favorite IDs and the toggle mutation across CardBrowser, Binder, and Decks; each page keeps ownership of its own user-facing notices.
 - `src/features/binder/` contains the paged `useBinderCopies` query, copy add/edit/dispose/history controls, and `/v2/binder`. Binder folders use `binder_id = NULL` for virtual Loose; each copy retains `user_id`. The binder icon shows owned-copy count and opens a touch-, hover- and keyboard-accessible popover; clicking pins it open until it is closed, Escape is pressed, or the user clicks outside. The copy dialog and popover use an overlay-matched style, with scrollable content for long forms and histories. Adding, editing, disposing, restoring and deleting copies patch the TanStack Query cache. Binder copies assigned to decks show their deck name; D-034 disposal/deletion atomically converts the associated deck entry to virtual and invalidates deck-card data.
 - `BinderPage.tsx` provides URL-backed `?view=all|binders` and `?binder=<id>` views, local filters, bulk and per-copy moves, binder CRUD, and rarity/supertype/date-ranked covers hydrated in bounded batches through the shared Scryfall collection service. Binder cards and folder covers reuse `CardTile` from the card browser.
 - `CardDetailsOverlay.tsx` loads card rulings and printings through cached queries. In the card-content panel it shows mana cost beside power/toughness, loyalty or defense, then WUBRG color circles and a rarity pill; the rows appear between the type line and oracle text for each rendered face. Print entries show current Scryfall EUR / foil EUR prices and reuse `CardTile` for flip, favorites, binder and deck actions.
@@ -97,7 +75,7 @@ Defined in `src/app/router.tsx`. `/` redirects to `/v2/home`.
 
 ## Data and state
 
-- `src/hooks/useScryfallCardsSearch.ts`: TanStack Query hook, key `["scryfallCards", route, params, seed]`, enabled only when a route is given, 24 h `staleTime`. It uses `src/services/createApiClient.ts`, which normalizes `card` responses to `[card]` and `list`/`catalog` responses to `data`, and throws on Scryfall errors.
+- `src/features/card-browser/useScryfallCardsSearch.ts`: TanStack Query hook, key `["scryfallCards", route, params, seed]`, enabled only when a route is given, 24 h `staleTime`. It uses `src/services/createApiClient.ts`, which normalizes `card` responses to `[card]` and `list`/`catalog` responses to `data`, and throws on Scryfall errors.
 - `src/hooks/useFetchUrl.ts`: fetches auxiliary Scryfall URLs, key `["fetchedUrl", purpose, url]`, validates HTTP status and that the response contains a `data` array, then returns that array. A missing URL returns an empty array.
 - `src/services/fetchScryfallCards.ts` performs a validated, abortable Scryfall collection request bounded to 75 identifiers; favorites use it to hydrate each paginated set while preserving database ordering and skipping cards no longer found by Scryfall.
 - `src/services/fetchScryfallCardsForIds.ts` deduplicates IDs and hydrates them sequentially in batches of at most 75 with a short inter-request gap. `useScryfallCardsForIds` caches these batches for Binder covers and personal search.
@@ -106,29 +84,23 @@ Defined in `src/app/router.tsx`. `/` redirects to `/v2/home`.
 - `PersistenceProvider.tsx` persists only `fetchedUrl` queries and `scryfallCards` queries whose second key is `"cards/search"`, in `localStorage`. Random and single-card queries are not persisted.
 - `queryProvider.ts`: `gcTime` is 24 h and must stay >= the persisted data's max age.
 - `QueryDevToolsProvider.tsx` loads Devtools lazily and only when `import.meta.env.DEV`.
-- `features/card-filters/` uses TanStack Table and `nuqs` to filter by color, rarity and type, sort by name/CMC/rarity/price, and keep filter state in the URL. It is used by both V1 and V2 browser results.
+- `features/card-filters/` uses TanStack Table and `nuqs` to filter by color, rarity and type, sort by name/CMC/rarity/price, and keep filter state in the URL. It is used by the V2 browser and favorites page.
 - Many files contain debug `console.log` calls (e.g. `createApiClient.js`, `useFetchUrl.js`). Do not add more; ask before removing.
 - Prices are current per-printing Scryfall data, not history or collection valuation.
 
 ## Source layout
 
-- `src/main.tsx`, `src/app/` — entry, providers, router and the v1/v2 layouts.
-- `src/features/scryfall-card-renderer/` — active renderer. `normalizeCard.js` maps raw Scryfall cards to the internal shape; `scryfallCardLayouts.js` and `components/` (one/split/toggle/flip/meld faces, `OracleText`, `extras/` for saga, class, case, leveler, mutate, prototype) consume that shape. Used in V1 and the V2 details overlay.
-- `src/features/card-browser/` — V2 card search, daily mulligan, reusable card tile/actions, and card details/printings overlay.
+- `src/main.tsx`, `src/app/` — entry, providers, V2 layout and router.
+- `src/features/scryfall-card-renderer/` — shared card renderer. `normalizeCard.js` maps raw Scryfall cards to the internal shape; `scryfallCardLayouts.js` and `components/` (one/split/toggle/flip/meld faces, `OracleText`, `extras/` for saga, class, case, leveler, mutate, prototype) consume that shape. The V2 details overlay uses it.
+- `src/features/card-browser/` — V2 card search and query hooks, daily mulligan, Scryfall rulings fetch, reusable card tile/actions, and card details/printings overlay.
 - `src/features/binder/` — Binder copy data and mutations, copy metadata form/popover, binder-folder queries and the Binder page.
 - `src/features/decks/` — user-scoped deck and deck-card queries/mutations, inline card action popover, and the Decks page.
-- `src/features/original-card-renderer/Card/` — the older card tile, still used by the v1 results list.
-- `src/features/card-filters/` — v1 result filtering, sorting, URL parsers and table setup.
+- `src/features/card-filters/` — V2 browser and favorites filtering, sorting, URL parsers and table setup.
 - `src/features/navigation/` — V2 desktop/mobile navbar and theme toggle (see above).
-- `src/components/FloatingNavBar/` — v1 navbar: name search, empty search for random, mobile keyboard/viewport handling, hides on scroll (`useScrollDirection`), and theme toggle. Also `Input/`.
 - `src/hooks/`, `src/services/` — see Data and state.
 - `src/theme.css` — theme tokens (dark/light), imported by `main.tsx`. `ThemeContext.ts` and `ThemeProvider.tsx` provide shared theme state and synchronize the document theme and browser theme color. `style.css` (root) is linked from `index.html`. `src/app/App.css` holds layer styles.
-- `src/assets/` — inline SVG icon components. `public/` — site-root icons and favicons.
-- `docs/` — notes (`app/` architecture and flow notes, `theme/theme.md`, `scryfall/CARD.json`, `file-conventions.md`, `external-resources.md`, and `nuqs-filter-guide.md`). Some notes lag the code; verify in source.
-
-## Present but not wired in (do not edit as if live)
-
-`src/components/Header/` (commented out in `App.jsx`), `src/features/original-card-renderer/CardDetails/` and `CardsList/`, `src/hooks/useCardSearch.js`, `src/hooks/useScrollDirection.js`, `src/services/getCardPrices.js`, and `src/services/getCardRulings.js`. The active V1 `CardsList` is under `scryfall-card-renderer/`; V2 tiles use `features/card-browser/CardTile`.
+- `src/assets/icons/` — individual inline SVG React components, with navigation icons grouped under `navigation/`. `public/` contains site-root branding SVGs and favicons.
+- `docs/` — `architecture/` guides (overview, state/data flows, and source reference), theme/Scryfall notes, file conventions, external resources, and filter guidance. Some historical notes may lag the code; verify in source.
 
 ## Planned, not implemented
 
