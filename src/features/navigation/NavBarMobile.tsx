@@ -2,7 +2,7 @@ import { useState } from "react";
 import { resolvePath, useLocation, useNavigate, useResolvedPath } from "react-router";
 import navItems from "./navItems";
 import NavSearchField from "./NavSearchField";
-import SearchSourceToggle from "./SearchSourceToggle.tsx";
+import SearchSourceToggle from "../search/SearchSourceToggle.tsx";
 import type { NavBarProps } from "./types.ts";
 import NavThemeToggle from "./NavThemeToggle.tsx";
 import LogoutIcon from "../../assets/icons/navigation/LogoutIcon.tsx";

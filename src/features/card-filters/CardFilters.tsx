@@ -42,8 +42,9 @@ export default function CardFilters({
   return (
     <section
       className={`card-filters${layout === "floating" ? " card-filters--floating" : ""}${isVisible ? "" : " card-filters--hidden"}`}
-      aria-label="Card filters"
+      aria-label="Filter & sort"
     >
+      <h2 className="card-filters__heading">Filter &amp; sort</h2>
       {categories.includes("colors") && (
         <div className="card-filters__group" role="group" aria-label="Colors">
           {COLORS.map((color) => (

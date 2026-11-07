@@ -140,3 +140,114 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
    ```
 9. Add a `ProtectedRoute` layout: render `<Outlet />` with a session, nothing while `isLoading`, otherwise `<Navigate to="/v2/home" replace />`. Wrap `/v2/favorites`, `/v2/collection` and `/v2/decks` in `router.tsx`. AGENTS.md requires route-relative navigation inside the layouts; confirm the absolute redirect is acceptable for this V2-only guard before changing it.
 10. Run `npm run typecheck` and `npm run build`; both should pass. `npm run lint` still has the 19 existing errors, so compare against that baseline. Then test manually: sign in through Keycloak and return to the app, reload and stay signed in, open `/v2/favorites` signed out (redirects) and signed in (shows), then sign out and confirm the guard works again.
+
+
+### D-044: Search page shell, toggles and naming rule
+
+- Status: Accepted
+- Date: 2026-11-07
+- Decision: On `/v2/search`, `CardBrowserPage` (mode `search`) renders a new `SearchControls` (`src/features/search/`) in place of the header hint. It holds two toggles: source (`scryfall` | `collection`, default `scryfall`, param `source` unchanged) and search type (`simple` | `advanced`, default `simple`, param `s_mode`). The existing `SearchSourceToggle` is moved there, not rewritten.
+- Why: All searching lives in one page; `q`/`source` links keep working; the `s_` prefix and the "Search" vs "Filter & sort" titles stop search inputs and local filters from being confused.
+- Alternatives considered: A separate advanced route (more routes); renaming filter params (breaks existing links, a public contract change).
+- Consequences: Supersedes the navbar-toggle part of D-019. `/v2/search/advanced` (placeholder `AdvancedSearch` in `App.tsx`) becomes a redirect to `/v2/search?s_mode=advanced`. The `search/random` route and mulligan mode are untouched. Touches 3+ files: show a plan first.
+- Source: "[Search] Search refactor"
+
+### D-045: Navbar cleanup
+
+- Status: Accepted
+- Date: 2026-11-07
+- Decision: After D-044, remove the search field and source toggle from `NavBarDesktop.tsx` and `NavBarMobile.tsx`. The existing "Search" item in `navItems.ts` points to `search` instead of `search/advanced`. `NavThemeToggle` moves between Decks and Logout. Signed-out users still get the login prompt from protected pages, as today.
+- Why: Done after D-044 so search is never unreachable; home stays the landing page.
+- Alternatives considered: Doing it first (a gap with no search); adding a Login item (deferred to later user/preferences work).
+- Consequences: In `NavBar.tsx` and `types.ts`, drop `searchSource`, `onSearchSource*`, `onSearch` and the mobile `searchFocused` state. Delete only after your approval: `NavSearchField.tsx`, `src/assets/icons/navigation/QuickSearchIcon.tsx` (used only by NavSearchField), the `SearchSourceToggle` files in `navigation/` once moved by D-044, the `.nav-search*`, `.nav-source-toggle` and `.nav-bar--search-focused` rules in `navbar-shared.css`, `navbar-desktop.css` and `navbar-mobile.css`, the `AdvancedSearch` function in `App.tsx` and its import in `router.tsx`. Update the `.nav-search` comment in `NavThemeToggle.css`. Check with `grep` before each deletion.
+- Source: "[Search] Search refactor"
+
+### D-046: Collection scope and name search
+
+- Status: Accepted
+- Date: 2026-11-07
+- Decision: With `source=collection`, results are the union of favorites (`favoriteIdList`), owned binder copies (`status === "owned"`) and deck entries of any kind (owned/proxy/virtual from `useDeckManagement`), built in `personalCardIds` in `useCardBrowserResults.ts` and hydrated by the existing `useScryfallCardsForIds("personal", …)`. Simple search applies the same case-insensitive name `includes` on `q` that is already used for favorites in Scryfall mode.
+- Why: Collection name search is not implemented today: the personal branch of `displayCards` returns every personal card and ignores `q`.
+- Alternatives considered: A separate collection hook (duplicates hydration and caching).
+- Consequences: `CardTile` already shows Favorites, Binder and Decks icons; check `CardTile.tsx` for proxy/virtual and only add what is missing. The `personal` cache key contains the ID list, so any change in the collection rehydrates all cards; watch performance on large collections.
+- Source: "[Search] Search refactor"
+
+### D-047: Filter and sort by place and kind
+
+- Status: Accepted
+- Date: 2026-11-07
+- Decision: Extend `useCardsTable(cards, cardPlaces?)` with an optional `Map<scryfallId, {favorite, binders[], decks[{id, kind}]}>` built from the D-046 sources. New `FilterCategory` values `place` (binder or deck, multi-select) and `kind` (owned/proxy/virtual/favorite, multi-select) are added to `columns.ts`, `filterParams.ts` (`place`, `kind`) and `filterCategories.ts`. They show only when `cardPlaces` is passed. A new sort key `place` is added to `SORT_KEYS`.
+- Why: Reuses the TanStack Table and nuqs filter pipeline, so no separate filtering code exists for collection results.
+- Alternatives considered: Filtering before the table (duplicates filter logic); a new filter panel (inconsistent UI).
+- Consequences: Passed only by the Search page (collection source) for now. Binder, Decks and Favorites pages already have their own location selectors and are unchanged. A card in several places matches any of them. Sorting by `place` uses the alphabetically first place name (assumption).
+- Source: "[Search] Search refactor"
+
+### D-048: Card-name catalog prefetch (stale at 04:00)
+
+- Status: Evaluating
+- Date: 2026-11-07
+- Decision: Prefetch `https://api.scryfall.com/catalog/card-names` once with `usePreFetchUrl` (data purpose `cardNames`), reading it with `useFetchUrl`. Stale time = until the next 04:00 local time, computed from `query.state.dataUpdatedAt` by a small helper. `staleTimeInSeconds` in both hooks accepts `number | ((query) => number)`.
+- Why: Avoids repeated Scryfall requests; the catalog has no fixed refresh cycle, so a fixed daily boundary is simplest. `createApiClient` cannot be used because it rejects a `data` array of strings.
+- Alternatives considered: Scryfall `/cards/autocomplete` (one request per search, more calls); a plain 24 h stale time (refreshes at arbitrary hours).
+- Consequences: Verify that the installed `@tanstack/react-query` (^5.104) accepts a function `staleTime` (run `typecheck`). The timezone is assumed to be local time. Persistence: queries keyed `fetchedUrl` are persisted to `localStorage` automatically, which risks the quota. Run `curl -s -H "User-Agent: oracle_binder-dev/1.0" -H "Accept: application/json" https://api.scryfall.com/catalog/card-names | wc -c`. If it is under about 1 MB, keep the default; otherwise exclude `cardNames` in `shouldDehydrateQuery` (record in CHANGELOG as persisted-data change).
+- Source: "[Search] Search refactor"
+
+### D-049: Name autocomplete (native datalist)
+
+- Status: Accepted
+- Date: 2026-11-07
+- Decision: One reusable `NameAutocomplete` (`src/features/search/`) built on a native `<datalist>`, fed with a name list and showing at most 20 matches once the input has 4 or more characters. Sources: Scryfall card names (D-048, Scryfall source), collection card names (D-046, collection source), set names (`scryfallSets`, already prefetched).
+- Why: Simplest approach, no dependency; limiting the options keeps the browser fast with tens of thousands of names.
+- Alternatives considered: A custom dropdown or library (more code or a new dependency).
+- Consequences: Styling is limited by the browser. Matching is case-insensitive on the typed text; add a `<label>` for accessibility. The same component is used by simple search, advanced name and set fields.
+- Source: "[Search] Search refactor"
+
+### D-050: Advanced filter model and Scryfall query builder
+
+- Status: Accepted
+- Date: 2026-11-07
+- Decision: One typed `AdvancedSearchFilters` object with nuqs parsers (all `s_`-prefixed): `s_name`, `s_text`, `s_type`, `s_flavor`, `s_colors` + `s_colors_op`, `s_identity` + `s_identity_op` (operators `exactly` | `includes` | `atmost`), `s_mana` (symbol sequence), `s_formats` (format + `legal` | `restricted` | `banned`), `s_rarity` (multi), `s_price_min`/`s_price_max` (EUR). A `toScryfallQuery(filters)` function builds the `q` string, passed to the existing `useScryfallCardPages`.
+- Why: One model feeds the form, the URL and the collection matcher (D-052); the prefix avoids collisions with `colors`, `rarity` and `type`.
+- Alternatives considered: Building the string inside the form (not reusable); a free-text syntax box (less friendly).
+- Consequences: Check each Scryfall operator in their syntax docs before coding. When a price is set, add `unique=prints` (prices are per printing). Submit on button press, not per keystroke, to limit requests.
+- Source: "[Search] Search refactor"
+
+### D-051: Advanced search form
+
+- Status: Accepted
+- Date: 2026-11-07
+- Decision: `AdvancedSearchForm` (`src/features/search/`), shown when `s_mode=advanced`, for both sources. Name and set fields reuse D-049. Text-on-card and mana cost use symbol dropdowns from the prefetched `cardSymbols` (symbol + meaning). Mana cost is a symbol builder that appends symbols (e.g. `{2}{U}{U}`) with a clear button. Colors and identity are multi-selects with an operator select.
+- Why: Reuses cached data and existing components.
+- Alternatives considered: A single-symbol mana select (cannot express a full cost).
+- Consequences: Local filters (`CardFilters`, "Filter & sort") remain on the results below and refine only the loaded results.
+- Source: "[Search] Search refactor"
+
+### D-052: Advanced search over the collection
+
+- Status: Accepted
+- Date: 2026-11-07
+- Decision: With `source=collection`, `matchesAdvancedFilters(card, filters)` in `src/features/search/` applies the D-050 filters to the hydrated cards from D-046, mirroring each field of `toScryfallQuery`.
+- Why: The hydrated cards are already full Scryfall objects, so no schema change or migration is needed.
+- Alternatives considered: Querying Scryfall with a list of IDs (query length limits); copying card data into Supabase (migration, duplication).
+- Consequences: Two implementations of the same semantics must be kept in sync (add tests for both). Extend `CardBrowserCard` and `isCardBrowserCard` in `card-browser/types.ts` with `color_identity` and `flavor_text`. Use face-level fallbacks for `colors`, `type_line`, `oracle_text` and `flavor_text` as `columns.ts` already does.
+- Source: "[Search] Search refactor"
+
+<!-- Paste below D-052 in DECISIONS.md. Run only AFTER D-044..D-052 are shipped (they delete, move and add CSS). -->
+
+### D-053: Audit and streamline the project CSS
+
+- Status: Evaluating
+- Date: 2026-11-07
+- Decision: Refactor in 7 small phases, one PR each. Component CSS stays beside its component (existing rule); only proven duplicates move to shared files. After every phase run `npm run build`, `npm run lint`, `npm run typecheck`, then check the 4 browsers (Search, Favorites, Binder, Decks) plus the card overlay in both themes at 390 px and 1280 px.
+  - **0. Baseline (no code change):** record `wc -l $(find src style.css -name "*.css")` and the raw and gzip size of `dist/assets/*.css` after `npm run build`; save screenshots. These numbers are the acceptance reference.
+  - **1. Tokens:** move `src/theme.css` to `src/styles/tokens.css` (update the `main.tsx` import and doc references). Add only tokens used 3 or more times or that change per theme: `--duration-fast|base|slow` (0.2 / 0.4 / 0.8 s), `--z-*` scale (replaces 11 values from 1 to 9999), `--radius-*` (replaces 8px, 0.75rem, 1rem and the 10 literal `999px`; `--control-radius` already exists), `--focus-ring`, and MTG identity colors (`--mana-w|u|b|r|g`, rarity, legality, kind pills; same in both themes, moved out of `CardDetailsOverlay.css`). Remove the unused `--bg-color`, `--bg-overlay`, `--text-header`. Replace the 36 color literals outside `theme.css`.
+  - **2. Base:** create `src/styles/base.css` (imported by `main.tsx`) holding `#root`, one `body` rule, one global `:focus-visible` ring (replaces 11 copies of `outline: 2px solid var(--text-accent)`) and one global `prefers-reduced-motion` rule (4 files handle it today, others do not). Keep `style.css` only as pre-React critical CSS (splash + body reset), renamed `src/styles/splash.css` and still linked from `index.html` so Vite bundles it. Remove the duplicate `body` rules from `App.css`.
+  - **3. Shared layout layer:** `src/styles/layout.css`, declared with `@layer layout`, with `.page` (shell: box-sizing, width, `min-height: 100dvh`, padding), `.page__notice`, `.card-grid` (flex list + card width rule incl. the 540 px `min(calc(var(--card-image-width) + 1.45rem), …)` rule), `.count-badge`, `.pagination`. Component CSS stays unlayered, so it still overrides the layer without touching specificity. Add the class in the 4 page components and `CardTile`, then delete the duplicates from `CardBrowserPage.css`, `FavoritesPage.css`, `BinderPage.css`, `DecksPage.css`, `CardTile.css`.
+  - **4. Selector hygiene:** one block per component file named `block__element--modifier`. Replace the 88 descendant element selectors (e.g. `.deck-page button`) with class selectors, starting with the 4 pages. Remove the single `!important` in `AuthPages.css`. Element selectors only in `base.css`.
+  - **5. Breakpoints:** keep two, `540px` and `860px` (CSS variables cannot be used in media queries, so document them as a comment in `tokens.css`); fold the one-off `480px`, `760px` and `1040px` rules into them after a visual check. Replace remaining `100vw` (page widths) with `100%` and `100vh` with `100dvh`, except fixed overlays, which use `inset: 0`.
+  - **6. Speed:** no CSS file is large; gains come from rendering cost. (a) Add `content-visibility: auto` with `contain-intrinsic-size` to `.browser-card` (up to 175 cards per page); test scrolling, keyboard focus and the overlay. (b) Replace the splash `pulse` animation, which animates `filter: drop-shadow`, with `transform`/`opacity` only. (c) Keep the 6 `backdrop-filter` blurs (navbar, filters, three overlays, `App.css`), but verify their cost in DevTools Performance on a phone-sized viewport and drop the weakest one if it costs frames. (d) Review the `-webkit-` prefixes against the supported browsers.
+  - **7. Guardrails and docs:** update the CSS lines in `docs/file-conventions.md`, `docs/theme/theme.md` and `AGENTS.md` (paths, shared files, naming, token rule: no hard-coded colors, durations, z-index or radii). Optionally add `stylelint` as a dev dependency (needs approval) with rules: no hex/rgb colors outside `tokens.css`, no `!important`, no element selectors outside `base.css`, and a `lint:css` script.
+- Why: Audit of `dev` @ `9a5d883`, before D-044..D-052: 17 files, 2,847 lines, 189 class names. Findings: 24 identical rule bodies repeated across files (page shell, notice, card list and card-width rules each copied in the 4 pages; binder and deck count badges identical); 36 color literals outside the tokens, 20 of them in `CardDetailsOverlay.css`; 3 unused tokens; 11 z-index values, 8 transition durations, 5 breakpoints (860/861, 540, 760, 480, 1040) without tokens; `body` styled in both `style.css` and `App.css`; `SearchSourceToggle.css` imported by two files; 11 uses of `100vh`/`100vw` while only 2 files use `dvh`; no CSS lint. Grep reports 17 class names not found in source, but they are built dynamically (`browser-card--${kind}`, rarity, legality, color and deck kind pills), so none is safely deletable by grep alone.
+- Alternatives considered: Rewrite with Tailwind or CSS-in-JS (new dependency, rewrites every component, loses the existing token system); one big global stylesheet (against `file-conventions.md`); merge all component CSS into layers (large change, little gain); only delete duplicates without tokens (leaves the literals and drift).
+- Consequences: Class names and CSS are not part of the public contract (AGENTS.md), so no `### Breaking` entry; the only user-visible change allowed is none (acceptance = no visual difference). Success = fewer CSS lines and a smaller gzip size than the Phase 0 baseline, not a promised percentage. Do not delete a class unless it is absent from source after expanding template strings; check unused rules with Chrome DevTools Coverage on each page. No CSS file split without a matching component split. Files touched per phase: Phases 1, 2 and 7 are small; Phases 3 and 4 touch about 10 files each and need a short plan before starting. Moving `theme.css` and `style.css` changes paths in `main.tsx`, `index.html` and the docs only.
+- Source: "[CSS] Audit and streamline"

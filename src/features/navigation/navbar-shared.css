@@ -39,9 +39,34 @@
   pointer-events: none;
 }
 
+.nav-mode-notice {
+  position: fixed;
+  z-index: 101;
+  top: 5.4rem;
+  left: 50%;
+  max-width: min(90vw, 32rem);
+  margin: 0;
+  padding: 0.65rem 1rem;
+  transform: translateX(-50%);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--control-radius);
+  color: var(--text-primary);
+  background: var(--bg-card);
+  box-shadow: var(--eerie-glow);
+  font: 0.85rem var(--font-ui);
+  text-align: center;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .nav-surface {
     transition: opacity 0.2s ease;
+  }
+
+  @media (max-width: 860px) {
+    .nav-mode-notice {
+      top: auto;
+      bottom: calc(5.2rem + env(safe-area-inset-bottom, 0px));
+    }
   }
 }
 

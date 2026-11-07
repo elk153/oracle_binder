@@ -12,6 +12,7 @@ import AddBinderCopyDialog from "../binder/AddBinderCopyDialog.tsx";
 import type { BinderCopy } from "../binder/useBinderCopies.ts";
 import useDeckManagement from "../decks/useDeckManagement.ts";
 import useCardBrowserResults from "./useCardBrowserResults.ts";
+import SearchControls from "../search/SearchControls.tsx";
 import "./CardBrowserPage.css";
 
 const ACTION_LABELS: Record<CardAction, string> = {
@@ -175,18 +176,18 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
 
   return (
     <section className="card-browser-page">
-      <header className="card-browser__heading">
-        {!isRandomRoute && !searchQuery && !isPersonalSearch && (
-          <p>Enter a card name in the search field to browse Scryfall.</p>
-        )}
-        {isPersonalSearch && (
-          <p>
-            {user
-              ? `Search your favorites and owned binder copies${searchQuery ? ` for “${searchQuery}”` : ""}.`
-              : "Sign in to search your personal collection."}
-          </p>
-        )}
-      </header>
+      {mode === "search" && !isRandomRoute && (
+        <header className="card-browser__heading">
+          <SearchControls />
+          {isPersonalSearch && (
+            <p>
+              {user
+                ? `Search your favorites and owned binder copies${searchQuery ? ` for “${searchQuery}”` : ""}.`
+                : "Sign in to search your personal collection."}
+            </p>
+          )}
+        </header>
+      )}
 
       {isRandomRoute && setsQuery.isLoading && (
         <p className="card-browser__message" role="status">

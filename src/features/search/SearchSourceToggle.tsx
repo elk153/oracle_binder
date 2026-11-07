@@ -15,18 +15,18 @@ export default function SearchSourceToggle({
   return (
     <button
       type="button"
-      className="nav-source-toggle"
+      className="search-source-toggle"
       role="switch"
       aria-checked={isCollection}
       aria-label="Search personal collection"
       title={`Search source: ${isCollection ? "personal collection" : "Scryfall"}`}
       onClick={onToggle}
     >
-      <span className="nav-source-toggle__label">
+      <span className="search-source-toggle__label">
         {isCollection ? "Collection" : "Scryfall"}
       </span>
-      <span className="nav-source-toggle__track" aria-hidden="true">
-        <span className="nav-source-toggle__thumb" />
+      <span className="search-source-toggle__track" aria-hidden="true">
+        <span className="search-source-toggle__thumb" />
       </span>
     </button>
   );

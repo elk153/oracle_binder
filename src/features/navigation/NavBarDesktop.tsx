@@ -1,4 +1,4 @@
-import SearchSourceToggle from "./SearchSourceToggle.tsx";
+import SearchSourceToggle from "../search/SearchSourceToggle.tsx";
 import type { NavBarProps } from "./types.ts";
 import { resolvePath, useLocation, useNavigate, useResolvedPath } from "react-router";
 import navItems from "./navItems";

@@ -1,4 +1,4 @@
-export type SearchSource = "scryfall" | "collection";
+import type { SearchSource } from "../search/types.ts";
 
 export type NavBarProps = {
   searchSource: SearchSource;

@@ -5,7 +5,7 @@ import CardBrowserPage from "../features/card-browser/CardBrowserPage.tsx";
 import LoginPage from "../features/auth/LoginPage.tsx";
 import AuthCallbackPage from "../features/auth/AuthCallbackPage.tsx";
 import RequireAuth from "../features/auth/RequireAuth.tsx";
-import { Home, AdvancedSearch, Favorites, Binder, Decks } from "./App.tsx";
+import { Home, Favorites, Binder, Decks } from "./App.tsx";
 
 const router = createBrowserRouter([ // be aware of the capitals
   {
@@ -38,7 +38,7 @@ const router = createBrowserRouter([ // be aware of the capitals
       },
       {
         path: "search/advanced",
-        element: <AdvancedSearch />,
+        element: <Navigate to="/v2/search?s_mode=advanced" replace />,
       },
       {
         path: "search",

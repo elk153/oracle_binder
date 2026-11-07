@@ -54,7 +54,7 @@
     gap: clamp(0.05rem, 0.5vw, 0.4rem);
   }
 
-  .nav-bar--desktop .nav-source-toggle {
+  .nav-bar--desktop .search-source-toggle {
     order: 0;
     flex: 0 0 auto;
   }
