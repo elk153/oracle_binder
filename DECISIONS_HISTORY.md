@@ -5,6 +5,7 @@ Implemented decisions are retained here with their original IDs. Current and unr
 ## D-001: Logo and icon set for the web app
 
 - Status: Implemented
+- Release: v2026.11.0
 - Date: 2026-10-25
 - Decision: The logo was traced from the uploaded raster into a vector SVG with CSS variables for all colors. A full icon set was generated from it: SVGs, favicon.ico, 180/192/512/1024 px PNGs in transparent, dark (#000000) and light (#ffffff) versions where relevant.
 - Why: One vector source keeps every size consistent and lets the colors be edited in one place. The Apple-sized canvas (logo about 70% of the height) leaves room for iOS corner masking. A separate tight crop (about 92%) keeps the favicon readable at small sizes.
@@ -15,6 +16,7 @@ Implemented decisions are retained here with their original IDs. Current and unr
 ## D-002: Theme toggle buttons in both navigation bars
 
 - Status: Implemented
+- Release: v2026.11.0
 - Date: 2026-10-25
 - Decision: Each navigation bar gets its own round button that switches between the dark and light theme through the existing useTheme() hook. The icon shows the theme you will switch to (sun in dark mode, moon in light mode).
 - Why: The theme state, the data-theme attribute and the theme tokens already existed, so the simplest fix was a button that calls setTheme. Separate components per bar let each match its own visual style (glowing two-layer icons in the NavBar, plain filled icons in the FloatingNavBar).
@@ -25,6 +27,7 @@ Implemented decisions are retained here with their original IDs. Current and unr
 ## D-003: V2 card browser data and integration boundary
 
 - Status: Implemented
+- Release: v2026.11.0
 - Date: 2026-10-26
 - Decision: Implement the first card-browser flow under `/v2` and leave V1's
   card browsing behavior intact. Keep filters in the URL and apply them to the
@@ -64,6 +67,7 @@ Implemented decisions are retained here with their original IDs. Current and unr
 ## D-006: Favorites table keyed to a card printing, with owner-only RLS
 
 - Status: Implemented
+- Release: v2026.11.0
 - Date: 2026-10-27
 - Decision: Create `public.favorites (user_id, scryfall_id, created_at)` with primary key `(user_id, scryfall_id)`, an index on `(user_id, created_at desc)`, RLS enabled, and select/insert/delete policies for `authenticated` users on their own rows. `anon` has no access. `scryfall_id` is the Scryfall card id, which identifies one printing. There is no `profiles` table.
 - Why: The composite key prevents duplicates and indexes lookups by user. The second index serves "latest added first". `user_id` defaults to `auth.uid()`, so the browser never sends it.
@@ -74,6 +78,7 @@ Implemented decisions are retained here with their original IDs. Current and unr
 ## D-007: Supabase client and AuthProvider
 
 - Status: Implemented
+- Release: v2026.11.0
 - Date: 2026-10-27
 - Decision: Add `@supabase/supabase-js`, create a single client in `src/services/supabaseClient.ts`, and add an `AuthProvider` with a `useAuth` hook. The provider sits inside `PersistenceProvider` and around `RouterProvider`. On sign-out it removes the favorites queries.
 - Why: The library already stores the session and refreshes tokens. A context plus a hook matches the existing `ThemeProvider` pattern.
@@ -84,6 +89,7 @@ Implemented decisions are retained here with their original IDs. Current and unr
 ## D-008: Email and password authentication
 
 - Status: Implemented
+- Release: v2026.11.0
 - Date: 2026-10-27
 - Decision: Add `/v2/login` with email/password sign-in and signup, plus `/v2/auth/callback` for email confirmation. After authentication, navigate to `next` only when it starts with `/v2/` and contains no `//` or backslash; otherwise use `/v2/home`.
 - Why: Use Supabase's built-in password authentication rather than passwordless OTP, while keeping a dedicated route for account access.
@@ -94,6 +100,7 @@ Implemented decisions are retained here with their original IDs. Current and unr
 ## D-009: RequireAuth layout route
 
 - Status: Implemented
+- Release: v2026.11.0
 - Date: 2026-10-27
 - Decision: Wrap `/v2/favorites`, `/v2/binder` and `/v2/decks` in a `RequireAuth` layout route. It renders nothing while the session loads, an inline sign-in invitation linking to `/v2/login?next=<current path>` when signed out, and `<Outlet />` when signed in.
 - Why: An invitation fits your request better than a silent redirect, and the loading state avoids a flash.
@@ -104,6 +111,7 @@ Implemented decisions are retained here with their original IDs. Current and unr
 ## D-010: Paginated card source for the card browser
 
 - Status: Implemented
+- Release: v2026.11.0
 - Date: 2026-10-27
 - Decision: Define a `CardSource` shape (`cards`, `isLoading`, `isFetchingNextPage`, `hasNextPage`, `fetchNextPage`, `error`). Implement it for Scryfall search with `useInfiniteQuery`, following `next_page` while `has_more` is true. Add a "Load more" button. Keep the current daily-set mode as a single page and leave V1 untouched.
 - Why: One source shape lets search, favorites, collections and decks share the card browser. A button is the simplest trigger and keeps Scryfall requests polite.
@@ -114,6 +122,7 @@ Implemented decisions are retained here with their original IDs. Current and unr
 ## D-011: Favorite hooks and the heart toggle
 
 - Status: Implemented
+- Release: v2026.11.0
 - Date: 2026-10-27
 - Decision: Add `useFavoriteIds` (a query for the user's `scryfall_id` set) and `useToggleFavorite` (a mutation that inserts or deletes, then invalidates). Optimistic updates come later. The heart on `CardTile` replaces the under-construction notice. For anonymous users it shows the sign-in invitation.
 - Why: One id set lets every tile show its heart without a request per card.
@@ -124,6 +133,7 @@ Implemented decisions are retained here with their original IDs. Current and unr
 ## D-012: Favorites page on the shared card source
 
 - Status: Implemented
+- Release: v2026.11.0
 - Date: 2026-10-27
 - Decision: Implement `CardSource` for favorites. Each page reads up to 75 rows ordered by `created_at desc, scryfall_id desc`, continuing from the last row with a composite cursor. It resolves them through Scryfall's `POST /cards/collection`, re-orders them by the Supabase order, and skips ids Scryfall no longer returns. Page size is a single constant.
 - Why: Scryfall accepts at most 75 identifiers per request. Cursor paging stays correct when favorites are added or removed between pages.
@@ -134,6 +144,7 @@ Implemented decisions are retained here with their original IDs. Current and unr
 ## D-014: Schema tracked as migration files and applied with the Supabase CLI
 
 - Status: Implemented
+- Release: v2026.11.0
 - Date: 2026-10-27
 - Decision: Keep every schema change as a timestamped SQL file in `supabase/migrations/`, created with `supabase migration new` and applied with `supabase db push` (dry run first). The CLI is pinned as a dev dependency and invoked through `npx`. Local Docker is optional for testing; the dashboard is for reading and experiments, not for schema changes.
 - Why: Files in git give a reviewable history and one source of truth. `db push` also records each migration in the project's migration history, so later automation knows what is already applied. Pasting into the SQL editor would leave that history empty.
@@ -144,6 +155,7 @@ Implemented decisions are retained here with their original IDs. Current and unr
 ## D-016: Generated TypeScript types for the database
 
 - Status: Implemented
+- Release: v2026.11.0
 - Date: 2026-10-27
 - Decision: Generate `src/types/database.ts` from the linked Supabase project's `public` schema with `supabase gen types typescript --linked --schema public` and pass `Database` to `createClient<Database>()` in D-007.
 - Why: `npm run typecheck` then catches wrong table or column names at compile time.
@@ -154,6 +166,7 @@ Implemented decisions are retained here with their original IDs. Current and unr
 ## D-017: Email and password authentication replaces magic-link sign-in
 
 - Status: Implemented
+- Release: v2026.11.0
 - Date: 2026-10-27
 - Decision: Use Supabase's native email/password signup and sign-in on `/v2/login`; keep `/v2/auth/callback` for signup email confirmation and return users only to validated `/v2/` paths.
 - Why: Passwordless magic-link sign-in was not working reliably during testing. The password flow supports regular sign-in without requiring a magic link each time.
@@ -164,6 +177,7 @@ Implemented decisions are retained here with their original IDs. Current and unr
 ## D-018: Cross-device favorites refresh and printing availability
 
 - Status: Implemented
+- Release: v2026.11.0
 - Date: 2026-10-27
 - Decision: Keep favorites synchronized across signed-in devices using Supabase Realtime notifications to refresh the authenticated user's favorites. In the card browser, also surface the user's favorited printing when it is absent from the current Scryfall name-search results. Deduplicate by Scryfall printing ID and apply the existing local filters and sorting to the combined results. Leave the daily seven-card set and unrelated searches unchanged.
 - Why: The current favorite-ID query only refreshes after local mutations or when it becomes stale; it does not notify another open device. Search results are also returned independently by Scryfall and may not include the exact printing saved as a favorite.
@@ -174,6 +188,7 @@ Implemented decisions are retained here with their original IDs. Current and unr
 ## D-019: Select between Scryfall and personal collection search
 
 - Status: Implemented
+- Release: v2026.11.0
 - Date: 2026-10-27
 - Decision: Add a search-scope toggle with two modes: "Scryfall" searches the public Scryfall catalog, and "Personal collection" searches only the signed-in user's owned card sources. Initially, the personal scope includes Favorites; when the collection feature is implemented, include Collection there as well. Keep Scryfall as the default scope.
 - Why: Searching a user's own cards is a different task from searching the full Scryfall catalog, and should not require them to remember which page contains each card.
@@ -181,9 +196,32 @@ Implemented decisions are retained here with their original IDs. Current and unr
 - Consequences: The navbar's URL-backed source toggle preserves the selected scope through searches. Personal results combine favorites and owned Binder copies, deduplicated by Scryfall printing ID and read through RLS-protected queries; disposed copies are omitted. No separate collection feature is implied.
 - Source: User request, 2026-10-27
 
+## D-021: Logout SVG icon
+
+- Status: Implemented
+- Release: v2026.11.0
+- Date: 2026-10-28
+- Decision: Create `LogoutIcon.tsx` in `src/assets/icons/navigation/` using the nav icon pattern (24-unit viewBox, `nav-icon` class, `nc-trace`/`nc-core` layers, `1em` size), and use it in `NavBarDesktop.tsx` and `NavBarMobile.tsx` in place of the `↪` text glyph.
+- Why: The glyph does not follow the theme or hover/active behavior of the other icons.
+- Alternatives considered: Keep the glyph and style it with CSS (still not a real icon, inconsistent shapes); an icon library (new dependency, not needed).
+- Consequences: Existing `aria-label="Log out"` and the `isSigningOut` state stay unchanged. Both navbars use the new icon with the same hover behavior as the other icons.
+- Source: "[Binder & Decks] Planning"
+
+## D-022: Card action order and flip icon style
+
+- Status: Implemented
+- Release: v2026.11.0
+- Date: 2026-10-28
+- Decision: In `CardTile.tsx`, order the actions favorite, binder, deck, then flip last. Redraw `IconTurnAround.tsx` in the nav icon style (24-unit viewBox, `1em`, two-layer trace/core).
+- Why: The flip button was rendered first, and its 48-unit viewBox, stroke 4 and fixed 32px size did not match the nav icons.
+- Alternatives considered: Restyle the other icons to match the flip (would change the nav set); reorder only (leaves the visual mismatch).
+- Consequences: The `collection` action id became `binder` in D-023. The hover-flip behavior on desktop and tap-flip on mobile are preserved.
+- Source: "[Binder & Decks] Planning"
+
 ## D-023: Replace Collection with Binder
 
 - Status: Implemented
+- Release: v2026.11.0
 - Date: 2026-10-28
 - Decision: Rename the nav item label to "Binder", rename `CollectionIcon.tsx` to `BinderIcon.tsx`, change the route from `/v2/collection` to `/v2/binder`, and redirect the old path. Rename the `CardAction` value `collection` to `binder`.
 - Why: The feature is a binder; "collection" implies a different, undefined thing.
@@ -194,6 +232,7 @@ Implemented decisions are retained here with their original IDs. Current and unr
 ## D-024: Card details: P/T, color pills, rarity pill
 
 - Status: Implemented
+- Release: v2026.11.0
 - Date: 2026-10-28
 - Decision: In the card-content panel, place mana cost beside power/toughness (and loyalty/defense when present), then color circles and a rarity pill on the next row, between type line and oracle text. This applies per face. Extend `CardBrowserCard` and `isCardBrowserCard` in `types.ts` for the fields needed.
 - Why: The overlay currently shows none of these. Color circles give a quick visual cue, with accessible labels preserving their meaning; the rarity remains a text pill.
@@ -204,6 +243,7 @@ Implemented decisions are retained here with their original IDs. Current and unr
 ## D-025: Binder groundwork: hydration, DB types, updated_at
 
 - Status: Implemented
+- Release: v2026.11.0
 - Date: 2026-10-28
 - Decision: Extract the bounded Scryfall collection hydration from `useFavoriteCards` into a shared helper (D-018). Generate `src/types/database.ts` and pass `Database` to `createClient` (D-016). Add one shared SQL function `set_updated_at()` in a migration.
 - Why: Binder pages need the same hydration as favorites. Typed tables catch column mistakes early. One trigger function serves every new table.
@@ -214,6 +254,7 @@ Implemented decisions are retained here with their original IDs. Current and unr
 ## D-026: Binder schema migration
 
 - Status: Implemented
+- Release: v2026.11.0
 - Date: 2026-10-28
 - Decision: One migration creates `binders (id, user_id, name, created_at, updated_at)` and `binder_cards` (one row per copy: `id`, `user_id`, nullable `binder_id` with `ON DELETE SET NULL`, `scryfall_id`, `rarity`, `status`, `acquisition_type`, `acquisition_format`, `condition`, `finish`, `language`, `purchase_price`, `acquired_at`, `location`, `notes`, `disposed_at`, `disposal_price`, timestamps). Use `text` plus `check` constraints. Binder names are unique per user, case-insensitive. RLS on both tables, update granted only on editable columns, and policies verify that `binder_id` belongs to the user. Add RLS tests.
 - Why: Per-copy rows hold per-copy metadata. `SET NULL` implements "deleting a binder moves cards to loose". `rarity` on each copy allows covers without Scryfall calls.
@@ -224,6 +265,7 @@ Implemented decisions are retained here with their original IDs. Current and unr
 ## D-027: Binder copies query and icon state
 
 - Status: Implemented
+- Release: v2026.11.0
 - Date: 2026-10-28
 - Decision: Add `useBinderCopies`, one paged-loop query for all of the user's copies (as in `useFavoriteIds`), and derive `Map<scryfallId, copies[]>` with `useMemo`. `CardTile` shows the binder icon active with a copy count, and the favorite icon stays independent so both can be active.
 - Why: One query serves icon state, hover content and binder views, with no per-card queries.
@@ -234,6 +276,7 @@ Implemented decisions are retained here with their original IDs. Current and unr
 ## D-028: Add-copy overlay and mutations
 
 - Status: Implemented
+- Release: v2026.11.0
 - Date: 2026-10-28
 - Decision: Clicking the binder icon opens and pins the copies popover; choosing **Add another copy** opens the add-copy dialog (defaults prefilled, all metadata optional, one-tap save). Mutations return the written row (`.insert().select().single()`) and patch the cache with `setQueryData` instead of refetching.
 - Why: Multiple copies are allowed, and avoiding a refetch after each change follows the "minimize queries" goal.
@@ -244,6 +287,7 @@ Implemented decisions are retained here with their original IDs. Current and unr
 ## D-029: Copy popover: view, edit, dispose, delete
 
 - Status: Implemented
+- Release: v2026.11.0
 - Date: 2026-10-28
 - Decision: Hovering or keyboard-focusing the binder icon opens a transient popover; clicking or tapping it pins the popover open until it is closed, Escape is pressed, or the user clicks outside. The popover lists the card's copies with their metadata. Modify/save/cancel switch a copy into edit mode. Per copy: **Delete** removes the row after a confirm; **Mark sold/lost/given away** changes `status` and sets `disposed_at`, keeping the data. A History toggle shows disposed copies, and **Restore** returns one to owned.
 - Why: Deleting loses data; disposing keeps history that feeds the future sales and balance goals.
@@ -254,6 +298,7 @@ Implemented decisions are retained here with their original IDs. Current and unr
 ## D-030: Binder page: all-cards view and binder list
 
 - Status: Implemented
+- Release: v2026.11.0
 - Date: 2026-10-28
 - Decision: `/v2/binder` offers two views through NUQS (`?view=all|binders`, `?binder=<id>`). The all-cards view reuses `CardFilters` and the shared hydration. The binder list shows each binder with a cover chosen by rarity rank, then the Legendary supertype, then oldest added. A virtual "Loose" binder is always present and cannot be renamed or deleted. Users can create, rename and delete binders (with a confirm that states how many cards move to loose) and move copies, singly or in bulk.
 - Why: Covers computed from loaded copies avoid fetching every card. Loose as `NULL` keeps rules simple.
@@ -264,6 +309,7 @@ Implemented decisions are retained here with their original IDs. Current and unr
 ## D-031: Realtime refresh and personal search scope
 
 - Status: Implemented
+- Release: v2026.11.0
 - Date: 2026-10-28
 - Decision: Implement the reusable Realtime invalidation hook from D-018 and apply it to favorites and binder tables, with a migration adding them to the `supabase_realtime` publication. Update D-019's personal scope to include binder copies, deduplicated by Scryfall printing ID.
 - Why: Another open device should see binder changes, and personal search should cover what the user owns.
@@ -274,6 +320,7 @@ Implemented decisions are retained here with their original IDs. Current and unr
 ## D-032: Binder release checkpoint
 
 - Status: Implemented
+- Release: v2026.11.0
 - Date: 2026-10-28
 - Decision: Stop and verify before decks: run `typecheck` and `build`, test by hand on desktop and mobile, and update `AGENTS.md` (binder becomes a feature, decks remain a goal) and `DECISIONS.md` statuses.
 - Why: Decks build on the binder, so it must be stable and documented first.
@@ -284,6 +331,7 @@ Implemented decisions are retained here with their original IDs. Current and unr
 ## D-033: Deck schema migration
 
 - Status: Implemented (migration applied; local pgTAP verification pending)
+- Release: v2026.11.0
 - Date: 2026-11-02
 - Decision: One migration creates `decks (id, user_id, name, format, notes, timestamps)` and `deck_cards (id, user_id, deck_id ON DELETE CASCADE, kind binder|proxy|virtual, binder_card_id nullable, scryfall_id, timestamps)`. A partial unique index on `binder_card_id` allows one binder copy in one deck only. A check ties `kind = 'binder'` to a non-null `binder_card_id`. RLS policies verify ownership of `deck_id` and `binder_card_id`.
 - Why: The database, not the UI, guarantees the one-deck rule.
@@ -294,6 +342,7 @@ Implemented decisions are retained here with their original IDs. Current and unr
 ## D-034: Delete or dispose a copy that is in a deck
 
 - Status: Implemented (migration applied; local pgTAP verification pending)
+- Release: v2026.11.0
 - Date: 2026-11-04
 - Decision: Add a Postgres function called through Supabase RPC that deletes or disposes a binder copy and, in the same transaction, converts its `deck_cards` row to `virtual`. The binder confirm dialog from D-029 then mentions the deck.
 - Why: Two steps must succeed or fail together; the client cannot guarantee that.
@@ -304,6 +353,7 @@ Implemented decisions are retained here with their original IDs. Current and unr
 ## D-035: Deck flows
 
 - Status: Implemented (typecheck/build pass; authenticated positive control verified 2026-11-04)
+- Release: v2026.11.0
 - Date: 2026-10-28
 - Decision: Enable the deck icon: add a binder copy (picker shows only copies not in a deck), add a proxy or a virtual card, switch a card between binder/proxy/virtual, move a copy between decks as an explicit action, and assign an owned copy to a virtual card. Binder copies show an "In deck: X" badge. Reuse or commonalize the Binder copy picker, form, popover and card actions where suitable instead of creating parallel components; retain the existing application styles.
 - Why: Decks should behave like the binder, as requested.
@@ -314,6 +364,7 @@ Implemented decisions are retained here with their original IDs. Current and unr
 ## D-036: Deck pages and proxy/virtual visuals
 
 - Status: Implemented (authenticated desktop/mobile checks and typecheck/build pass; light/dark contrast not separately checked)
+- Release: v2026.11.0
 - Date: 2026-11-04
 - Decision: Add a decks page mirroring the binder page (all view and deck list, covers by the same rule, NUQS state, `CardFilters` reuse). Reuse/commonalize Binder page and `CardTile` components where their behavior matches, and preserve the existing application styles. Proxies use a thin dashed accent outline and a matching subtle pill; virtual cards use a distinct muted style. Both must also be identifiable without relying on color alone.
 - Why: Same logic and visuals keep the app consistent.
@@ -324,6 +375,7 @@ Implemented decisions are retained here with their original IDs. Current and unr
 ## D-037: Deck release checkpoint
 
 - Status: Implemented
+- Release: v2026.11.0
 - Date: 2026-11-04
 - Decision: Verify and document: run `typecheck` and `build`, test by hand on desktop and mobile, and update `AGENTS.md` (decks become a feature) and `DECISIONS.md` statuses.
 - Why: Same reason as D-032.
@@ -334,6 +386,7 @@ Implemented decisions are retained here with their original IDs. Current and unr
 ## D-041: Exclusive storage location for physical Binder copies
 
 - Status: Implemented (migration applied; local pgTAP verification pending)
+- Release: v2026.11.0
 - Date: 2026-11-07
 - Decision: An owned physical copy has exactly one storage location: one Binder folder, one deck, or Loose. The add-copy flow may assign the copy directly to an existing deck. Moving an assigned copy to a Binder folder preserves the deck entry as virtual; deleting its deck releases the physical copy to Loose. RPC argument types must retain nullability where a null Binder/deck ID represents the other storage destination. This supersedes the earlier deck-deletion behavior recorded in D-036.
 - Why: A physical copy cannot simultaneously be stored in a Binder folder and assigned to a deck. Making storage transitions atomic keeps the database and UI consistent.
@@ -344,9 +397,21 @@ Implemented decisions are retained here with their original IDs. Current and unr
 ## D-042: Default Binder and Decks pages to their lists
 
 - Status: Implemented
+- Release: v2026.11.0
 - Date: 2026-11-07
 - Decision: When the `view` URL parameter is absent or invalid, `/v2/binder` opens the binder list and `/v2/decks` opens the deck list. A valid explicit view remains URL-backed; selecting a specific binder or deck continues to open its cards.
 - Why: The primary management entry point for these pages is choosing a binder or deck, rather than starting in the aggregate card list.
 - Alternatives considered: Keeping All cards as the default (requires an extra navigation step to reach the lists).
 - Consequences: The defaults are `binders` and `decks` in the respective `nuqs` parsers. `npm run typecheck` and `npm run build` pass.
 - Source: "Binder and Decks list-first defaults"
+
+## D-043: Calendar versioning (CalVer) for releases
+
+- Status: Implemented
+- Release: v2026.11.0
+- Date: 2026-11-07
+- Decision: Releases are versioned `YYYY.M.MICRO` (unpadded), with `package.json` as the single source of truth and annotated `vYYYY.M.MICRO` tags created by `npm version`. UI layout prefixes such as `/v2` are layout names, not app versions.
+- Why: The app is an end-user web app with no dependents, so SemVer's compatibility signal has no reader and costs a judgment call at every release. Changes are incremental and deployed continuously. CalVer needs no judgment and matches the dates already used in `DECISIONS.md` and Supabase migration filenames.
+- Alternatives considered: SemVer `0.y.z` (kept only if the app becomes a published package, exposes an API, or a "1.0" milestone is wanted). Plain integers (not valid in `package.json` without faking `N.0.0`, and no time information). A SemVer/CalVer hybrid (more rules than a solo project needs).
+- Consequences: Breaking contract changes (URLs and query params, Supabase schema and RLS, persisted browser data) are listed under `### Breaking` in `CHANGELOG.md` and recorded in `DECISIONS.md`. The "1.0" goal becomes named roadmap milestones. Same-month releases use `npm version patch`; the first release of a month uses an explicit `npm version YYYY.M.0`. Removing a layout prefix without a redirect counts as a breaking change. The changelog and annotated release tag were created for the first release.
+- Source: "[Versioning] SemVer vs CalVer"

@@ -1,6 +1,6 @@
 # Agent Context
 
-Working map of the app for AI coding agents. Checked against the repository source on 7 Nov 2026. Where this file and the source disagree, the source wins; update this file when the architecture or behavior changes.
+Working map of the app for AI coding agents. Checked against the repository source on 7 Nov 2026; app version v2026.11.0. Where this file and the source disagree, the source wins; update this file when the architecture or behavior changes.
 
 ## How to work with me (read first)
 
@@ -52,7 +52,7 @@ Defined in `src/app/router.tsx`. `/` redirects to `/v2/home`.
 | `/v2/search?q=<name>` | Scryfall name search and local filters |
 | `/v2/search/random` | daily set/mulligan browser |
 | `/v2/favorites` | paginated signed-in user's favorites (`FavoritesPage`) |
-| `/v2/binder` | per-copy Binder and binder-folder management; requires sign-in; defaults to the binder list; supports `?view=all|binders` and `?binder=<id>` (including `history`) |
+| `/v2/binder` | per-copy Binder and binder-folder management; requires sign-in; defaults to the binder list; supports `?view=all[binders` and `?binder=<id>` (including `history`) ] |
 | `/v2/decks` | protected deck page; defaults to the deck list; supports URL-backed All cards/Decks views, selected-deck filtering, deck covers, counts, create/rename/delete |
 | `/v2/search/advanced` | placeholder page exported from `src/app/App.tsx` |
 | `/v2/collection` | redirects to `/v2/binder` |
@@ -132,7 +132,7 @@ The app uses Calendar Versioning (CalVer): `YYYY.M.MICRO`, unpadded (e.g. `2026.
 
 **Single source of truth:** `version` in `package.json`. `package-lock.json` must match. Change both only with `npm version`; never hand-edit. Do not write the version number in prose elsewhere, except the stamped lines listed below.
 
-**Bump rules**
+**Bump rules** for versioning:
 
 | Situation | Command |
 | --- | --- |
@@ -161,7 +161,7 @@ Component structure, CSS and Scryfall response handling are not part of it. Any 
 
 A release that depends on a Supabase migration needs that migration applied to the linked project before the app is deployed.
 
-**Other files**
+**Other files** concerned by versioning:
 
 | File | Rule |
 | --- | --- |
