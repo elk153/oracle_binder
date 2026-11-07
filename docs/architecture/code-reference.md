@@ -62,7 +62,7 @@ static brand assets and are not React components.
 | [`src/features/card-browser/mulliganSets.ts`](../../src/features/card-browser/mulliganSets.ts) | Exports `ScryfallSet`, `isScryfallSet`, `getMulliganSets`, and `selectDailyMulliganSet` for validating/filtering sets and selecting a daily set. |
 | [`src/features/card-browser/types.ts`](../../src/features/card-browser/types.ts) | Exports card/source/action/image/face types and `isCardBrowserCard` runtime guard. |
 | [`src/features/card-browser/fetchCardRulings.ts`](../../src/features/card-browser/fetchCardRulings.ts) | Exports `CardRuling` and `fetchCardRulings`; validates and maps Scryfall rulings. |
-| [`src/features/card-browser/CardTile.tsx`](../../src/features/card-browser/CardTile.tsx) | Default reusable card tile; renders a card and optional favorite/Binder/Deck actions. |
+| [`src/features/card-browser/CardTile.tsx`](../../src/features/card-browser/CardTile.tsx) | Default reusable card tile; renders a card and optional favorite/Binder/Deck actions. Binder actions signal when disposed-copy history exists. |
 | [`src/features/card-browser/CardDetailsOverlay.tsx`](../../src/features/card-browser/CardDetailsOverlay.tsx) | Default accessible card-details overlay; loads details/rulings/prints and wires card actions. |
 | [`src/features/card-browser/CardBrowserPage.css`](../../src/features/card-browser/CardBrowserPage.css) | Search/home result layout, messages, pagination, and notice styles. |
 | [`src/features/card-browser/CardTile.css`](../../src/features/card-browser/CardTile.css) | Card tile, face flip, action popover, and entry-state styles. |
@@ -94,14 +94,14 @@ static brand assets and are not React components.
 
 | File | Purpose and public contract |
 |---|---|
-| [`src/features/binder/BinderPage.tsx`](../../src/features/binder/BinderPage.tsx) | Default Binder page; owns URL-backed view/folder selection, bulk moves, filters, and card presentation. |
+| [`src/features/binder/BinderPage.tsx`](../../src/features/binder/BinderPage.tsx) | Default Binder page; owns URL-backed view/folder/history selection, bulk moves, filters, and card presentation. History includes retained sold, lost, and given-away copies. |
 | [`src/features/binder/useBinders.ts`](../../src/features/binder/useBinders.ts) | Exports `Binder`, `bindersQueryKey`, and `useBinders`; provides user-scoped binder-folder queries and mutations. |
 | [`src/features/binder/useBinderCopies.ts`](../../src/features/binder/useBinderCopies.ts) | Exports Binder copy and mutation types, `binderCopiesQueryKey`, and `useBinderCopies`; manages per-copy records and history actions. |
 | [`src/features/binder/useBinderManagement.ts`](../../src/features/binder/useBinderManagement.ts) | Default `useBinderManagement`; coordinates Binder folder/copy hooks and dialog actions. |
-| [`src/features/binder/BinderCopyForm.tsx`](../../src/features/binder/BinderCopyForm.tsx) | Exports `CopyFormValues` and default `BinderCopyForm`; collects per-copy acquisition/location/disposal fields. |
+| [`src/features/binder/BinderCopyForm.tsx`](../../src/features/binder/BinderCopyForm.tsx) | Exports `CopyFormValues` and default `BinderCopyForm`; collects per-copy acquisition/location/disposal fields with standard acquisition, condition, finish, and language choices. |
 | [`src/features/binder/AddBinderCopyDialog.tsx`](../../src/features/binder/AddBinderCopyDialog.tsx) | Default add-copy dialog; wraps the copy form and save/cancel actions. |
 | [`src/features/binder/BinderCopiesPopover.tsx`](../../src/features/binder/BinderCopiesPopover.tsx) | Default copy-history/action popover for a card's Binder copies. |
-| [`src/features/binder/Binder.css`](../../src/features/binder/Binder.css) | Shared Binder copy/form/popover styles. |
+| [`src/features/binder/Binder.css`](../../src/features/binder/Binder.css) | Shared Binder copy/form/popover styles, including EUR price input and theme-aware date control. |
 | [`src/features/binder/BinderPage.css`](../../src/features/binder/BinderPage.css) | Binder folders, card list, selection, and bulk-move page styles. |
 
 ## Decks

@@ -123,6 +123,11 @@
   opacity: 1;
 }
 
+.browser-card__action--binder-history .nc-core {
+  fill: var(--btn-gold-hover);
+  opacity: 1;
+}
+
 .browser-card__action--deck-active .nc-core {
   fill: var(--text-accent);
   opacity: 1;

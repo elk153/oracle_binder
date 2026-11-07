@@ -27,8 +27,53 @@ type BinderCopyFormProps = {
   isSaving: boolean;
 };
 
+const COPY_STATUSES = ["owned", "sold", "lost", "given_away"] as const;
+const ACQUISITION_TYPES = [
+  "Purchase",
+  "Trade",
+  "Gift",
+  "Prize / Reward",
+  "Found",
+  "Other",
+] as const;
+const ACQUISITION_FORMATS = [
+  "Single",
+  "Booster pack",
+  "Booster box",
+  "Preconstructed deck",
+  "Collection / lot",
+  "Other",
+] as const;
+const CONDITIONS = [
+  "Near Mint",
+  "Lightly Played",
+  "Moderately Played",
+  "Heavily Played",
+  "Damaged",
+] as const;
+const FINISHES = ["Non-foil", "Foil", "Etched foil"] as const;
+const LANGUAGES = [
+  "French",
+  "English",
+  "German",
+  "Italian",
+  "Japanese",
+  "Spanish",
+] as const;
+
 function dateInputValue(value: string | null | undefined): string {
   return value ? value.slice(0, 10) : "";
+}
+
+function optionsWithCurrent(options: readonly string[], current: string): string[] {
+  return current && !options.includes(current)
+    ? [...options, current]
+    : [...options];
+}
+
+function statusLabel(status: string): string {
+  if (status === "given_away") return "Given away";
+  return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
 function optionalText(value: string): string | null {
@@ -111,10 +156,11 @@ export default function BinderCopyForm({
             value={status}
             onChange={(event) => setStatus(event.currentTarget.value)}
           >
-            <option value="owned">Owned</option>
-            <option value="sold">Sold</option>
-            <option value="lost">Lost</option>
-            <option value="given_away">Given away</option>
+            {optionsWithCurrent(COPY_STATUSES, status).map((value) => (
+              <option key={value} value={value}>
+                {statusLabel(value)}
+              </option>
+            ))}
           </select>
         </label>
       ) : (
@@ -125,33 +171,87 @@ export default function BinderCopyForm({
       )}
       <label>
         Acquisition type
-        <input value={acquisitionType} onChange={(e) => setAcquisitionType(e.currentTarget.value)} />
+        <select
+          value={acquisitionType}
+          onChange={(event) => setAcquisitionType(event.currentTarget.value)}
+        >
+          <option value="">Select type</option>
+          {optionsWithCurrent(ACQUISITION_TYPES, acquisitionType).map((value) => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
+        </select>
       </label>
       <label>
         Acquisition format
-        <input value={acquisitionFormat} onChange={(e) => setAcquisitionFormat(e.currentTarget.value)} />
+        <select
+          value={acquisitionFormat}
+          onChange={(event) => setAcquisitionFormat(event.currentTarget.value)}
+        >
+          <option value="">Select format</option>
+          {optionsWithCurrent(ACQUISITION_FORMATS, acquisitionFormat).map((value) => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
+        </select>
       </label>
       <label>
         Condition
-        <input value={condition} onChange={(e) => setCondition(e.currentTarget.value)} />
+        <select
+          value={condition}
+          onChange={(event) => setCondition(event.currentTarget.value)}
+        >
+          <option value="">Select condition</option>
+          {optionsWithCurrent(CONDITIONS, condition).map((value) => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
+        </select>
       </label>
       <label>
         Finish
-        <input value={finish} onChange={(e) => setFinish(e.currentTarget.value)} />
+        <select
+          value={finish}
+          onChange={(event) => setFinish(event.currentTarget.value)}
+        >
+          <option value="">Select finish</option>
+          {optionsWithCurrent(FINISHES, finish).map((value) => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
+        </select>
       </label>
       <label>
         Language
-        <input value={language} onChange={(e) => setLanguage(e.currentTarget.value)} />
+        <select
+          value={language}
+          onChange={(event) => setLanguage(event.currentTarget.value)}
+        >
+          <option value="">Select language</option>
+          {optionsWithCurrent(LANGUAGES, language).map((value) => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
+        </select>
       </label>
       <label>
-        Purchase price
-        <input
-          type="number"
-          min="0"
-          step="0.01"
-          value={purchasePrice}
-          onChange={(e) => setPurchasePrice(e.currentTarget.value)}
-        />
+        Purchase price (EUR)
+        <span className="binder-copy-form__price">
+          <input
+            className="binder-copy-form__price-input"
+            type="number"
+            min="0"
+            step="0.01"
+            value={purchasePrice}
+            onChange={(event) => setPurchasePrice(event.currentTarget.value)}
+          />
+          <span aria-hidden="true">EUR</span>
+        </span>
       </label>
       <label>
         Acquired

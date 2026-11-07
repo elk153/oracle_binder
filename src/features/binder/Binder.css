@@ -113,6 +113,45 @@
   font: 0.9rem var(--font-ui);
 }
 
+.binder-copy-form__price {
+  position: relative;
+  display: block;
+}
+
+.binder-copy-form .binder-copy-form__price-input {
+  padding-right: 3.5rem;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.binder-copy-form__price-input::-webkit-inner-spin-button,
+.binder-copy-form__price-input::-webkit-outer-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+.binder-copy-form__price > span {
+  position: absolute;
+  top: 50%;
+  right: 0.75rem;
+  color: var(--text-secondary);
+  font: 0.8rem var(--font-ui);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.binder-copy-form input[type="date"] {
+  color-scheme: light dark;
+}
+
+:root[data-theme="dark"] .binder-copy-form input[type="date"] {
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] .binder-copy-form input[type="date"] {
+  color-scheme: light;
+}
+
 .binder-copy-form textarea {
   min-height: 5rem;
   resize: vertical;

@@ -354,6 +354,9 @@ export default function CardTile({
             const ownedBinderCount = binderCopies.filter(
               (copy) => copy.status === "owned",
             ).length;
+            const hasBinderHistory = binderCopies.some(
+              (copy) => copy.status !== "owned",
+            );
             const deckEntryCount =
               deckActions?.deckCards.filter(
                 (entry) => entry.scryfall_id === card.id,
@@ -361,9 +364,14 @@ export default function CardTile({
             const favoriteLabel = isFavorite
               ? "Remove from Favorites"
               : "Add to Favorites";
-            const binderLabel = ownedBinderCount
-              ? `${ownedBinderCount} binder ${ownedBinderCount === 1 ? "copy" : "copies"}`
-              : "Add to Binder";
+            const binderLabel = [
+              ownedBinderCount
+                ? `${ownedBinderCount} binder ${ownedBinderCount === 1 ? "copy" : "copies"}`
+                : "Add to Binder",
+              hasBinderHistory ? "history available" : null,
+            ]
+              .filter(Boolean)
+              .join(", ");
             const deckLabel = deckEntryCount
               ? `${deckEntryCount} ${deckEntryCount === 1 ? "deck entry" : "deck entries"}`
               : "Add to Deck";
@@ -432,7 +440,7 @@ export default function CardTile({
               >
                 <button
                   type="button"
-                  className={`browser-card__action${isFavoriteAction && isFavorite ? " browser-card__action--favorite-active" : ""}${isBinderAction && ownedBinderCount > 0 ? " browser-card__action--binder-active" : ""}${isDeckAction && deckEntryCount > 0 ? " browser-card__action--deck-active" : ""}`}
+                  className={`browser-card__action${isFavoriteAction && isFavorite ? " browser-card__action--favorite-active" : ""}${isBinderAction && ownedBinderCount > 0 ? " browser-card__action--binder-active" : ""}${isBinderAction && hasBinderHistory ? " browser-card__action--binder-history" : ""}${isDeckAction && deckEntryCount > 0 ? " browser-card__action--deck-active" : ""}`}
                   aria-label={
                     isFavoriteAction
                       ? `${favoriteLabel}: ${card.name}`

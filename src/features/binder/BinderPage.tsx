@@ -21,6 +21,7 @@ import useDeckManagement from "../decks/useDeckManagement.ts";
 import "./BinderPage.css";
 
 const BINDER_VIEWS = ["all", "binders"] as const;
+const HISTORY_FILTER = "history";
 const RARITY_RANK: Record<string, number> = {
   common: 1,
   uncommon: 2,
@@ -74,13 +75,21 @@ export default function BinderPage() {
     () => binder.copies.copies.filter((copy) => copy.status === "owned"),
     [binder.copies.copies],
   );
+  const historyCopies = useMemo(
+    () => binder.copies.copies.filter((copy) => copy.status !== "owned"),
+    [binder.copies.copies],
+  );
   const ownedCardIds = useMemo(
     () => [...new Set(ownedCopies.map((copy) => copy.scryfall_id))].sort(),
     [ownedCopies],
   );
+  const historyCardIds = useMemo(
+    () => [...new Set(historyCopies.map((copy) => copy.scryfall_id))].sort(),
+    [historyCopies],
+  );
   const cardsQuery = useScryfallCardsForIds(
     "binder-page",
-    ownedCardIds,
+    selectedBinderId === HISTORY_FILTER ? historyCardIds : ownedCardIds,
     Boolean(user) && !binder.copies.isLoading,
   );
   const invalidCardData =
@@ -97,11 +106,14 @@ export default function BinderPage() {
     [cards],
   );
   const looseCopies = ownedCopies.filter((copy) => copy.binder_id === null);
-  const selectedCopies = selectedBinderId
-    ? selectedBinderId === "loose"
-      ? looseCopies
-      : ownedCopies.filter((copy) => copy.binder_id === selectedBinderId)
-    : ownedCopies;
+  const selectedCopies =
+    selectedBinderId === HISTORY_FILTER
+      ? historyCopies
+      : selectedBinderId
+        ? selectedBinderId === "loose"
+          ? looseCopies
+          : ownedCopies.filter((copy) => copy.binder_id === selectedBinderId)
+        : ownedCopies;
   const selectedIds = new Set(selectedCopies.map((copy) => copy.scryfall_id));
   const viewCards = cards.filter((card) => selectedIds.has(card.id));
   const { table, filters, setFilters, resetFilters } = useCardsTable(viewCards);
@@ -403,9 +415,10 @@ export default function BinderPage() {
               Show
               <select
                 value={selectedBinderId ?? ""}
-                onChange={(event) =>
-                  void setSelectedBinderId(event.currentTarget.value || null)
-                }
+                onChange={(event) => {
+                  setSelectedCardIds(new Set());
+                  void setSelectedBinderId(event.currentTarget.value || null);
+                }}
               >
                 <option value="">All binders and Loose</option>
                 <option value="loose">Loose</option>
@@ -414,30 +427,35 @@ export default function BinderPage() {
                     {target.name}
                   </option>
                 ))}
+                <option value={HISTORY_FILTER}>History (sold, lost, given away)</option>
               </select>
             </label>
-            <label>
-              Move selected copies to
-              <select
-                value={moveDestination}
-                onChange={(event) => setMoveDestination(event.currentTarget.value)}
-              >
-                <option value="">Choose destination</option>
-                <option value="loose">Loose</option>
-                {binder.binders.map((target) => (
-                  <option key={target.id} value={target.id}>
-                    {target.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button
-              type="button"
-              onClick={() => void moveSelectedCopies()}
-              disabled={!moveDestination || selectedCardIds.size === 0 || binder.isPending}
-            >
-              Move selected
-            </button>
+            {selectedBinderId !== HISTORY_FILTER && (
+              <>
+                <label>
+                  Move selected copies to
+                  <select
+                    value={moveDestination}
+                    onChange={(event) => setMoveDestination(event.currentTarget.value)}
+                  >
+                    <option value="">Choose destination</option>
+                    <option value="loose">Loose</option>
+                    {binder.binders.map((target) => (
+                      <option key={target.id} value={target.id}>
+                        {target.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => void moveSelectedCopies()}
+                  disabled={!moveDestination || selectedCardIds.size === 0 || binder.isPending}
+                >
+                  Move selected
+                </button>
+              </>
+            )}
           </div>
 
           {cards.length > 0 && (
@@ -458,15 +476,17 @@ export default function BinderPage() {
             <div className="binder-page__list" aria-label="Binder cards">
               {orderedCards.map((card) => (
                 <article className="binder-page__card" key={card.id}>
-                  <label className="binder-page__select">
-                    <input
-                      type="checkbox"
-                      checked={selectedCardIds.has(card.id)}
-                      onChange={() => toggleCardSelection(card.id)}
-                      aria-label={`Select all owned copies of ${card.name}`}
-                    />
-                    Select copies
-                  </label>
+                  {selectedBinderId !== HISTORY_FILTER && (
+                    <label className="binder-page__select">
+                      <input
+                        type="checkbox"
+                        checked={selectedCardIds.has(card.id)}
+                        onChange={() => toggleCardSelection(card.id)}
+                        aria-label={`Select all owned copies of ${card.name}`}
+                      />
+                      Select copies
+                    </label>
+                  )}
                   <CardTile
                     card={card}
                     onSelect={() => setCardId(card.id)}
@@ -482,9 +502,11 @@ export default function BinderPage() {
             </div>
           ) : (
             <p className="binder-page__message">
-              {selectedBinderId
-                ? "No owned copies are in this binder."
-                : "Your Binder is empty."}
+              {selectedBinderId === HISTORY_FILTER
+                ? "Your Binder has no disposed copies."
+                : selectedBinderId
+                  ? "No owned copies are in this binder."
+                  : "Your Binder is empty."}
             </p>
           )}
           {rows.length === 0 && viewCards.length > 0 && (
