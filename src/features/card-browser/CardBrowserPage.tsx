@@ -54,6 +54,8 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
   const cardId = searchParams.get("card");
   const {
     searchQuery,
+    nameSuggestions,
+    nameSuggestionsError,
     isRandomRoute,
     isPersonalSearch,
     setsQuery,
@@ -251,11 +253,16 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
     <section className="card-browser-page">
       {mode === "search" && !isRandomRoute && (
         <header className="card-browser__heading">
-          <SearchControls />
+          <SearchControls
+            key={searchQuery}
+            query={searchQuery}
+            nameSuggestions={nameSuggestions}
+            nameSuggestionsError={nameSuggestionsError}
+          />
           {isPersonalSearch && (
             <p>
               {user
-                ? `Search your favorites and owned binder copies${searchQuery ? ` for “${searchQuery}”` : ""}.`
+                ? `Search your favorites, owned Binder copies, and deck entries${searchQuery ? ` for “${searchQuery}”` : ""}.`
                 : "Sign in to search your personal collection."}
             </p>
           )}

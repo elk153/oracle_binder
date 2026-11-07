@@ -13,6 +13,7 @@ import type { CardBrowserCard, CardSource } from "./types.ts";
 import { isCardBrowserCard } from "./types.ts";
 import useScryfallCardPages from "./useScryfallCardPages.ts";
 import useScryfallCardsSearch from "./useScryfallCardsSearch.ts";
+import getSecondsUntilNextLocalFour from "../../hooks/getSecondsUntilNextLocalFour.ts";
 
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 const NO_DATA: unknown[] = [];
@@ -76,6 +77,11 @@ export default function useCardBrowserResults({
   const setsQuery = useFetchUrl(
     "scryfallSets",
     "https://api.scryfall.com/sets",
+  );
+  const cardNamesQuery = useFetchUrl(
+    "cardNames",
+    "https://api.scryfall.com/catalog/card-names",
+    getSecondsUntilNextLocalFour,
   );
   const rawSets = setsQuery.data ?? NO_DATA;
   const invalidSetData = rawSets.some((value) => !isScryfallSet(value));
@@ -151,6 +157,16 @@ export default function useCardBrowserResults({
       (!isPersonalSearch ||
         (!areBinderCopiesLoading && !areDecksLoading)),
   );
+  const nameSuggestions = useMemo(() => {
+    const names = isPersonalSearch
+      ? (personalCardsQuery.data ?? [])
+          .filter(isCardBrowserCard)
+          .map((card) => card.name)
+      : (cardNamesQuery.data ?? []).filter(
+          (name): name is string => typeof name === "string",
+        );
+    return [...new Set(names)];
+  }, [isPersonalSearch, personalCardsQuery.data, cardNamesQuery.data]);
   const displayCards = useMemo(() => {
     const searchCards = searchCardSource.cards;
     if (isPersonalSearch) {
@@ -216,6 +232,8 @@ export default function useCardBrowserResults({
 
   return {
     searchQuery,
+    nameSuggestions,
+    nameSuggestionsError: isPersonalSearch ? null : cardNamesQuery.error,
     isRandomRoute,
     isPersonalSearch,
     setsQuery,

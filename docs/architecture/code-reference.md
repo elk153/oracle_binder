@@ -55,7 +55,7 @@ static brand assets and are not React components.
 | File | Purpose and public contract |
 |---|---|
 | [`src/features/card-browser/CardBrowserPage.tsx`](../../src/features/card-browser/CardBrowserPage.tsx) | Default `CardBrowserPage`; composes search results, filters, card actions, details, and Binder add-copy dialog. `mode` selects search or mulligan rendering. |
-| [`src/features/card-browser/useCardBrowserResults.ts`](../../src/features/card-browser/useCardBrowserResults.ts) | Default `useCardBrowserResults`; interprets URL/search scope, owns daily mulligan timing, queries card sources, validates records, and returns display state. |
+| [`src/features/card-browser/useCardBrowserResults.ts`](../../src/features/card-browser/useCardBrowserResults.ts) | Default `useCardBrowserResults`; interprets URL/search scope, owns daily mulligan timing, queries card sources and autocomplete names, validates records, and returns display state. |
 | [`src/features/card-browser/useScryfallCardsSearch.ts`](../../src/features/card-browser/useScryfallCardsSearch.ts) | Default single-request Scryfall React Query hook; uses the `scryfallCards` query-key family. |
 | [`src/features/card-browser/useScryfallCardPages.ts`](../../src/features/card-browser/useScryfallCardPages.ts) | Default paginated Scryfall search hook; validates `next_page` URLs and exposes loaded pages and pagination state. |
 | [`src/features/card-browser/mulliganSets.ts`](../../src/features/card-browser/mulliganSets.ts) | Exports `ScryfallSet`, `isScryfallSet`, `getMulliganSets`, and `selectDailyMulliganSet` for validating/filtering sets and selecting a daily set. |
@@ -133,7 +133,8 @@ static brand assets and are not React components.
 
 | File | Purpose and public contract |
 |---|---|
-| [`src/features/search/SearchControls.tsx`](../../src/features/search/SearchControls.tsx) | Search-page controls for the Scryfall/collection source and simple/advanced mode, persisted in URL parameters. |
+| [`src/features/search/SearchControls.tsx`](../../src/features/search/SearchControls.tsx) | Search-page controls for Scryfall/collection source, simple/advanced mode, and URL-backed simple name search. |
+| [`src/features/search/NameAutocomplete.tsx`](../../src/features/search/NameAutocomplete.tsx) | Reusable labeled native-datalist input; displays up to 20 case-insensitive name matches after four characters. |
 | [`src/features/search/SearchSourceToggle.tsx`](../../src/features/search/SearchSourceToggle.tsx) | Default source toggle used by the search page. |
 | [`src/features/search/types.ts`](../../src/features/search/types.ts) | Exports the `SearchSource` and `SearchMode` contracts. |
 
