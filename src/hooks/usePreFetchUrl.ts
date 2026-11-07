@@ -1,5 +1,9 @@
 import { useEffect } from "react";
-import { useIsRestoring, useQueryClient } from "@tanstack/react-query";
+import {
+  useIsRestoring,
+  useQueryClient,
+} from "@tanstack/react-query";
+import type { StaleTimeInSeconds } from "./getSecondsUntilNextLocalFour.ts";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -8,7 +12,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export default function usePreFetchUrl(
   dataPurpose: string,
   urlParam: string,
-  staleTimeInSeconds = 86400,
+  staleTimeInSeconds: StaleTimeInSeconds = 86400,
 ) {
   const queryClient = useQueryClient();
   const isRestoring = useIsRestoring();
@@ -35,7 +39,10 @@ export default function usePreFetchUrl(
         console.log(json.data);
         return json.data;
       },
-      staleTime: 1000 * staleTimeInSeconds,
+      staleTime:
+        typeof staleTimeInSeconds === "function"
+          ? (query) => 1000 * staleTimeInSeconds(query)
+          : 1000 * staleTimeInSeconds,
     });
   }, [queryClient, dataPurpose, urlParam, staleTimeInSeconds, isRestoring]);
 }

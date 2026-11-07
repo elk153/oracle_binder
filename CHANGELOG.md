@@ -7,6 +7,11 @@ Release versions follow the CalVer policy in [AGENTS.md](./AGENTS.md).
 
 ## [Unreleased]
 
+### Changed
+
+- The Scryfall card-name catalog is no longer persisted in localStorage because
+  the combined query cache exceeded the 2-million-character safety threshold.
+
 ## [2026.11.0] - 2026-11-07
 
 ### Added

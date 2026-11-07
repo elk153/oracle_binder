@@ -11,7 +11,7 @@ Keep this reference aligned with the source when moving or adding modules.
 |---|---|
 | [`src/main.tsx`](../../src/main.tsx) | Browser entry: validates `#root`, imports global theme CSS, and mounts `AppProviders` under `StrictMode`. |
 | [`src/app/router.tsx`](../../src/app/router.tsx) | Defines redirects, the `/v2` layout, public routes, and `RequireAuth`-protected routes; default-exports the router. |
-| [`src/app/App.tsx`](../../src/app/App.tsx) | V2 shell and splash transition. Exports `App` and route elements `Home`, `Favorites`, `Binder`, and `Decks`. |
+| [`src/app/App.tsx`](../../src/app/App.tsx) | V2 shell and splash transition; prefetches Scryfall symbols, sets, and card-name catalog. Exports `App` and route elements `Home`, `Favorites`, `Binder`, and `Decks`. |
 | [`src/app/AppProviders.tsx`](../../src/app/AppProviders.tsx) | Composes theme, query persistence/devtools, auth, and router providers; default-exports `AppProviders`. |
 | [`src/app/AppProviders/AuthContext.ts`](../../src/app/AppProviders/AuthContext.ts) | Exports `AuthContextValue`, `AuthContext`, and `useAuth`; defines the session/user/loading/sign-out contract. |
 | [`src/app/AppProviders/AuthProvider.tsx`](../../src/app/AppProviders/AuthProvider.tsx) | Exports `AuthProvider`; synchronizes the Supabase session with React context. |
@@ -163,8 +163,9 @@ static brand assets and are not React components.
 
 | File | Purpose and public contract |
 |---|---|
-| [`src/hooks/useFetchUrl.ts`](../../src/hooks/useFetchUrl.ts) | Default cached auxiliary-URL query hook; validates HTTP responses and list-shaped data. |
-| [`src/hooks/usePreFetchUrl.ts`](../../src/hooks/usePreFetchUrl.ts) | Default prefetch hook for auxiliary Scryfall resources. |
+| [`src/hooks/useFetchUrl.ts`](../../src/hooks/useFetchUrl.ts) | Default cached auxiliary-URL query hook; validates HTTP responses and list-shaped data, with fixed or query-derived stale time. |
+| [`src/hooks/usePreFetchUrl.ts`](../../src/hooks/usePreFetchUrl.ts) | Default prefetch hook for auxiliary Scryfall resources; supports fixed or query-derived stale time. |
+| [`src/hooks/getSecondsUntilNextLocalFour.ts`](../../src/hooks/getSecondsUntilNextLocalFour.ts) | Exports the query stale-time helper that expires data at the next local 04:00 based on `dataUpdatedAt`. |
 | [`src/hooks/useOracleText.tsx`](../../src/hooks/useOracleText.tsx) | Default symbol-aware Oracle text hook; uses cached Scryfall symbology data. |
 | [`src/hooks/useRealtimeInvalidation.ts`](../../src/hooks/useRealtimeInvalidation.ts) | Default user-filtered Supabase Realtime invalidation hook. |
 | [`src/hooks/useScrollVisibility.ts`](../../src/hooks/useScrollVisibility.ts) | Default scroll-direction visibility hook used by navbar and filters. |

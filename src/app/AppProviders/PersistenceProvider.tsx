@@ -9,9 +9,8 @@ const persister = createSyncStoragePersister({
 
 const dehydrateOptions = {
   shouldDehydrateQuery: (query: Query) =>
-    query.queryKey[0] === "fetchedUrl" || // &&
-    //query.queryKey[1] === "cardSymbols" &&
-    //query.queryKey[2] === "https://api.scryfall.com/symbology"
+    (query.queryKey[0] === "fetchedUrl" &&
+      query.queryKey[1] !== "cardNames") ||
     (query.queryKey[0] === "scryfallCards" &&
       query.queryKey[1] === "cards/search"),
 };

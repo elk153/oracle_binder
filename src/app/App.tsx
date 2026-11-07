@@ -7,6 +7,7 @@ import BinderPage from "../features/binder/BinderPage.tsx";
 import DecksPage from "../features/decks/DecksPage.tsx";
 import "./App.css";
 import usePreFetchUrl from "../hooks/usePreFetchUrl.ts";
+import getSecondsUntilNextLocalFour from "../hooks/getSecondsUntilNextLocalFour.ts";
 
 declare global {
   interface Window {
@@ -21,6 +22,11 @@ export default function App() {
     Infinity,
   );
   usePreFetchUrl("scryfallSets", "https://api.scryfall.com/sets");
+  usePreFetchUrl(
+    "cardNames",
+    "https://api.scryfall.com/catalog/card-names",
+    getSecondsUntilNextLocalFour,
+  );
 
   useEffect(() => {
     window.reactIsReady = true;
