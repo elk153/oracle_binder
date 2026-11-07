@@ -27,6 +27,22 @@ function entryLabel(entry: DeckCard, decks: Deck[]): string {
   return `${deckName} · ${entry.kind}`;
 }
 
+function copyLocationLabel(
+  copy: BinderCopy,
+  actions: DeckActions,
+): string {
+  const deckEntry = actions.deckCards.find(
+    (entry) => entry.binder_card_id === copy.id,
+  );
+  if (deckEntry) {
+    const deckName =
+      actions.decks.find((deck) => deck.id === deckEntry.deck_id)?.name ??
+      "Unknown deck";
+    return `In ${deckName}`;
+  }
+  return copy.binder_id ? "Binder copy" : "Loose copy";
+}
+
 export default function DeckCardPopover({
   card,
   copies,
@@ -262,7 +278,7 @@ export default function DeckCardPopover({
                       <option value="">Choose a copy</option>
                       {availableCopies.map((copy) => (
                         <option key={copy.id} value={copy.id}>
-                          {copy.binder_id ? "Binder copy" : "Loose copy"} ·{" "}
+                          {copyLocationLabel(copy, actions)} ·{" "}
                           {copy.condition ?? "condition unknown"} ·{" "}
                           {copy.finish ?? "finish unknown"}
                         </option>
@@ -359,7 +375,7 @@ export default function DeckCardPopover({
                             <option value="">Choose a copy</option>
                             {entryCopies.map((copy) => (
                               <option key={copy.id} value={copy.id}>
-                                {copy.binder_id ? "Binder copy" : "Loose copy"} ·{" "}
+                                {copyLocationLabel(copy, actions)} ·{" "}
                                 {copy.condition ?? "condition unknown"} ·{" "}
                                 {copy.finish ?? "finish unknown"}
                               </option>

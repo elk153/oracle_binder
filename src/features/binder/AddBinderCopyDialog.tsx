@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { Tables } from "../../types/database.ts";
 import type { CardBrowserCard } from "../card-browser/types.ts";
+import type { Deck } from "../decks/useDeckManagement.ts";
 import BinderCopyForm, { type CopyFormValues } from "./BinderCopyForm.tsx";
 import "./Binder.css";
 
@@ -9,6 +10,7 @@ type Binder = Tables<"binders">;
 type AddBinderCopyDialogProps = {
   card: CardBrowserCard;
   binders: Binder[];
+  decks: Deck[];
   onSave: (values: CopyFormValues) => Promise<void>;
   onClose: () => void;
   isSaving: boolean;
@@ -17,6 +19,7 @@ type AddBinderCopyDialogProps = {
 export default function AddBinderCopyDialog({
   card,
   binders,
+  decks,
   onSave,
   onClose,
   isSaving,
@@ -46,7 +49,7 @@ export default function AddBinderCopyDialog({
         aria-labelledby="binder-copy-dialog-title"
       >
         <header className="binder-dialog__header">
-          <h2 id="binder-copy-dialog-title">Add {card.name} to Binder</h2>
+          <h2 id="binder-copy-dialog-title">Add {card.name} to collection</h2>
           <button
             ref={closeRef}
             type="button"
@@ -60,6 +63,7 @@ export default function AddBinderCopyDialog({
         <BinderCopyForm
           cardName={card.name}
           binders={binders}
+          decks={decks}
           onSave={(values) => void onSave(values)}
           onCancel={onClose}
           isSaving={isSaving}

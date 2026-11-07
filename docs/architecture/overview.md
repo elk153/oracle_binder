@@ -53,8 +53,12 @@ The route definitions live in [`src/app/router.tsx`](../../src/app/router.tsx).
 | `/v2/auth/callback` | `AuthCallbackPage` | Completes the Supabase auth callback and returns to a safe V2 URL. |
 | `/v2/collection` | Router redirect | Compatibility path to `/v2/binder`. |
 | `/v2/favorites` | `FavoritesPage` | Sign-in required. |
-| `/v2/binder` | `BinderPage` | Sign-in required; binder folders, owned copies, and loose copies. |
-| `/v2/decks` | `DecksPage` | Sign-in required; deck management and card entries. |
+| `/v2/binder` | `BinderPage` | Sign-in required; opens the binder list by default; binder folders, owned copies, and loose copies. |
+| `/v2/decks` | `DecksPage` | Sign-in required; opens the deck list by default; deck management and card entries. |
+
+Both pages keep the selected view in the URL. Explicit `?view=all` links still
+open the aggregate card list, and selecting a particular binder or deck opens
+that location's cards.
 
 `NuqsAdapter` is mounted inside the router layout so feature components can
 read/write URL-backed filter state.
@@ -68,8 +72,8 @@ read/write URL-backed filter state.
 | `src/features/card-browser/` | Scryfall search/mulligan orchestration, card tiles, card details, and card-browser data contracts. |
 | `src/features/card-filters/` | URL parsers, TanStack Table configuration, filter controls, and filter-category labels. |
 | `src/features/favorites/` | User-scoped favorite queries/mutations, a shared card favorite-action hook, and the favorites page. |
-| `src/features/binder/` | Binder folders, per-copy metadata, disposal/history, and Binder page. |
-| `src/features/decks/` | Deck and deck-entry queries/mutations, entry popover, and Decks page. |
+| `src/features/binder/` | Binder folders, per-copy metadata, disposal/history, exclusive physical-copy storage locations, and Binder page. |
+| `src/features/decks/` | Deck and deck-entry queries/mutations, exclusive physical-copy storage transitions, entry popover, and Decks page. |
 | `src/features/navigation/` | Responsive navigation, theme/search controls, and route-aware search behavior. |
 | `src/features/scryfall-card-renderer/` | Shared renderer for normalized Scryfall card layouts and Oracle text. |
 | `src/assets/icons/` | Reusable React SVG components. Site branding SVGs remain under `public/`. |

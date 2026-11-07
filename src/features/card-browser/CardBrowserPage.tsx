@@ -151,8 +151,10 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
     isAuthLoading ||
     binder.bindersLoading ||
     binder.copies.isLoading ||
+    decks.isLoading ||
     Boolean(binder.bindersError) ||
     Boolean(binder.copies.error) ||
+    Boolean(decks.error) ||
     binder.isPending;
   const binderCopyProps = {
     binders: binder.binders,
@@ -362,9 +364,10 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
         <AddBinderCopyDialog
           card={binder.cardToAdd}
           binders={binder.binders}
+          decks={decks.decks}
           onSave={binder.addCopy}
           onClose={binder.closeAdd}
-          isSaving={binder.copies.addCopy.isPending}
+          isSaving={binder.isPending}
         />
       )}
     </section>

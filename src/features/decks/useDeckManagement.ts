@@ -7,6 +7,15 @@ import type {
   TablesInsert,
   TablesUpdate,
 } from "../../types/database.ts";
+import {
+  clearLocalRealtimeChange,
+  markLocalRealtimeChange,
+} from "../../services/localRealtimeChanges.ts";
+import {
+  binderCopiesQueryKey,
+  deckCardsQueryKey,
+} from "../queryKeys.ts";
+export { deckCardsQueryKey } from "../queryKeys.ts";
 
 export type Deck = Tables<"decks">;
 export type DeckCard = Tables<"deck_cards">;
@@ -18,8 +27,6 @@ export type DeckCardChanges = Pick<
 
 export const decksQueryKey = (userId?: string) =>
   ["decks", userId] as const;
-export const deckCardsQueryKey = (userId?: string) =>
-  ["deckCards", userId] as const;
 
 export default function useDeckManagement() {
   const { user } = useAuth();
@@ -104,41 +111,73 @@ export default function useDeckManagement() {
   const deleteDeck = useMutation<Deck, Error, string>({
     mutationFn: async (id) => {
       if (!user) throw new Error("Sign in to delete a deck.");
-      const { data, error } = await supabase
-        .from("decks")
-        .delete()
-        .eq("user_id", user.id)
-        .eq("id", id)
-        .select("*")
-        .single();
-      if (error) throw error;
-      return data;
+      const affectedCopyIds = (
+        queryClient.getQueryData<DeckCard[]>(deckCardsKey) ?? []
+      )
+        .filter((entry) => entry.deck_id === id)
+        .flatMap((entry) =>
+          entry.binder_card_id ? [entry.binder_card_id] : [],
+        );
+      markLocalRealtimeChange("binder_cards", user.id, affectedCopyIds);
+      try {
+        const { data, error } = await supabase
+          .from("decks")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("id", id)
+          .select("*")
+          .single();
+        if (error) throw error;
+        return data;
+      } catch (error) {
+        clearLocalRealtimeChange("binder_cards", user.id, affectedCopyIds);
+        throw error;
+      }
     },
-    onSuccess: (deleted) => {
+    onSuccess: async (deleted) => {
       queryClient.setQueryData<Deck[]>(decksKey, (current) =>
         current?.filter((deck) => deck.id !== deleted.id),
       );
       queryClient.setQueryData<DeckCard[]>(deckCardsKey, (current) =>
         current?.filter((entry) => entry.deck_id !== deleted.id),
       );
+      await queryClient.invalidateQueries({
+        queryKey: binderCopiesQueryKey(user?.id),
+      });
     },
   });
 
   const addDeckCard = useMutation<DeckCard, Error, NewDeckCard>({
     mutationFn: async (entry) => {
       if (!user) throw new Error("Sign in to add a card to a deck.");
-      const { data, error } = await supabase
-        .from("deck_cards")
-        .insert({ ...entry, user_id: user.id })
-        .select("*")
-        .single();
-      if (error) throw error;
-      return data;
+      const copyIds =
+        entry.kind === "binder" && entry.binder_card_id
+          ? [entry.binder_card_id]
+          : [];
+      markLocalRealtimeChange("binder_cards", user.id, copyIds);
+      try {
+        const { data, error } = await supabase
+          .from("deck_cards")
+          .insert({ ...entry, user_id: user.id })
+          .select("*")
+          .single();
+        if (error) throw error;
+        return data;
+      } catch (error) {
+        clearLocalRealtimeChange("binder_cards", user.id, copyIds);
+        throw error;
+      }
     },
-    onSuccess: (entry) =>
+    onSuccess: async (entry) => {
       queryClient.setQueryData<DeckCard[]>(deckCardsKey, (current) =>
         current ? [...current, entry] : [entry],
-      ),
+      );
+      if (entry.binder_card_id) {
+        await queryClient.invalidateQueries({
+          queryKey: binderCopiesQueryKey(user?.id),
+        });
+      }
+    },
   });
 
   const updateDeckCard = useMutation<
@@ -148,20 +187,37 @@ export default function useDeckManagement() {
   >({
     mutationFn: async ({ id, changes }) => {
       if (!user) throw new Error("Sign in to update a deck card.");
-      const { data, error } = await supabase
-        .from("deck_cards")
-        .update(changes)
-        .eq("user_id", user.id)
-        .eq("id", id)
-        .select("*")
-        .single();
-      if (error) throw error;
-      return data;
+      const currentEntry = (
+        queryClient.getQueryData<DeckCard[]>(deckCardsKey) ?? []
+      ).find((entry) => entry.id === id);
+      const copyIds = [
+        currentEntry?.binder_card_id,
+        changes.kind === "binder" ? changes.binder_card_id : null,
+      ].filter((copyId): copyId is string => Boolean(copyId));
+      markLocalRealtimeChange("binder_cards", user.id, copyIds);
+      try {
+        const { data, error } = await supabase
+          .from("deck_cards")
+          .update(changes)
+          .eq("user_id", user.id)
+          .eq("id", id)
+          .select("*")
+          .single();
+        if (error) throw error;
+        return data;
+      } catch (error) {
+        clearLocalRealtimeChange("binder_cards", user.id, copyIds);
+        throw error;
+      }
     },
-    onSuccess: (updated) =>
+    onSuccess: async (updated) => {
       queryClient.setQueryData<DeckCard[]>(deckCardsKey, (current) =>
         current?.map((entry) => (entry.id === updated.id ? updated : entry)),
-      ),
+      );
+      await queryClient.invalidateQueries({
+        queryKey: binderCopiesQueryKey(user?.id),
+      });
+    },
   });
 
   return {

@@ -23,11 +23,9 @@ type BinderCopiesPopoverProps = {
   onClose: () => void;
 };
 
-function describeCopy(copy: BinderCopy, binders: Binder[]): string[] {
+function describeCopy(copy: BinderCopy, location: string): string[] {
   const details = [
-    copy.binder_id
-      ? binders.find((binder) => binder.id === copy.binder_id)?.name ?? "Unknown binder"
-      : "Loose",
+    location,
     copy.condition,
     copy.finish,
     copy.language,
@@ -96,6 +94,12 @@ export default function BinderCopiesPopover({
             const deckName = deckEntry
               ? decks.find((deck) => deck.id === deckEntry.deck_id)?.name
               : undefined;
+            const location = deckEntry
+              ? `In deck: ${deckName ?? "Unknown deck"}`
+              : copy.binder_id
+                ? binders.find((binder) => binder.id === copy.binder_id)?.name ??
+                  "Unknown binder"
+                : "Loose";
             return (
               <li key={copy.id} className="binder-copy-popover__copy">
                 <div className="binder-copy-popover__copy-heading">
@@ -109,7 +113,9 @@ export default function BinderCopiesPopover({
                   <BinderCopyForm
                     cardName={card.name}
                     binders={binders}
+                    decks={decks}
                     initialCopy={copy}
+                    initialDeckId={deckEntry?.deck_id}
                     onSave={async (values) => {
                       if (await onUpdate(copy, values)) {
                         setEditingCopyId(null);
@@ -121,7 +127,7 @@ export default function BinderCopiesPopover({
                 ) : (
                   <>
                     <p>
-                      {describeCopy(copy, binders).join(" · ") ||
+                      {describeCopy(copy, location).join(" · ") ||
                         "No additional details"}
                     </p>
                     <div className="binder-copy-popover__actions">

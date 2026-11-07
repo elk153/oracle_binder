@@ -52,7 +52,7 @@ function getDeckCover(
 export default function DecksPage() {
   const [view, setView] = useQueryState(
     "view",
-    parseAsStringLiteral(DECK_VIEWS).withDefault("all"),
+    parseAsStringLiteral(DECK_VIEWS).withDefault("decks"),
   );
   const [selectedDeckId, setSelectedDeckId] = useQueryState("deck", parseAsString);
   const { user } = useAuth();
@@ -176,7 +176,7 @@ export default function DecksPage() {
       !window.confirm(
         `Delete “${deck.name}”? This permanently removes ${count} ${
           count === 1 ? "deck entry" : "deck entries"
-        }. Binder copies will remain in your Binder.`,
+        }. Assigned Binder copies will become Loose.`,
       )
     ) {
       return;
@@ -210,8 +210,10 @@ export default function DecksPage() {
   const binderActionDisabled =
     binder.bindersLoading ||
     binder.copies.isLoading ||
+    decks.isLoading ||
     Boolean(binder.bindersError) ||
     Boolean(binder.copies.error) ||
+    Boolean(decks.error) ||
     binder.isPending;
   const binderCardProps = {
     binders: binder.binders,
@@ -435,17 +437,11 @@ export default function DecksPage() {
                         .get(card.id)
                         ?.find((copy) => copy.id === entry.binder_card_id)
                     : undefined;
-                const binderName =
-                  binderCopy === undefined
-                    ? "Unknown binder"
-                    : binderCopy.binder_id === null
-                      ? "Loose"
-                      : binder.binders.find(
-                          (target) => target.id === binderCopy.binder_id,
-                        )?.name ?? "Unknown binder";
                 const kindLabel =
                   entry.kind === "binder"
-                    ? `Owned (${binderName})`
+                    ? binderCopy
+                      ? "Owned (in this deck)"
+                      : "Owned copy unavailable"
                     : entry.kind === "proxy"
                       ? "Proxy"
                       : "Virtual";
@@ -536,9 +532,10 @@ export default function DecksPage() {
         <AddBinderCopyDialog
           card={binder.cardToAdd}
           binders={binder.binders}
+          decks={decks.decks}
           onSave={binder.addCopy}
           onClose={binder.closeAdd}
-          isSaving={binder.copies.addCopy.isPending}
+          isSaving={binder.isPending}
         />
       )}
     </section>

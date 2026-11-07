@@ -213,6 +213,77 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_binder_copy_to_deck: {
+        Args: {
+          p_copy_changes: Json
+          p_copy_id: string
+          p_deck_id: string
+          p_rarity: string
+          p_scryfall_id: string
+        }
+        Returns: {
+          acquired_at: string | null
+          acquisition_format: string | null
+          acquisition_type: string | null
+          binder_id: string | null
+          condition: string | null
+          created_at: string
+          disposal_price: number | null
+          disposed_at: string | null
+          finish: string | null
+          id: string
+          language: string | null
+          location: string | null
+          notes: string | null
+          purchase_price: number | null
+          rarity: string
+          scryfall_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "binder_cards"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      move_binder_copy_to_location: {
+        Args: {
+          p_binder_id: string | null
+          p_copy_changes: Json
+          p_copy_id: string
+          p_deck_id: string | null
+        }
+        Returns: {
+          acquired_at: string | null
+          acquisition_format: string | null
+          acquisition_type: string | null
+          binder_id: string | null
+          condition: string | null
+          created_at: string
+          disposal_price: number | null
+          disposed_at: string | null
+          finish: string | null
+          id: string
+          language: string | null
+          location: string | null
+          notes: string | null
+          purchase_price: number | null
+          rarity: string
+          scryfall_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "binder_cards"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       remove_or_dispose_binder_copy: {
         Args: {
           p_copy_changes: Json

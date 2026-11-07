@@ -5,7 +5,11 @@ import { supabase } from "../../services/supabaseClient.ts";
 import type { Tables, TablesInsert, TablesUpdate } from "../../types/database.ts";
 import useRealtimeInvalidation from "../../hooks/useRealtimeInvalidation.ts";
 import { clearLocalRealtimeChange, markLocalRealtimeChange } from "../../services/localRealtimeChanges.ts";
-import { deckCardsQueryKey } from "../decks/useDeckManagement.ts";
+import {
+  binderCopiesQueryKey,
+  deckCardsQueryKey,
+} from "../queryKeys.ts";
+export { binderCopiesQueryKey } from "../queryKeys.ts";
 
 const BINDER_COPIES_PAGE_SIZE = 500;
 
@@ -31,8 +35,17 @@ type RemoveOrDisposeBinderCopy = {
   changes?: BinderCopyDisposalChanges;
 };
 
-export const binderCopiesQueryKey = (userId?: string) =>
-  ["binderCopies", userId] as const;
+type AddBinderCopyToDeck = {
+  copy: NewBinderCopy;
+  deckId: string;
+};
+
+type MoveBinderCopyLocation = {
+  id: string;
+  binderId: string | null;
+  deckId: string | null;
+  changes: BinderCopyUpdate;
+};
 
 async function fetchBinderCopies(userId: string): Promise<BinderCopy[]> {
   const copies: BinderCopy[] = [];
@@ -108,6 +121,52 @@ export default function useBinderCopies() {
       queryClient.setQueryData<BinderCopy[]>(queryKey, (current) =>
         current ? [...current, copy] : [copy],
       ),
+  });
+
+  const addCopyToDeck = useMutation<
+    BinderCopy,
+    Error,
+    AddBinderCopyToDeck
+  >({
+    mutationFn: async ({ copy, deckId }) => {
+      if (!user) throw new Error("Sign in to add a binder copy.");
+      const id = crypto.randomUUID();
+      markLocalRealtimeChange("binder_cards", user.id, [id]);
+      try {
+        const { data, error } = await supabase.rpc("add_binder_copy_to_deck", {
+          p_copy_id: id,
+          p_deck_id: deckId,
+          p_scryfall_id: copy.scryfall_id,
+          p_rarity: copy.rarity,
+          p_copy_changes: {
+            acquisition_type: copy.acquisition_type ?? null,
+            acquisition_format: copy.acquisition_format ?? null,
+            condition: copy.condition ?? null,
+            finish: copy.finish ?? null,
+            language: copy.language ?? null,
+            purchase_price: copy.purchase_price ?? null,
+            acquired_at: copy.acquired_at ?? null,
+            location: copy.location ?? null,
+            notes: copy.notes ?? null,
+          },
+        });
+        if (error) throw error;
+        const [copyResult] = data ?? [];
+        if (!copyResult) throw new Error("The new binder copy was not returned.");
+        return copyResult;
+      } catch (error) {
+        clearLocalRealtimeChange("binder_cards", user.id, [id]);
+        throw error;
+      }
+    },
+    onSuccess: async (copy) => {
+      queryClient.setQueryData<BinderCopy[]>(queryKey, (current) =>
+        current ? [...current, copy] : [copy],
+      );
+      await queryClient.invalidateQueries({
+        queryKey: deckCardsQueryKey(user?.id),
+      });
+    },
   });
 
   const updateCopy = useMutation<
@@ -211,14 +270,53 @@ export default function useBinderCopies() {
     },
   });
 
+  const moveCopyToLocation = useMutation<
+    BinderCopy,
+    Error,
+    MoveBinderCopyLocation
+  >({
+    mutationFn: async ({ id, binderId, deckId, changes }) => {
+      if (!user) throw new Error("Sign in to move a binder copy.");
+      markLocalRealtimeChange("binder_cards", user.id, [id]);
+      try {
+        const { data, error } = await supabase.rpc(
+          "move_binder_copy_to_location",
+          {
+            p_copy_id: id,
+            p_binder_id: binderId,
+            p_deck_id: deckId,
+            p_copy_changes: changes,
+          },
+        );
+        if (error) throw error;
+        const [copyResult] = data ?? [];
+        if (!copyResult) throw new Error("The updated binder copy was not returned.");
+        return copyResult;
+      } catch (error) {
+        clearLocalRealtimeChange("binder_cards", user.id, [id]);
+        throw error;
+      }
+    },
+    onSuccess: async (updated) => {
+      queryClient.setQueryData<BinderCopy[]>(queryKey, (current) =>
+        current?.map((copy) => (copy.id === updated.id ? updated : copy)),
+      );
+      await queryClient.invalidateQueries({
+        queryKey: deckCardsQueryKey(user?.id),
+      });
+    },
+  });
+
   return {
     ...query,
     realtimeError,
     copies: query.data ?? [],
     copiesByScryfallId,
     addCopy,
+    addCopyToDeck,
     updateCopy,
     removeOrDisposeCopy,
     moveCopies,
+    moveCopyToLocation,
   };
 }

@@ -30,7 +30,7 @@ flowchart LR
 
 | State kind | Examples | Owner / source of truth |
 |---|---|---|
-| URL state | Search term `q`, search scope `source`, selected card `card`, Binder/Deck view and selection, card filters | React Router search params and `nuqs` parsers. It is shareable and survives reloads. |
+| URL state | Search term `q`, search scope `source`, selected card `card`, Binder/Deck view and selection, card filters | React Router search params and `nuqs` parsers. It is shareable and survives reloads. Binder and Decks default to their folder/deck lists when `view` is absent; explicit view parameters are preserved. |
 | Local component state | Notice text, unsaved form values, selected cards for a bulk move, current overlay presentation | The page or component that owns the interaction. It is not persisted unless represented in the URL. |
 | Authentication | Supabase session and current user | `AuthProvider`; user-specific queries are enabled/scoped by the authenticated user. |
 | Remote/cache state | Scryfall search pages, card details, Binder/favorites/decks query results | TanStack Query, with query keys including relevant identifiers and request parameters. |
@@ -99,6 +99,13 @@ invalidation signal, after which the normal user-scoped query reads the
 authoritative row under RLS. Locally-originated Realtime echoes are tracked by
 `src/services/localRealtimeChanges.ts` so they do not undo a local cache patch.
 
+Physical Binder copies have one storage location at a time: Loose, a Binder
+folder, or a deck. The add-copy flow can assign directly to a deck. Moving a
+deck-assigned copy into a Binder folder leaves its deck entry in place as
+virtual; deleting the deck releases its physical copies to Loose. Database RPCs
+perform these changes atomically, and their nullable Binder/deck IDs represent
+the storage destination that is not selected.
+
 ## Interaction invariants
 
 - Keep URL-backed state in the existing query parameters; do not shadow it with
@@ -110,4 +117,3 @@ authoritative row under RLS. Locally-originated Realtime echoes are tracked by
   75 identifiers per request.
 - Use Realtime events to invalidate/refetch, not as trusted replacement rows.
 - Prices are current Scryfall prices, not price history or collection valuation.
-

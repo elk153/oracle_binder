@@ -13,6 +13,13 @@ values (
   'Other user deck'
 );
 
+insert into public.binders (id, user_id, name)
+values (
+  '88888888-8888-8888-8888-888888888888',
+  '11111111-1111-1111-1111-111111111111',
+  'Storage test binder'
+);
+
 insert into public.deck_cards (
   id, user_id, deck_id, kind, scryfall_id
 )
@@ -25,12 +32,13 @@ values (
 );
 
 insert into public.binder_cards (
-  id, user_id, scryfall_id, rarity, status
+  id, user_id, binder_id, scryfall_id, rarity, status
 )
 values
   (
     'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
     '22222222-2222-2222-2222-222222222222',
+    null,
     'cccccccc-cccc-cccc-cccc-cccccccccccc',
     'rare',
     'owned'
@@ -38,6 +46,7 @@ values
   (
     'dddddddd-dddd-dddd-dddd-dddddddddddd',
     '11111111-1111-1111-1111-111111111111',
+    '88888888-8888-8888-8888-888888888888',
     'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee',
     'common',
     'owned'
@@ -66,6 +75,22 @@ select ok(
     'execute'
   ),
   'anon cannot execute the Binder copy removal function'
+);
+select ok(
+  has_function_privilege(
+    'authenticated',
+    'public.add_binder_copy_to_deck(uuid, uuid, uuid, text, jsonb)',
+    'execute'
+  ),
+  'authenticated can execute the atomic add-to-deck function'
+);
+select ok(
+  not has_function_privilege(
+    'anon',
+    'public.add_binder_copy_to_deck(uuid, uuid, uuid, text, jsonb)',
+    'execute'
+  ),
+  'anon cannot execute the atomic add-to-deck function'
 );
 select ok(
   has_table_privilege('authenticated', 'public.decks', 'select, insert, delete'),
@@ -279,6 +304,133 @@ select is(
   (select count(*)::integer from public.deck_cards),
   3,
   'a user sees only their own deck cards'
+);
+
+select is_null(
+  (select binder_id from public.binder_cards
+    where id = 'dddddddd-dddd-dddd-dddd-dddddddddddd'),
+  'assigning a binder copy to a deck clears its binder folder'
+);
+select throws_ok(
+  $$update public.binder_cards
+    set binder_id = '88888888-8888-8888-8888-888888888888'
+    where id = 'dddddddd-dddd-dddd-dddd-dddddddddddd'$$,
+  '42501',
+  null,
+  'a deck-assigned copy cannot also be assigned to a binder'
+);
+
+select results_eq(
+  $$select id::text
+    from public.add_binder_copy_to_deck(
+      '81818181-8181-8181-8181-818181818181',
+      '12121212-1212-1212-1212-121212121212',
+      '90909090-9090-9090-9090-909090909090',
+      'common',
+      '{"condition":"Near Mint"}'::jsonb
+    )$$,
+  array['81818181-8181-8181-8181-818181818181'],
+  'a user can atomically add an owned copy directly to a deck'
+);
+select is_null(
+  (select binder_id from public.binder_cards
+    where id = '81818181-8181-8181-8181-818181818181'),
+  'a new deck-assigned copy has no binder folder'
+);
+select is(
+  (select kind from public.deck_cards
+    where binder_card_id = '81818181-8181-8181-8181-818181818181'),
+  'binder',
+  'adding a copy to a deck creates its linked physical entry'
+);
+select throws_ok(
+  $$select public.add_binder_copy_to_deck(
+      '92929292-9292-9292-9292-929292929292',
+      'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+      '93939393-9393-9393-9393-939393939393',
+      'rare',
+      '{}'::jsonb
+    )$$,
+  'P0002',
+  null,
+  'a user cannot add a binder copy to another user deck'
+);
+
+select lives_ok(
+  $$select public.move_binder_copy_to_location(
+      'dddddddd-dddd-dddd-dddd-dddddddddddd',
+      '88888888-8888-8888-8888-888888888888',
+      null,
+      '{"notes":"Moved into binder"}'::jsonb
+    )$$,
+  'a user can move a deck-assigned copy into a binder'
+);
+select is(
+  (select kind from public.deck_cards
+    where scryfall_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'),
+  'virtual',
+  'moving a copy to a binder preserves its deck entry as virtual'
+);
+select is(
+  (select binder_id::text from public.binder_cards
+    where id = 'dddddddd-dddd-dddd-dddd-dddddddddddd'),
+  '88888888-8888-8888-8888-888888888888',
+  'a moved copy is assigned to its selected binder'
+);
+
+insert into public.decks (id, name)
+values (
+  '98989898-9898-9898-9898-989898989898',
+  'Delete test deck'
+);
+select lives_ok(
+  $$select public.move_binder_copy_to_location(
+      'dddddddd-dddd-dddd-dddd-dddddddddddd',
+      null,
+      '98989898-9898-9898-9898-989898989898',
+      '{}'::jsonb
+    )$$,
+  'a user can move a binder copy into a deck'
+);
+select is_null(
+  (select binder_id from public.binder_cards
+    where id = 'dddddddd-dddd-dddd-dddd-dddddddddddd'),
+  'moving a binder copy into a deck clears its binder folder'
+);
+select is(
+  (select deck_id::text from public.deck_cards
+    where binder_card_id = 'dddddddd-dddd-dddd-dddd-dddddddddddd'),
+  '98989898-9898-9898-9898-989898989898',
+  'moving a copy to a deck keeps one linked physical entry'
+);
+
+delete from public.decks
+where id = '98989898-9898-9898-9898-989898989898';
+select is_null(
+  (select binder_id from public.binder_cards
+    where id = 'dddddddd-dddd-dddd-dddd-dddddddddddd'),
+  'deleting a deck returns its physical copies to Loose'
+);
+select is_empty(
+  $$select id from public.deck_cards
+    where binder_card_id = 'dddddddd-dddd-dddd-dddd-dddddddddddd'$$,
+  'deleting a deck removes its physical assignment'
+);
+delete from public.deck_cards
+where deck_id = '12121212-1212-1212-1212-121212121212'
+  and scryfall_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'
+  and kind = 'virtual';
+select lives_ok(
+  $$insert into public.deck_cards (
+      deck_id, kind, binder_card_id, scryfall_id
+    )
+    values (
+      '12121212-1212-1212-1212-121212121212',
+      'binder',
+      'dddddddd-dddd-dddd-dddd-dddddddddddd',
+      'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'
+    )$$,
+  'a released copy can be assigned to a deck again'
 );
 
 select results_eq(

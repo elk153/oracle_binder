@@ -66,8 +66,10 @@ export default function FavoritesPage() {
   const binderActionDisabled =
     binder.bindersLoading ||
     binder.copies.isLoading ||
+    decks.isLoading ||
     Boolean(binder.bindersError) ||
     Boolean(binder.copies.error) ||
+    Boolean(decks.error) ||
     binder.isPending;
 
   function openCard(card: CardBrowserCard) {
@@ -283,9 +285,10 @@ export default function FavoritesPage() {
         <AddBinderCopyDialog
           card={binder.cardToAdd}
           binders={binder.binders}
+          decks={decks.decks}
           onSave={binder.addCopy}
           onClose={binder.closeAdd}
-          isSaving={binder.copies.addCopy.isPending}
+          isSaving={binder.isPending}
         />
       )}
     </section>

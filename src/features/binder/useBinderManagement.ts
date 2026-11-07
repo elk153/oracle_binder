@@ -1,9 +1,7 @@
 import { useState } from "react";
 import type { CardBrowserCard } from "../card-browser/types.ts";
 import type { CopyFormValues } from "./BinderCopyForm.tsx";
-import useBinderCopies, {
-  type BinderCopy,
-} from "./useBinderCopies.ts";
+import useBinderCopies, { type BinderCopy } from "./useBinderCopies.ts";
 import useBinders from "./useBinders.ts";
 
 type Notify = (message: string) => void;
@@ -32,13 +30,21 @@ export default function useBinderManagement(notify: Notify) {
   async function addCopy(values: CopyFormValues) {
     if (!cardToAdd) return;
     try {
-      await copies.addCopy.mutateAsync({
-        ...values,
+      const { deck_id: deckId, ...copyValues } = values;
+      const copy = {
+        ...copyValues,
+        binder_id: deckId ? null : copyValues.binder_id ?? null,
         status: values.status ?? "owned",
         scryfall_id: cardToAdd.id,
         rarity: cardToAdd.rarity,
-      });
-      notify(`Added ${cardToAdd.name} to your Binder.`);
+      };
+      if (deckId) {
+        await copies.addCopyToDeck.mutateAsync({ copy, deckId });
+        notify(`Added ${cardToAdd.name} to the selected deck.`);
+      } else {
+        await copies.addCopy.mutateAsync(copy);
+        notify(`Added ${cardToAdd.name} to your Binder.`);
+      }
       setCardToAdd(null);
     } catch (error) {
       notify(
@@ -51,6 +57,7 @@ export default function useBinderManagement(notify: Notify) {
 
   async function updateCopy(copy: BinderCopy, values: CopyFormValues) {
     try {
+      const { deck_id: deckId, ...copyValues } = values;
       const nextStatus = values.status ?? copy.status;
       if (copy.status === "owned" && nextStatus !== "owned") {
         if (!isDisposalStatus(nextStatus)) {
@@ -59,7 +66,7 @@ export default function useBinderManagement(notify: Notify) {
         if (!confirmDeckConversion(`Mark this copy as ${nextStatus.replaceAll("_", " ")}?`)) {
           return false;
         }
-        const disposalChanges = { ...values };
+        const disposalChanges = { ...copyValues };
         delete disposalChanges.status;
         await copies.removeOrDisposeCopy.mutateAsync({
           id: copy.id,
@@ -71,7 +78,7 @@ export default function useBinderManagement(notify: Notify) {
       }
 
       const changes = {
-        ...values,
+        ...copyValues,
         disposal_price:
           nextStatus === "owned"
             ? null
@@ -81,7 +88,17 @@ export default function useBinderManagement(notify: Notify) {
             ? null
             : copy.disposed_at ?? new Date().toISOString(),
       };
-      await copies.updateCopy.mutateAsync({ id: copy.id, changes });
+      if ("binder_id" in values) {
+        const { binder_id: binderId, ...locationChanges } = changes;
+        await copies.moveCopyToLocation.mutateAsync({
+          id: copy.id,
+          binderId: binderId ?? null,
+          deckId: deckId ?? null,
+          changes: locationChanges,
+        });
+      } else {
+        await copies.updateCopy.mutateAsync({ id: copy.id, changes });
+      }
       notify("Binder copy updated.");
       return true;
     } catch (error) {
@@ -165,8 +182,10 @@ export default function useBinderManagement(notify: Notify) {
 
   const isPending =
     copies.addCopy.isPending ||
+    copies.addCopyToDeck.isPending ||
     copies.updateCopy.isPending ||
-    copies.removeOrDisposeCopy.isPending;
+    copies.removeOrDisposeCopy.isPending ||
+    copies.moveCopyToLocation.isPending;
 
   return {
     copies,

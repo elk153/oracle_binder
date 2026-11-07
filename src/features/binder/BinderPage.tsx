@@ -53,7 +53,7 @@ function coverCard(
 export default function BinderPage() {
   const [view, setView] = useQueryState(
     "view",
-    parseAsStringLiteral(BINDER_VIEWS).withDefault("all"),
+    parseAsStringLiteral(BINDER_VIEWS).withDefault("binders"),
   );
   const [selectedBinderId, setSelectedBinderId] = useQueryState(
     "binder",
@@ -75,13 +75,27 @@ export default function BinderPage() {
     () => binder.copies.copies.filter((copy) => copy.status === "owned"),
     [binder.copies.copies],
   );
+  const deckAssignedCopyIds = useMemo(
+    () =>
+      new Set(
+        decks.deckCards
+          .filter((entry) => entry.kind === "binder" && entry.binder_card_id)
+          .map((entry) => entry.binder_card_id),
+      ),
+    [decks.deckCards],
+  );
+  const unallocatedOwnedCopies = useMemo(
+    () => ownedCopies.filter((copy) => !deckAssignedCopyIds.has(copy.id)),
+    [deckAssignedCopyIds, ownedCopies],
+  );
   const historyCopies = useMemo(
     () => binder.copies.copies.filter((copy) => copy.status !== "owned"),
     [binder.copies.copies],
   );
   const ownedCardIds = useMemo(
-    () => [...new Set(ownedCopies.map((copy) => copy.scryfall_id))].sort(),
-    [ownedCopies],
+    () =>
+      [...new Set(unallocatedOwnedCopies.map((copy) => copy.scryfall_id))].sort(),
+    [unallocatedOwnedCopies],
   );
   const historyCardIds = useMemo(
     () => [...new Set(historyCopies.map((copy) => copy.scryfall_id))].sort(),
@@ -90,7 +104,7 @@ export default function BinderPage() {
   const cardsQuery = useScryfallCardsForIds(
     "binder-page",
     selectedBinderId === HISTORY_FILTER ? historyCardIds : ownedCardIds,
-    Boolean(user) && !binder.copies.isLoading,
+    Boolean(user) && !binder.copies.isLoading && !decks.isLoading,
   );
   const invalidCardData =
     cardsQuery.data?.some((card) => !isCardBrowserCard(card)) ?? false;
@@ -105,15 +119,19 @@ export default function BinderPage() {
     () => new Map(cards.map((card) => [card.id, card])),
     [cards],
   );
-  const looseCopies = ownedCopies.filter((copy) => copy.binder_id === null);
+  const looseCopies = unallocatedOwnedCopies.filter(
+    (copy) => copy.binder_id === null,
+  );
   const selectedCopies =
     selectedBinderId === HISTORY_FILTER
       ? historyCopies
       : selectedBinderId
         ? selectedBinderId === "loose"
           ? looseCopies
-          : ownedCopies.filter((copy) => copy.binder_id === selectedBinderId)
-        : ownedCopies;
+          : unallocatedOwnedCopies.filter(
+              (copy) => copy.binder_id === selectedBinderId,
+            )
+        : unallocatedOwnedCopies;
   const selectedIds = new Set(selectedCopies.map((copy) => copy.scryfall_id));
   const viewCards = cards.filter((card) => selectedIds.has(card.id));
   const { table, filters, setFilters, resetFilters } = useCardsTable(viewCards);
@@ -174,7 +192,9 @@ export default function BinderPage() {
   }
 
   async function deleteBinder(target: Binder) {
-    const count = ownedCopies.filter((copy) => copy.binder_id === target.id).length;
+    const count = unallocatedOwnedCopies.filter(
+      (copy) => copy.binder_id === target.id,
+    ).length;
     const cardWord = count === 1 ? "card moves" : "cards move";
     if (
       !window.confirm(
@@ -199,7 +219,7 @@ export default function BinderPage() {
   async function moveSelectedCopies() {
     const destination =
       moveDestination === "loose" ? null : moveDestination || null;
-    const ids = ownedCopies
+    const ids = unallocatedOwnedCopies
       .filter((copy) => selectedCardIds.has(copy.scryfall_id))
       .map((copy) => copy.id);
     if (ids.length === 0) return;
@@ -233,8 +253,10 @@ export default function BinderPage() {
   const binderActionDisabled =
     binder.bindersLoading ||
     binder.copies.isLoading ||
+    decks.isLoading ||
     Boolean(binder.bindersError) ||
     Boolean(binder.copies.error) ||
+    Boolean(decks.error) ||
     binder.isPending;
   const binderCardProps = {
     binders: binder.binders,
@@ -258,7 +280,7 @@ export default function BinderPage() {
     covers.set(
       target.id,
       coverCard(
-        ownedCopies.filter((copy) => copy.binder_id === target.id),
+        unallocatedOwnedCopies.filter((copy) => copy.binder_id === target.id),
         cardsById,
       ),
     );
@@ -346,7 +368,7 @@ export default function BinderPage() {
 
           <div className="binder-page__binder-grid">
             {[...binder.binders].map((target) => {
-              const count = ownedCopies.filter(
+              const count = unallocatedOwnedCopies.filter(
                 (copy) => copy.binder_id === target.id,
               ).length;
               const cover = covers.get(target.id);
@@ -470,7 +492,7 @@ export default function BinderPage() {
             />
           )}
 
-          {binder.copies.isLoading || cardsQuery.isLoading ? (
+          {binder.copies.isLoading || decks.isLoading || cardsQuery.isLoading ? (
             <p className="binder-page__message" role="status">Loading Binder…</p>
           ) : orderedCards.length > 0 ? (
             <div className="binder-page__list" aria-label="Binder cards">
@@ -543,9 +565,10 @@ export default function BinderPage() {
         <AddBinderCopyDialog
           card={binder.cardToAdd}
           binders={binder.binders}
+          decks={decks.decks}
           onSave={binder.addCopy}
           onClose={binder.closeAdd}
-          isSaving={binder.copies.addCopy.isPending}
+          isSaving={binder.isPending}
         />
       )}
     </section>

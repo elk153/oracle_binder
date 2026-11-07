@@ -94,12 +94,12 @@ static brand assets and are not React components.
 
 | File | Purpose and public contract |
 |---|---|
-| [`src/features/binder/BinderPage.tsx`](../../src/features/binder/BinderPage.tsx) | Default Binder page; owns URL-backed view/folder/history selection, bulk moves, filters, and card presentation. History includes retained sold, lost, and given-away copies. |
+| [`src/features/binder/BinderPage.tsx`](../../src/features/binder/BinderPage.tsx) | Default Binder page; opens the binder list unless an explicit view is set, and owns URL-backed view/folder/history selection, bulk moves, filters, and card presentation. Deck-assigned copies are excluded from Binder folders and Loose; History includes retained sold, lost, and given-away copies. |
 | [`src/features/binder/useBinders.ts`](../../src/features/binder/useBinders.ts) | Exports `Binder`, `bindersQueryKey`, and `useBinders`; provides user-scoped binder-folder queries and mutations. |
-| [`src/features/binder/useBinderCopies.ts`](../../src/features/binder/useBinderCopies.ts) | Exports Binder copy and mutation types, `binderCopiesQueryKey`, and `useBinderCopies`; manages per-copy records and history actions. |
-| [`src/features/binder/useBinderManagement.ts`](../../src/features/binder/useBinderManagement.ts) | Default `useBinderManagement`; coordinates Binder folder/copy hooks and dialog actions. |
-| [`src/features/binder/BinderCopyForm.tsx`](../../src/features/binder/BinderCopyForm.tsx) | Exports `CopyFormValues` and default `BinderCopyForm`; collects per-copy acquisition/location/disposal fields with standard acquisition, condition, finish, and language choices. |
-| [`src/features/binder/AddBinderCopyDialog.tsx`](../../src/features/binder/AddBinderCopyDialog.tsx) | Default add-copy dialog; wraps the copy form and save/cancel actions. |
+| [`src/features/binder/useBinderCopies.ts`](../../src/features/binder/useBinderCopies.ts) | Exports Binder copy and mutation types, `binderCopiesQueryKey`, and `useBinderCopies`; manages per-copy records, atomic deck assignment/moves, and history actions. |
+| [`src/features/binder/useBinderManagement.ts`](../../src/features/binder/useBinderManagement.ts) | Default `useBinderManagement`; coordinates Binder folder/copy hooks, deck destinations, and dialog actions. |
+| [`src/features/binder/BinderCopyForm.tsx`](../../src/features/binder/BinderCopyForm.tsx) | Exports `CopyFormValues` and default `BinderCopyForm`; collects storage destination and per-copy acquisition/disposal fields with standard acquisition, condition, finish, and language choices. |
+| [`src/features/binder/AddBinderCopyDialog.tsx`](../../src/features/binder/AddBinderCopyDialog.tsx) | Default add-copy dialog; offers Loose, Binder-folder, and deck storage destinations and wraps save/cancel actions. |
 | [`src/features/binder/BinderCopiesPopover.tsx`](../../src/features/binder/BinderCopiesPopover.tsx) | Default copy-history/action popover for a card's Binder copies. |
 | [`src/features/binder/Binder.css`](../../src/features/binder/Binder.css) | Shared Binder copy/form/popover styles, including EUR price input and theme-aware date control. |
 | [`src/features/binder/BinderPage.css`](../../src/features/binder/BinderPage.css) | Binder folders, card list, selection, and bulk-move page styles. |
@@ -108,10 +108,11 @@ static brand assets and are not React components.
 
 | File | Purpose and public contract |
 |---|---|
-| [`src/features/decks/DecksPage.tsx`](../../src/features/decks/DecksPage.tsx) | Default protected Decks page; owns URL-backed views, deck CRUD interaction, filters, and entries presentation. |
-| [`src/features/decks/useDeckManagement.ts`](../../src/features/decks/useDeckManagement.ts) | Exports `Deck`, `DeckCard`, insert/update types, query-key factories, `useDeckManagement`, and derived `DeckActions`; user-scoped queries and mutations. |
+| [`src/features/decks/DecksPage.tsx`](../../src/features/decks/DecksPage.tsx) | Default protected Decks page; opens the deck list unless an explicit view is set, and owns URL-backed views, deck CRUD interaction, filters, and entries presentation. |
+| [`src/features/decks/useDeckManagement.ts`](../../src/features/decks/useDeckManagement.ts) | Exports `Deck`, `DeckCard`, insert/update types, query-key factories, `useDeckManagement`, and derived `DeckActions`; user-scoped queries and mutations that synchronize physical copy storage on deck assignment/release. |
 | [`src/features/decks/DeckCardPopover.tsx`](../../src/features/decks/DeckCardPopover.tsx) | Default deck-entry action popover for adding/removing/changing card entry kinds. |
 | [`src/features/decks/DecksPage.css`](../../src/features/decks/DecksPage.css) | Deck list, deck covers, entry-kind labels, and page states. |
+| [`src/features/queryKeys.ts`](../../src/features/queryKeys.ts) | Shared query-key factories for Binder copies and deck cards, avoiding hook import cycles. |
 
 ## Navigation
 

@@ -4,6 +4,7 @@ import type {
   BinderCopy,
   BinderCopyUpdate,
 } from "./useBinderCopies.ts";
+import type { Deck } from "../decks/useDeckManagement.ts";
 
 type Binder = Tables<"binders">;
 export type CopyFormValues = Omit<
@@ -16,12 +17,14 @@ export type CopyFormValues = Omit<
   | "updated_at"
   | "disposed_at"
   | "disposal_price"
->;
+> & { deck_id?: string | null };
 
 type BinderCopyFormProps = {
   cardName: string;
   binders: Binder[];
+  decks: Deck[];
   initialCopy?: BinderCopy;
+  initialDeckId?: string;
   onSave: (values: CopyFormValues) => void;
   onCancel: () => void;
   isSaving: boolean;
@@ -84,12 +87,20 @@ function optionalText(value: string): string | null {
 export default function BinderCopyForm({
   cardName,
   binders,
+  decks,
   initialCopy,
+  initialDeckId,
   onSave,
   onCancel,
   isSaving,
 }: BinderCopyFormProps) {
-  const [binderId, setBinderId] = useState(initialCopy?.binder_id ?? "");
+  const [storageLocation, setStorageLocation] = useState(
+    initialDeckId
+      ? `deck:${initialDeckId}`
+      : initialCopy?.binder_id
+        ? `binder:${initialCopy.binder_id}`
+        : "loose",
+  );
   const [status, setStatus] = useState(initialCopy?.status ?? "owned");
   const [acquisitionType, setAcquisitionType] = useState(
     initialCopy?.acquisition_type ?? "",
@@ -114,8 +125,11 @@ export default function BinderCopyForm({
     const price = purchasePrice.trim() ? Number(purchasePrice) : null;
     if (price !== null && (!Number.isFinite(price) || price < 0)) return;
 
+    const [destinationType, destinationId] = storageLocation.split(":");
     onSave({
-      binder_id: binderId || null,
+      binder_id:
+        destinationType === "binder" ? destinationId || null : null,
+      deck_id: destinationType === "deck" ? destinationId || null : null,
       status,
       acquisition_type: optionalText(acquisitionType),
       acquisition_format: optionalText(acquisitionFormat),
@@ -136,17 +150,34 @@ export default function BinderCopyForm({
         <input value={cardName} readOnly />
       </label>
       <label>
-        Binder
+        Storage location
         <select
-          value={binderId}
-          onChange={(event) => setBinderId(event.currentTarget.value)}
+          value={storageLocation}
+          onChange={(event) => setStorageLocation(event.currentTarget.value)}
         >
-          <option value="">Loose</option>
-          {binders.map((binder) => (
-            <option key={binder.id} value={binder.id}>
-              {binder.name}
-            </option>
-          ))}
+          <option value="loose">Loose</option>
+          {binders.length > 0 && (
+            <optgroup label="Binders">
+              {binders.map((binder) => (
+                <option key={binder.id} value={`binder:${binder.id}`}>
+                  {binder.name}
+                </option>
+              ))}
+            </optgroup>
+          )}
+          {decks.length > 0 && (
+            <optgroup label="Decks">
+              {decks.map((deck) => (
+                <option
+                  key={deck.id}
+                  value={`deck:${deck.id}`}
+                  disabled={status !== "owned"}
+                >
+                  {deck.name}
+                </option>
+              ))}
+            </optgroup>
+          )}
         </select>
       </label>
       {initialCopy ? (
