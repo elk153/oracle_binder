@@ -49,7 +49,6 @@ body{
   backdrop-filter: blur(18px) saturate(155%);
 }
 
-:root[data-theme="light"] .AppV2 .nav-search,
 :root[data-theme="light"] .AppV2 .nav-theme-toggle {
   background: color-mix(in srgb, var(--bg-main) 74%, transparent);
 }

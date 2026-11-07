@@ -31,32 +31,15 @@
   }
 
   .nav-bar--desktop .nav-bar__row {
-    justify-content: space-between;
+    justify-content: center;
     gap: clamp(0.25rem, 0.8vw, 0.75rem);
     padding-right: 0.6rem;
     padding-left: 0.6rem;
   }
 
-  .nav-bar--desktop .nav-search {
-    order: 1;
-    /* The theme toggle now sits before the search field. The auto margin
-       soaks up the free space so both stay packed on the left, and the
-       nav list stays pushed to the right (space-between would otherwise
-       center the search field). */
-    flex: 0 1 auto;
-    min-width: 0;
-    margin-right: auto;
-  }
-
   .nav-bar--desktop .nav-bar__list {
-    order: 2;
     flex: 0 1 auto;
     gap: clamp(0.05rem, 0.5vw, 0.4rem);
-  }
-
-  .nav-bar--desktop .search-source-toggle {
-    order: 0;
-    flex: 0 0 auto;
   }
 
   .nav-bar--desktop .nav-theme-toggle {

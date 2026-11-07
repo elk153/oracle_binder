@@ -1,16 +1,11 @@
-import SearchSourceToggle from "../search/SearchSourceToggle.tsx";
 import type { NavBarProps } from "./types.ts";
 import { resolvePath, useLocation, useNavigate, useResolvedPath } from "react-router";
 import navItems from "./navItems";
-import NavSearchField from "./NavSearchField";
 import NavThemeToggle from "./NavThemeToggle.tsx";
 import LogoutIcon from "../../assets/icons/navigation/LogoutIcon.tsx";
 import useScrollVisibility from "../../hooks/useScrollVisibility";
 
 export default function NavBarDesktop({
-  searchSource,
-  onSearchSourceToggle,
-  onSearch,
   isAuthenticated,
   isSigningOut,
   onLogout,
@@ -26,13 +21,6 @@ export default function NavBarDesktop({
       data-visible={visible}
     >
       <nav className="nav-bar__row" aria-label="Primary">
-        <NavThemeToggle />
-        <SearchSourceToggle
-          value={searchSource}
-          onToggle={onSearchSourceToggle}
-        />
-        <NavSearchField onSearch={onSearch} id="nav-search-desktop" />
-
         <ul className="nav-bar__list">
           {navItems.map(({ id, label, path, Icon }) => {
             const isActive = pathname === resolvePath(path, routeBasePath).pathname;
@@ -50,6 +38,9 @@ export default function NavBarDesktop({
               </li>
             );
           })}
+          <li>
+            <NavThemeToggle />
+          </li>
           {isAuthenticated && (
             <li>
               <button

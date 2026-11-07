@@ -7,10 +7,9 @@ shared visual language driven by the tokens in `src/theme.css`.
 
 ```text
 src/features/navigation/
-├── NavBar.tsx               — root component, search routing and auth actions
+├── NavBar.tsx               — root component and auth actions
 ├── NavBarDesktop.tsx        — desktop header
 ├── NavBarMobile.tsx         — mobile floating bar
-├── NavSearchField.tsx       — shared quick-search / random input
 ├── navItems.ts              — navigation destinations
 ├── NavThemeToggle.tsx       — theme control
 ├── navbar-shared.css        — shared surface, icon and label styles
@@ -20,6 +19,10 @@ src/features/navigation/
 src/assets/icons/navigation/
 └── individual SVG icon components
 ```
+
+Search controls and the Scryfall/collection source toggle live in
+`src/features/search/`; the navbar's Search item navigates to `/v2/search`.
+The theme toggle appears between Decks and Log out.
 
 In the current V2 app, the Binder item opens `/v2/binder`; the former
 `/v2/collection` path redirects there.
@@ -76,10 +79,8 @@ system-safe if you don't.
 
 - **Routing:** `react-router` (`useNavigate`). `NavBar` is mounted in the
   `/v2` layout, so its relative search destinations resolve under `/v2`.
-- **Search behavior:** empty submit → `search/random`, non-empty →
-  `search?q=<term>`. These destinations are route-relative to the V2 layout.
-  Search keeps other query parameters, including active filters. The handler
-  lives in `NavBar.tsx`.
+- **Search behavior:** searching is handled on `/v2/search`; the navbar only
+  provides a route link.
 - **Breakpoint:** 861px is the desktop/mobile split (matches common
   tablet-portrait cutoffs). Change the `min-width` in both CSS files if
   your app uses a different one.

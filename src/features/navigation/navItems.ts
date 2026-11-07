@@ -8,7 +8,7 @@ import DecksIcon from "../../assets/icons/navigation/DecksIcon.tsx";
 // NavBarMobile map over this so labels/icons/paths never drift apart.
 const navItems = [
   { id: "home", label: "Home", path: "home", Icon: HomeIcon },
-  { id: "advanced-search", label: "Search", path: "search/advanced", Icon: AdvancedSearchIcon },
+  { id: "search", label: "Search", path: "search", Icon: AdvancedSearchIcon },
   { id: "favorites", label: "Favorites", path: "favorites", Icon: FavoritesIcon },
   { id: "binder", label: "Binder", path: "binder", Icon: BinderIcon },
   { id: "decks", label: "Decks", path: "decks", Icon: DecksIcon },

@@ -45,26 +45,6 @@
   transform: translateX(0.8rem);
 }
 
-@media (max-width: 860px) {
-  .nav-bar .search-source-toggle {
-    width: 2.45rem;
-    min-width: 2.45rem;
-    padding: 0.3rem;
-  }
-
-  .nav-bar .search-source-toggle__label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .search-source-toggle__track,
   .search-source-toggle__thumb {

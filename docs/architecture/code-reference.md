@@ -11,7 +11,7 @@ Keep this reference aligned with the source when moving or adding modules.
 |---|---|
 | [`src/main.tsx`](../../src/main.tsx) | Browser entry: validates `#root`, imports global theme CSS, and mounts `AppProviders` under `StrictMode`. |
 | [`src/app/router.tsx`](../../src/app/router.tsx) | Defines redirects, the `/v2` layout, public routes, and `RequireAuth`-protected routes; default-exports the router. |
-| [`src/app/App.tsx`](../../src/app/App.tsx) | V2 shell and splash transition. Exports `App`, route elements `Home`, `AdvancedSearch`, `Favorites`, `Binder`, and `Decks`. |
+| [`src/app/App.tsx`](../../src/app/App.tsx) | V2 shell and splash transition. Exports `App` and route elements `Home`, `Favorites`, `Binder`, and `Decks`. |
 | [`src/app/AppProviders.tsx`](../../src/app/AppProviders.tsx) | Composes theme, query persistence/devtools, auth, and router providers; default-exports `AppProviders`. |
 | [`src/app/AppProviders/AuthContext.ts`](../../src/app/AppProviders/AuthContext.ts) | Exports `AuthContextValue`, `AuthContext`, and `useAuth`; defines the session/user/loading/sign-out contract. |
 | [`src/app/AppProviders/AuthProvider.tsx`](../../src/app/AppProviders/AuthProvider.tsx) | Exports `AuthProvider`; synchronizes the Supabase session with React context. |
@@ -31,7 +31,7 @@ static brand assets and are not React components.
 |---|---|
 | [`src/assets/icons/IconClose.tsx`](../../src/assets/icons/IconClose.tsx) | Default `IconClose`; SVG props allow use in the card-details close control. |
 | [`src/assets/icons/IconTurnAround.tsx`](../../src/assets/icons/IconTurnAround.tsx) | Default `IconTurnAround`; SVG props allow reuse on double-faced card tiles. |
-| [`src/assets/icons/navigation/AdvancedSearchIcon.tsx`](../../src/assets/icons/navigation/AdvancedSearchIcon.tsx) | Default navigation icon for the advanced-search placeholder. |
+| [`src/assets/icons/navigation/AdvancedSearchIcon.tsx`](../../src/assets/icons/navigation/AdvancedSearchIcon.tsx) | Default navigation icon for the Search item. |
 | [`src/assets/icons/navigation/BinderIcon.tsx`](../../src/assets/icons/navigation/BinderIcon.tsx) | Default navigation/action icon for Binder. |
 | [`src/assets/icons/navigation/DecksIcon.tsx`](../../src/assets/icons/navigation/DecksIcon.tsx) | Default navigation/action icon for Decks. |
 | [`src/assets/icons/navigation/FavoritesIcon.tsx`](../../src/assets/icons/navigation/FavoritesIcon.tsx) | Default navigation/action icon for Favorites. |
@@ -39,7 +39,6 @@ static brand assets and are not React components.
 | [`src/assets/icons/navigation/LogoutIcon.tsx`](../../src/assets/icons/navigation/LogoutIcon.tsx) | Default sign-out icon for desktop/mobile navigation. |
 | [`src/assets/icons/navigation/NavMoonIcon.tsx`](../../src/assets/icons/navigation/NavMoonIcon.tsx) | Default moon SVG for the theme toggle. |
 | [`src/assets/icons/navigation/NavSunIcon.tsx`](../../src/assets/icons/navigation/NavSunIcon.tsx) | Default sun SVG for the theme toggle. |
-| [`src/assets/icons/navigation/QuickSearchIcon.tsx`](../../src/assets/icons/navigation/QuickSearchIcon.tsx) | Default search/random icon for the navbar search field. |
 
 ## Authentication
 
@@ -118,20 +117,25 @@ static brand assets and are not React components.
 
 | File | Purpose and public contract |
 |---|---|
-| [`src/features/navigation/NavBar.tsx`](../../src/features/navigation/NavBar.tsx) | Default responsive navbar coordinator; owns search/source routing and sign-out handling. |
+| [`src/features/navigation/NavBar.tsx`](../../src/features/navigation/NavBar.tsx) | Default responsive navbar coordinator; owns sign-out handling. |
 | [`src/features/navigation/NavBarDesktop.tsx`](../../src/features/navigation/NavBarDesktop.tsx) | Desktop navbar presentation and navigation actions. |
-| [`src/features/navigation/NavBarMobile.tsx`](../../src/features/navigation/NavBarMobile.tsx) | Mobile navbar presentation, search expansion, and navigation actions. |
-| [`src/features/navigation/NavSearchField.tsx`](../../src/features/navigation/NavSearchField.tsx) | Default search field; emits a normalized query to its parent. |
-| [`src/features/navigation/SearchSourceToggle.tsx`](../../src/features/navigation/SearchSourceToggle.tsx) | Default Scryfall/personal-collection source toggle. |
+| [`src/features/navigation/NavBarMobile.tsx`](../../src/features/navigation/NavBarMobile.tsx) | Mobile navbar presentation and navigation actions. |
 | [`src/features/navigation/NavThemeToggle.tsx`](../../src/features/navigation/NavThemeToggle.tsx) | Default theme toggle; reads/writes theme through `useTheme`. |
 | [`src/features/navigation/navItems.ts`](../../src/features/navigation/navItems.ts) | Default single-source navigation item list shared by both navbar layouts. |
-| [`src/features/navigation/types.ts`](../../src/features/navigation/types.ts) | Exports `SearchSource` and `NavBarProps` contracts. |
+| [`src/features/navigation/types.ts`](../../src/features/navigation/types.ts) | Exports the `NavBarProps` contract. |
 | [`src/features/navigation/README.md`](../../src/features/navigation/README.md) | Navigation-specific design and behavior notes. |
-| [`src/features/navigation/navbar-shared.css`](../../src/features/navigation/navbar-shared.css) | Shared navbar surface, icon, label, and search styles. |
+| [`src/features/navigation/navbar-shared.css`](../../src/features/navigation/navbar-shared.css) | Shared navbar surface, icon, and label styles. |
 | [`src/features/navigation/navbar-desktop.css`](../../src/features/navigation/navbar-desktop.css) | Desktop positioning and responsive visibility. |
 | [`src/features/navigation/navbar-mobile.css`](../../src/features/navigation/navbar-mobile.css) | Mobile positioning and responsive visibility. |
 | [`src/features/navigation/NavThemeToggle.css`](../../src/features/navigation/NavThemeToggle.css) | Theme button presentation and focus states. |
-| [`src/features/navigation/SearchSourceToggle.css`](../../src/features/navigation/SearchSourceToggle.css) | Source toggle presentation. |
+
+## Search
+
+| File | Purpose and public contract |
+|---|---|
+| [`src/features/search/SearchControls.tsx`](../../src/features/search/SearchControls.tsx) | Search-page controls for the Scryfall/collection source and simple/advanced mode, persisted in URL parameters. |
+| [`src/features/search/SearchSourceToggle.tsx`](../../src/features/search/SearchSourceToggle.tsx) | Default source toggle used by the search page. |
+| [`src/features/search/types.ts`](../../src/features/search/types.ts) | Exports the `SearchSource` and `SearchMode` contracts. |
 
 ## Shared card renderer
 

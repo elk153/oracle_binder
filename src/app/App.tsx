@@ -71,15 +71,6 @@ export function Home() {
   return <CardBrowserPage mode="mulligan" />;
 }
 
-export function AdvancedSearch() {
-  return (
-    <section className="app-v2__page">
-      <h1>Advanced Search</h1>
-      <p>This is the advanced search page of the application.</p>
-    </section>
-  );
-}
-
 export function Favorites() {
   return <FavoritesPage />;
 }

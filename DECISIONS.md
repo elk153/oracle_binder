@@ -141,7 +141,6 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
 9. Add a `ProtectedRoute` layout: render `<Outlet />` with a session, nothing while `isLoading`, otherwise `<Navigate to="/v2/home" replace />`. Wrap `/v2/favorites`, `/v2/collection` and `/v2/decks` in `router.tsx`. AGENTS.md requires route-relative navigation inside the layouts; confirm the absolute redirect is acceptable for this V2-only guard before changing it.
 10. Run `npm run typecheck` and `npm run build`; both should pass. `npm run lint` still has the 19 existing errors, so compare against that baseline. Then test manually: sign in through Keycloak and return to the app, reload and stay signed in, open `/v2/favorites` signed out (redirects) and signed in (shows), then sign out and confirm the guard works again.
 
-
 ### D-044: Search page shell, toggles and naming rule
 
 - Status: Accepted
@@ -184,12 +183,12 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
 
 ### D-048: Card-name catalog prefetch (stale at 04:00)
 
-- Status: Evaluating
+- Status: Accepted
 - Date: 2026-11-07
 - Decision: Prefetch `https://api.scryfall.com/catalog/card-names` once with `usePreFetchUrl` (data purpose `cardNames`), reading it with `useFetchUrl`. Stale time = until the next 04:00 local time, computed from `query.state.dataUpdatedAt` by a small helper. `staleTimeInSeconds` in both hooks accepts `number | ((query) => number)`.
-- Why: Avoids repeated Scryfall requests; the catalog has no fixed refresh cycle, so a fixed daily boundary is simplest. `createApiClient` cannot be used because it rejects a `data` array of strings.
-- Alternatives considered: Scryfall `/cards/autocomplete` (one request per search, more calls); a plain 24 h stale time (refreshes at arbitrary hours).
-- Consequences: Verify that the installed `@tanstack/react-query` (^5.104) accepts a function `staleTime` (run `typecheck`). The timezone is assumed to be local time. Persistence: queries keyed `fetchedUrl` are persisted to `localStorage` automatically, which risks the quota. Run `curl -s -H "User-Agent: oracle_binder-dev/1.0" -H "Accept: application/json" https://api.scryfall.com/catalog/card-names | wc -c`. If it is under about 1 MB, keep the default; otherwise exclude `cardNames` in `shouldDehydrateQuery` (record in CHANGELOG as persisted-data change).
+- Why: Avoids repeated Scryfall requests; the catalog has no fixed refresh cycle, so a fixed daily boundary is simplest. `createApiClient` cannot be used because it rejects a `data` array of strings. Measured size: 703,493 bytes (about 687 KB), small enough to keep the app's default persistence.
+- Alternatives considered: Scryfall `/cards/autocomplete` (one request per search, more calls); a plain 24 h stale time (refreshes at arbitrary hours); excluding the catalog from persistence (not needed at this size).
+- Consequences: No change to `shouldDehydrateQuery`: queries keyed `fetchedUrl` are already persisted, in the single `REACT_QUERY_OFFLINE_CACHE` localStorage entry. The default `maxAge` (24 h, not set in `PersistenceProvider.tsx`) and `gcTime` (24 h in `queryProvider.ts`) already fit; a restored catalog older than 04:00 is stale and refetched. Quota check after implementing: that same entry also holds symbols, sets and every `cards/search` page (full Scryfall cards), so run `localStorage.getItem("REACT_QUERY_OFFLINE_CACHE").length` in the console after several searches. If it exceeds about 2 million characters (a safety margin, since the limit is typically about 5 MB), exclude `cardNames` in `shouldDehydrateQuery` and note it in the CHANGELOG as a persisted-data change. Also run `typecheck` to confirm the installed `@tanstack/react-query` (^5.104) accepts a function `staleTime`; the 04:00 boundary assumes local time.
 - Source: "[Search] Search refactor"
 
 ### D-049: Name autocomplete (native datalist)
@@ -231,8 +230,6 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
 - Alternatives considered: Querying Scryfall with a list of IDs (query length limits); copying card data into Supabase (migration, duplication).
 - Consequences: Two implementations of the same semantics must be kept in sync (add tests for both). Extend `CardBrowserCard` and `isCardBrowserCard` in `card-browser/types.ts` with `color_identity` and `flavor_text`. Use face-level fallbacks for `colors`, `type_line`, `oracle_text` and `flavor_text` as `columns.ts` already does.
 - Source: "[Search] Search refactor"
-
-<!-- Paste below D-052 in DECISIONS.md. Run only AFTER D-044..D-052 are shipped (they delete, move and add CSS). -->
 
 ### D-053: Audit and streamline the project CSS
 

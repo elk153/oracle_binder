@@ -48,7 +48,7 @@ The route definitions live in [`src/app/router.tsx`](../../src/app/router.tsx).
 | `/v2/home` | `Home` → `CardBrowserPage` | Daily seven-card mulligan. |
 | `/v2/search` | `CardBrowserPage` | Name search; URL parameters carry query, scope, filters, and optional card overlay. |
 | `/v2/search/random` | `CardBrowserPage` | Daily mulligan browser. |
-| `/v2/search/advanced` | `AdvancedSearch` | Placeholder, not an implemented advanced-search feature. |
+| `/v2/search/advanced` | Router redirect | Redirects to `/v2/search?s_mode=advanced`; advanced search is still a placeholder. |
 | `/v2/login` | `LoginPage` | Email/password authentication. |
 | `/v2/auth/callback` | `AuthCallbackPage` | Completes the Supabase auth callback and returns to a safe V2 URL. |
 | `/v2/collection` | Router redirect | Compatibility path to `/v2/binder`. |

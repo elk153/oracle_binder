@@ -1,7 +1,7 @@
 /* ==========================================================================
    NavThemeToggle.css
-   Round button for the NavBar (desktop and mobile). It reuses the pill look
-   of .nav-search and the icon glow of .nav-item.is-active, all through the
+   Round button for the NavBar (desktop and mobile). It reuses the shared
+   nav surface and icon glow of .nav-item.is-active, all through the
    theme.css tokens, so it follows the dark and light theme by itself.
    ========================================================================== */
 

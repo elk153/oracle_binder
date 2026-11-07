@@ -75,5 +75,5 @@ All new code is TypeScript, in `src/features/card-filters/`.
 
 - Fix the ESLint glob, then fix whatever new `.tsx` lint errors appear.
 - Add a numeric `cmc` range filter (`parseAsInteger`) to practice a second parser type.
-- Extend the filters for `/v2/search/advanced` when that page is implemented; the hook and component are shared with the current V2 browser and favorites page.
+- Extend the filters for the advanced mode on `/v2/search?s_mode=advanced` when it is implemented; the hook and component are shared with the current V2 browser and favorites page.
 - Move filtering server-side (Scryfall query, later Supabase) when one page of results is not enough.
