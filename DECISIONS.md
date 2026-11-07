@@ -160,3 +160,13 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
    ```
 9. Add a `ProtectedRoute` layout: render `<Outlet />` with a session, nothing while `isLoading`, otherwise `<Navigate to="/v2/home" replace />`. Wrap `/v2/favorites`, `/v2/collection` and `/v2/decks` in `router.tsx`. AGENTS.md requires route-relative navigation inside the layouts; confirm the absolute redirect is acceptable for this V2-only guard before changing it.
 10. Run `npm run typecheck` and `npm run build`; both should pass. `npm run lint` still has the 19 existing errors, so compare against that baseline. Then test manually: sign in through Keycloak and return to the app, reload and stay signed in, open `/v2/favorites` signed out (redirects) and signed in (shows), then sign out and confirm the guard works again.
+
+### D-041: Calendar versioning (CalVer) for releases
+
+- Status: Accepted
+- Date: 2026-11-07
+- Decision: Releases are versioned `YYYY.M.MICRO` (unpadded, e.g. `2026.11.0`), with `package.json` as the single source of truth and annotated `vYYYY.M.MICRO` tags created by `npm version`. UI layout prefixes such as `/v2` are layout names, not app versions.
+- Why: The app is an end-user web app with no dependents, so SemVer's compatibility signal has no reader and costs a judgment call at every release. Changes are incremental and deployed continuously. CalVer needs no judgment and matches the dates already used in `DECISIONS.md` and Supabase migration filenames.
+- Alternatives considered: SemVer `0.y.z` (kept only if the app becomes a published package, exposes an API, or a "1.0" milestone is wanted). Plain integers (not valid in `package.json` without faking `N.0.0`, and no time information). A SemVer/CalVer hybrid (more rules than a solo project needs).
+- Consequences: The version carries no compatibility signal, so breaking contract changes (URLs and query params, Supabase schema and RLS, persisted browser data) are listed under `### Breaking` in `CHANGELOG.md` and recorded in `DECISIONS.md`. The "1.0" goal becomes named roadmap milestones. Same-month releases use `npm version patch`; the first release of a month uses an explicit `npm version YYYY.M.0`. Removing a layout prefix without a redirect counts as a breaking change. `CHANGELOG.md` and the first tag are separate follow-up steps.
+- Source: "[Versioning] SemVer vs CalVer"

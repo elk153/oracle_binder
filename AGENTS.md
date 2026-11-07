@@ -12,6 +12,7 @@ The developer is learning React and TypeScript and wants to understand every cha
 - Ask before deleting files, adding dependencies, or converting files between JS and TS.
 - After a change, say which command to run to check it and what a pass looks like.
 - Do not claim something works unless you checked the source or ran the check.
+- Never change the app version, create tags, or edit `CHANGELOG.md` unless asked. Rules are in "Versioning".
 
 ## App at a glance
 
@@ -119,6 +120,75 @@ Full deck-building tools such as format validation, collection valuation and pri
 - `package.json` lists both `react-router` ^8 and `react-router-dom` ^7, but the source imports only from `react-router`. `react-router-dom` appears unused; ask before removing.
 - `AGENTS.md` is the shared repository-root context file. `CLAUDE.md` and `.github/copilot-instructions.md` point here; keep architecture and project conventions in this file rather than duplicating them.
 - Mermaid diagram rules are in `.github/mermaid.instructions.md`.
+
+## Versioning
+
+The app uses Calendar Versioning (CalVer): `YYYY.M.MICRO`, unpadded (e.g. `2026.11.0`, then `2026.11.1`).
+
+- `YYYY.M` is the month of the release (UTC). `MICRO` counts releases within that month, starting at `0`.
+- Do not pad the month: write `2026.8.0`, not `2026.08.0`. npm expects a SemVer-style version, which forbids leading zeros.
+- The version says *when* a release shipped, not whether it is compatible. Breaking changes are called out in the changelog instead (see below).
+- Roadmap milestones (for example "full deck-building tools") are named in `README.md` or `DECISIONS.md`; they are not encoded in the version.
+
+**Single source of truth:** `version` in `package.json`. `package-lock.json` must match. Change both only with `npm version`; never hand-edit. Do not write the version number in prose elsewhere, except the stamped lines listed below.
+
+**Bump rules**
+
+| Situation | Command |
+| --- | --- |
+| Another release in the same month | `npm version patch` (increments `MICRO`) |
+| First release of a new month | `npm version YYYY.M.0` (explicit, e.g. `npm version 2026.12.0`) |
+
+- Bump only when releasing, never per commit. Refactors, docs and tests ship in the next release.
+- The month in the version is the month of the release (merge to `main` and tag), not the month the work started.
+- The `minor` and `major` keywords of `npm version` carry no meaning here; do not use them.
+
+**Public contract** (what the `### Breaking` changelog heading protects):
+
+- URL structure and query params (`/v2/search?q=`, `?card=`, `?view=`, `?binder=`, `?deck=`, filter params) and `/v2/auth/callback`.
+- Supabase schema, grants and RLS policies (tables, columns and constraints that user data depends on).
+- Persisted browser data (`localStorage` keys written by `PersistenceProvider`).
+
+Component structure, CSS and Scryfall response handling are not part of it. Any change to the contract is listed under `### Breaking` in that release's `CHANGELOG.md` section and recorded in `DECISIONS.md`.
+
+**Release flow** (solo developer, no release branches):
+
+1. Work on `dev`. `package.json` keeps the last released version.
+2. Merge `dev` into `main` through a PR; `npm run typecheck` and `npm run build` must pass.
+3. On `main`: update `CHANGELOG.md` and commit; run `npm version patch` or `npm version YYYY.M.0` per the table above; run `git push --follow-tags`. This commits both package files and creates the annotated tag `vYYYY.M.MICRO`.
+4. Hotfix: branch from the latest tag, fix, bump with `npm version patch` (or an explicit version if the month changed), merge back into `dev`.
+5. Pre-release builds, only if needed: `2026.12.0-beta.1`.
+
+A release that depends on a Supabase migration needs that migration applied to the linked project before the app is deployed.
+
+**Other files**
+
+| File | Rule |
+| --- | --- |
+| `package.json`, `package-lock.json` | Tracked version; `npm version` only |
+| `CHANGELOG.md` | Keep a Changelog format; `Unreleased` on top, one section per release; breaking contract changes under `### Breaking` |
+| `DECISIONS.md` | Not versioned; dated entries; add `- Release: vYYYY.M.MICRO` when shipped |
+| `AGENTS.md` | Not versioned; once the first version tag exists, the header stamps the check date and the app version |
+| `README.md`, `docs/` | No hardcoded version; dated notes; link to the changelog |
+| Supabase migrations | Timestamp-named by the CLI, never part of the app version; each has a matching rollback in `supabase/rollback/`; the changelog says which release needs which migration |
+| `supabase` CLI devDependency | Keep pinned to an exact version; bump deliberately |
+| Other dependencies | Caret ranges plus lockfile; no separate versioning rule |
+| `/v2` and any future layout prefix | UI layout names, not app versions; see "UI layouts are not app versions" |
+| `CLAUDE.md`, `.github/copilot-instructions.md` | Pointers to this file; no version |
+
+### UI layouts are not app versions
+
+Route prefixes such as `/v2` name a UI layout, not a release. Never read them as part of the app version.
+
+| Layout | Status |
+| --- | --- |
+| `/v2` | Only layout; active default |
+| `/v1` | Removed (no routes listed above) |
+
+- Adding, deprecating or removing a layout is judged by one test: does something users relied on stop working? If yes, list it under `### Breaking`.
+- Removing a layout prefix without a redirect is a breaking change.
+- Do not rename `/v2` or drop its prefix without a decision; it is a contract change.
+- If a second layout is ever introduced, run it in parallel under its own prefix, keep the data pipeline (hooks, `createApiClient`, `normalizeCard`) shared rather than forked, and record each status change (active, maintained, deprecated, removed) in `DECISIONS.md`.
 
 ## Conventions
 
