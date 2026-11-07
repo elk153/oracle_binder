@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import CardRenderer from "../scryfall-card-renderer/CardRenderer";
 import OracleText from "../scryfall-card-renderer/components/OracleText.jsx";
@@ -62,6 +62,12 @@ export default function CardDetailsOverlay({
 }: CardDetailsOverlayProps) {
   const dialogRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const [popoverPortalTarget, setPopoverPortalTarget] =
+    useState<HTMLElement | null>(null);
+  const setDialogRef = useCallback((element: HTMLElement | null) => {
+    dialogRef.current = element;
+    setPopoverPortalTarget(element);
+  }, []);
   const [selectedPrint, setSelectedPrint] = useState<CardBrowserCard | null>(null);
   const [faceIndex, setFaceIndex] = useState(0);
   const cardQuery = useScryfallCardsSearch(
@@ -154,7 +160,7 @@ export default function CardDetailsOverlay({
 
   return (
     <section
-      ref={dialogRef}
+      ref={setDialogRef}
       className="card-detail-overlay"
       role="dialog"
       aria-modal="true"
@@ -314,6 +320,7 @@ export default function CardDetailsOverlay({
                       onDeleteBinderCopy={onDeleteBinderCopy}
                       deckActions={deckActions}
                       canManageDeck={canManageDeck}
+                      popoverPortalTarget={popoverPortalTarget}
                     />
                   </article>
                 ))}

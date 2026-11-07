@@ -22,6 +22,21 @@
   padding: 0.32rem;
 }
 
+.card-detail-overlay__popover-portal {
+  position: absolute;
+  z-index: 1;
+  box-sizing: border-box;
+  width: min(21rem, calc(100vw - 1.5rem));
+  max-height: min(38rem, calc(100dvh - 1.5rem));
+}
+
+.card-detail-overlay__popover-portal > .binder-copy-popover {
+  position: static;
+  box-sizing: border-box;
+  width: 100%;
+  max-height: inherit;
+}
+
 .card-detail-overlay__toolbar {
   position: absolute;
   z-index: 2;

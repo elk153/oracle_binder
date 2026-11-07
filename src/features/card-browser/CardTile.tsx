@@ -1,4 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type ReactNode,
+  type RefCallback,
+  type SetStateAction,
+} from "react";
+import { createPortal } from "react-dom";
 import BinderIcon from "../../assets/icons/navigation/BinderIcon.tsx";
 import DecksIcon from "../../assets/icons/navigation/DecksIcon.tsx";
 import FavoritesIcon from "../../assets/icons/navigation/FavoritesIcon.tsx";
@@ -39,7 +49,65 @@ type CardTileProps = {
   deckEntryKind?: DeckCard["kind"];
   showKindLabel?: boolean;
   showActions?: boolean;
+  popoverPortalTarget?: HTMLElement | null;
 };
+
+type PopoverMode = "hover" | "pinned" | null;
+
+type CardPopoverPortalProps = {
+  target: HTMLElement;
+  position: { left: number; top: number } | null;
+  mode: PopoverMode;
+  setMode: Dispatch<SetStateAction<PopoverMode>>;
+  panelRef: RefCallback<HTMLDivElement>;
+  children: ReactNode;
+};
+
+function CardPopoverPortal({
+  target,
+  position,
+  mode,
+  setMode,
+  panelRef,
+  children,
+}: CardPopoverPortalProps) {
+  return createPortal(
+    <div
+      ref={panelRef}
+      className="card-detail-overlay__popover-portal"
+      style={{
+        left: position?.left ?? 0,
+        top: position?.top ?? 0,
+        visibility: position ? "visible" : "hidden",
+      }}
+      onPointerLeave={(event) => {
+        const nextTarget = event.relatedTarget;
+        const isActionTarget =
+          nextTarget instanceof Element &&
+          nextTarget.closest(".browser-card__action-wrap");
+        if (event.pointerType === "mouse" && mode === "hover" && !isActionTarget) {
+          setMode(null);
+        }
+      }}
+      onBlur={(event) => {
+        const nextTarget = event.relatedTarget;
+        const isActionTarget =
+          nextTarget instanceof Element &&
+          nextTarget.closest(".browser-card__action-wrap");
+        if (
+          mode === "hover" &&
+          (!(nextTarget instanceof Node) ||
+            (!event.currentTarget.contains(nextTarget) && !isActionTarget))
+        ) {
+          setMode(null);
+        }
+      }}
+    >
+      {children}
+    </div>,
+    target,
+  );
+}
 
 const CARD_ACTIONS = [
   { action: "favorite", label: "Favorites", Icon: FavoritesIcon },
@@ -68,16 +136,21 @@ export default function CardTile({
   deckEntryKind,
   showKindLabel = true,
   showActions = true,
+  popoverPortalTarget,
 }: CardTileProps) {
   const [showBack, setShowBack] = useState(false);
-  const [binderPopoverMode, setBinderPopoverMode] = useState<
-    "hover" | "pinned" | null
-  >(null);
-  const [deckPopoverMode, setDeckPopoverMode] = useState<
-    "hover" | "pinned" | null
-  >(null);
+  const [binderPopoverMode, setBinderPopoverMode] = useState<PopoverMode>(null);
+  const [deckPopoverMode, setDeckPopoverMode] = useState<PopoverMode>(null);
+  const [popoverPosition, setPopoverPosition] = useState<{
+    left: number;
+    top: number;
+  } | null>(null);
   const binderPopoverRef = useRef<HTMLSpanElement>(null);
   const deckPopoverRef = useRef<HTMLSpanElement>(null);
+  const [binderPopoverPanel, setBinderPopoverPanel] =
+    useState<HTMLDivElement | null>(null);
+  const [deckPopoverPanel, setDeckPopoverPanel] =
+    useState<HTMLDivElement | null>(null);
   const mouseIsHoveringFlip = useRef(false);
   const faces = card.card_faces ?? [];
   const canFlip =
@@ -101,15 +174,125 @@ export default function CardTile({
           ? "Virtual"
           : null;
 
+  const activePopover =
+    binderPopoverMode !== null
+      ? "binder"
+      : deckPopoverMode !== null
+        ? "deck"
+        : null;
+
+  useLayoutEffect(() => {
+    if (!popoverPortalTarget || !activePopover) return;
+    const portalTarget = popoverPortalTarget;
+
+    const anchorRef =
+      activePopover === "binder" ? binderPopoverRef : deckPopoverRef;
+    const panel =
+      activePopover === "binder" ? binderPopoverPanel : deckPopoverPanel;
+
+    function updatePosition() {
+      const anchor = anchorRef.current;
+      if (!anchor || !panel) return;
+
+      const anchorRect = anchor.getBoundingClientRect();
+      const panelRect = panel.getBoundingClientRect();
+      const targetRect = portalTarget.getBoundingClientRect();
+      const viewportWidth = document.documentElement.clientWidth;
+      const viewportHeight = document.documentElement.clientHeight;
+      const margin = 12;
+
+      if (anchorRect.bottom <= 0 || anchorRect.top >= viewportHeight) {
+        if (activePopover === "binder") setBinderPopoverMode(null);
+        else setDeckPopoverMode(null);
+        return;
+      }
+
+      const leftRoom = anchorRect.left - margin;
+      const rightRoom = viewportWidth - anchorRect.right - margin;
+      let left =
+        leftRoom >= panelRect.width
+          ? anchorRect.left - panelRect.width
+          : rightRoom >= panelRect.width
+            ? anchorRect.right
+            : Math.max(margin, Math.min(anchorRect.left, viewportWidth - panelRect.width - margin));
+      left = Math.max(margin, Math.min(left, viewportWidth - panelRect.width - margin));
+
+      const top = Math.max(
+        margin,
+        Math.min(
+          anchorRect.top + panelRect.height <= viewportHeight - margin
+            ? anchorRect.top
+            : anchorRect.bottom - panelRect.height,
+          viewportHeight - panelRect.height - margin,
+        ),
+      );
+      const position = {
+        left: left - targetRect.left,
+        top: top - targetRect.top + portalTarget.scrollTop,
+      };
+      setPopoverPosition((current) =>
+        current?.left === position.left && current.top === position.top
+          ? current
+          : position,
+      );
+    }
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    const resizeObserver = new ResizeObserver(updatePosition);
+    if (panel) resizeObserver.observe(panel);
+    if (anchorRef.current) resizeObserver.observe(anchorRef.current);
+
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+      resizeObserver.disconnect();
+    };
+  }, [
+    activePopover,
+    binderPopoverPanel,
+    deckPopoverPanel,
+    popoverPortalTarget,
+  ]);
+
+  function renderPopoverPanel(
+    content: ReactNode,
+    panelRef: RefCallback<HTMLDivElement>,
+    setMode: Dispatch<SetStateAction<PopoverMode>>,
+    mode: PopoverMode,
+  ) {
+    if (!content) return null;
+    if (!popoverPortalTarget) return content;
+
+    return (
+      <CardPopoverPortal
+        target={popoverPortalTarget}
+        position={popoverPosition}
+        mode={mode}
+        setMode={setMode}
+        panelRef={panelRef}
+      >
+        {content}
+      </CardPopoverPortal>
+    );
+  }
+
   useEffect(() => {
     if (binderPopoverMode !== "pinned" && deckPopoverMode !== "pinned") return;
 
     function closeOnOutsideClick(event: PointerEvent) {
       if (!(event.target instanceof Node)) return;
-      if (!binderPopoverRef.current?.contains(event.target)) {
+      if (
+        !binderPopoverRef.current?.contains(event.target) &&
+        !binderPopoverPanel?.contains(event.target)
+      ) {
         setBinderPopoverMode(null);
       }
-      if (!deckPopoverRef.current?.contains(event.target)) {
+      if (
+        !deckPopoverRef.current?.contains(event.target) &&
+        !deckPopoverPanel?.contains(event.target)
+      ) {
         setDeckPopoverMode(null);
       }
     }
@@ -129,7 +312,12 @@ export default function CardTile({
       document.removeEventListener("click", closeOnOutsideClick);
       document.removeEventListener("keydown", closeOnEscape);
     };
-  }, [binderPopoverMode, deckPopoverMode]);
+  }, [
+    binderPopoverMode,
+    binderPopoverPanel,
+    deckPopoverMode,
+    deckPopoverPanel,
+  ]);
 
   return (
     <article
@@ -207,6 +395,11 @@ export default function CardTile({
                 }}
                 onPointerLeave={(event) => {
                   if (event.pointerType !== "mouse") return;
+                  const nextTarget = event.relatedTarget;
+                  const isPopoverTarget =
+                    nextTarget instanceof Element &&
+                    nextTarget.closest(".card-detail-overlay__popover-portal");
+                  if (isPopoverTarget) return;
                   if (isBinderAction && binderPopoverMode === "hover") {
                     setBinderPopoverMode(null);
                   } else if (isDeckAction && deckPopoverMode === "hover") {
@@ -222,7 +415,13 @@ export default function CardTile({
                 }}
                 onBlur={(event) => {
                   const nextTarget = event.relatedTarget;
-                  if (!(nextTarget instanceof Node) || !event.currentTarget.contains(nextTarget)) {
+                  const isPopoverTarget =
+                    nextTarget instanceof Element &&
+                    nextTarget.closest(".card-detail-overlay__popover-portal");
+                  if (
+                    !(nextTarget instanceof Node) ||
+                    (!event.currentTarget.contains(nextTarget) && !isPopoverTarget)
+                  ) {
                     if (isBinderAction && binderPopoverMode === "hover") {
                       setBinderPopoverMode(null);
                     } else if (isDeckAction && deckPopoverMode === "hover") {
@@ -294,35 +493,45 @@ export default function CardTile({
                   )}
                 </button>
                 {isBinderAction && binderPopoverMode !== null && (
-                  <BinderCopiesPopover
-                    card={card}
-                    copies={binderCopies}
-                    binders={binders}
-                    deckCards={deckActions?.deckCards ?? []}
-                    decks={deckActions?.decks ?? []}
-                    isBusy={isBinderPending}
-                    onAdd={() => onAddBinderCopy?.(card)}
-                    onUpdate={(copy, values) =>
-                      onUpdateBinderCopy?.(copy, values) ?? Promise.resolve(false)
-                    }
-                    onDispose={(copy, status) =>
-                      onDisposeBinderCopy?.(copy, status)
-                    }
-                    onRestore={(copy) => onRestoreBinderCopy?.(copy)}
-                    onDelete={(copy) => onDeleteBinderCopy?.(copy)}
-                    onClose={() => setBinderPopoverMode(null)}
-                  />
+                  renderPopoverPanel(
+                    <BinderCopiesPopover
+                      card={card}
+                      copies={binderCopies}
+                      binders={binders}
+                      deckCards={deckActions?.deckCards ?? []}
+                      decks={deckActions?.decks ?? []}
+                      isBusy={isBinderPending}
+                      onAdd={() => onAddBinderCopy?.(card)}
+                      onUpdate={(copy, values) =>
+                        onUpdateBinderCopy?.(copy, values) ?? Promise.resolve(false)
+                      }
+                      onDispose={(copy, status) =>
+                        onDisposeBinderCopy?.(copy, status)
+                      }
+                      onRestore={(copy) => onRestoreBinderCopy?.(copy)}
+                      onDelete={(copy) => onDeleteBinderCopy?.(copy)}
+                      onClose={() => setBinderPopoverMode(null)}
+                    />,
+                    setBinderPopoverPanel,
+                    setBinderPopoverMode,
+                    binderPopoverMode,
+                  )
                 )}
                 {isDeckAction &&
                   deckPopoverMode !== null &&
                   deckActions &&
                   canManageDeck && (
-                    <DeckCardPopover
-                      card={card}
-                      copies={binderCopies}
-                      actions={deckActions}
-                      onClose={() => setDeckPopoverMode(null)}
-                    />
+                    renderPopoverPanel(
+                      <DeckCardPopover
+                        card={card}
+                        copies={binderCopies}
+                        actions={deckActions}
+                        onClose={() => setDeckPopoverMode(null)}
+                      />,
+                      setDeckPopoverPanel,
+                      setDeckPopoverMode,
+                      deckPopoverMode,
+                    )
                   )}
               </span>
             );
