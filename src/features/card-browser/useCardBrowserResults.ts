@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import type { BinderCopy } from "../binder/useBinderCopies.ts";
+import type { DeckCard } from "../decks/useDeckManagement.ts";
 import useFetchUrl from "../../hooks/useFetchUrl.ts";
 import useScryfallCardsForIds from "../../hooks/useScryfallCardsForIds.ts";
 import {
@@ -29,6 +30,9 @@ type UseCardBrowserResultsOptions = {
   binderCopies: BinderCopy[];
   areBinderCopiesLoading: boolean;
   binderCopiesError: Error | null;
+  deckCards: DeckCard[];
+  areDecksLoading: boolean;
+  deckCardsError: Error | null;
 };
 
 /**
@@ -48,6 +52,9 @@ export default function useCardBrowserResults({
   binderCopies,
   areBinderCopiesLoading,
   binderCopiesError,
+  deckCards,
+  areDecksLoading,
+  deckCardsError,
 }: UseCardBrowserResultsOptions) {
   const searchQuery = searchParams.get("q")?.trim() ?? "";
   const isRandomRoute = mode === "mulligan" || pathname.endsWith("/random");
@@ -125,6 +132,7 @@ export default function useCardBrowserResults({
         ...binderCopies
           .filter((copy) => copy.status === "owned")
           .map((copy) => copy.scryfall_id),
+        ...deckCards.map((entry) => entry.scryfall_id),
       ]),
     ].sort();
   }, [
@@ -133,18 +141,25 @@ export default function useCardBrowserResults({
     searchQuery,
     favoriteIdList,
     binderCopies,
+    deckCards,
   ]);
   const personalCardsQuery = useScryfallCardsForIds(
     "personal",
     personalCardIds,
     Boolean(user) &&
       !areFavoritesLoading &&
-      (!isPersonalSearch || !areBinderCopiesLoading),
+      (!isPersonalSearch ||
+        (!areBinderCopiesLoading && !areDecksLoading)),
   );
   const displayCards = useMemo(() => {
     const searchCards = searchCardSource.cards;
     if (isPersonalSearch) {
-      return personalCardsQuery.data ?? [];
+      const normalizedQuery = searchQuery.toLocaleLowerCase();
+      return (personalCardsQuery.data ?? []).filter(
+        (card) =>
+          !isCardBrowserCard(card) ||
+          card.name.toLocaleLowerCase().includes(normalizedQuery),
+      );
     }
 
     if (isRandomRoute || !searchQuery || !user) return searchCards;
@@ -172,13 +187,17 @@ export default function useCardBrowserResults({
     ...searchCardSource,
     cards: displayCards,
     isLoading: isPersonalSearch
-      ? areFavoritesLoading || areBinderCopiesLoading || personalCardsQuery.isLoading
+      ? areFavoritesLoading ||
+        areBinderCopiesLoading ||
+        areDecksLoading ||
+        personalCardsQuery.isLoading
       : searchCardSource.isLoading,
     hasNextPage: isPersonalSearch ? false : searchCardSource.hasNextPage,
     error: isPersonalSearch
       ? favoritesError ??
         favoritesRealtimeError ??
         binderCopiesError ??
+        deckCardsError ??
         personalCardsQuery.error ??
         null
       : searchCardSource.error,

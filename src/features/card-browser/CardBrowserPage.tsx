@@ -68,6 +68,9 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
     binderCopies: binder.copies.copies,
     areBinderCopiesLoading: binder.copies.isLoading,
     binderCopiesError: binder.copies.error,
+    deckCards: decks.deckCards,
+    areDecksLoading: decks.isLoading,
+    deckCardsError: decks.error,
   });
   const { table, filters, setFilters, resetFilters } = useCardsTable(cards);
   const rows = table.getRowModel().rows;
