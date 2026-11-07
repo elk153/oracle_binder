@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQueryStates } from "nuqs";
 import type { User } from "@supabase/supabase-js";
 import type { BinderCopy } from "../binder/useBinderCopies.ts";
 import type { DeckCard } from "../decks/useDeckManagement.ts";
@@ -14,6 +15,8 @@ import { isCardBrowserCard } from "./types.ts";
 import useScryfallCardPages from "./useScryfallCardPages.ts";
 import useScryfallCardsSearch from "./useScryfallCardsSearch.ts";
 import getSecondsUntilNextLocalFour from "../../hooks/getSecondsUntilNextLocalFour.ts";
+import { advancedSearchParsers } from "../search/advancedSearchParams.ts";
+import { toScryfallSearchParams } from "../search/toScryfallQuery.ts";
 
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 const NO_DATA: unknown[] = [];
@@ -61,6 +64,9 @@ export default function useCardBrowserResults({
   const isRandomRoute = mode === "mulligan" || pathname.endsWith("/random");
   const isPersonalSearch =
     !isRandomRoute && searchParams.get("source") === "collection";
+  const isAdvancedSearch =
+    !isRandomRoute && searchParams.get("s_mode") === "advanced";
+  const [advancedFilters] = useQueryStates(advancedSearchParsers);
   const [dailyDay, setDailyDay] = useState(() =>
     Math.floor(Date.now() / MILLISECONDS_PER_DAY),
   );
@@ -96,16 +102,22 @@ export default function useCardBrowserResults({
     ? selectDailyMulliganSet(availableSets, dailyDay)
     : undefined;
   const mulliganQuery = mulliganSet ? `set:${mulliganSet.code}` : "";
+  const advancedQueryParams = toScryfallSearchParams(advancedFilters);
+  const activeSearchQuery = isAdvancedSearch
+    ? String(advancedQueryParams.q ?? "")
+    : searchQuery;
   const routeParam = isRandomRoute
     ? mulliganSet
       ? "cards/search"
       : null
-    : searchQuery && !isPersonalSearch
+    : activeSearchQuery && !isPersonalSearch
       ? "cards/search"
       : null;
   const queryParams = isRandomRoute
     ? { q: mulliganQuery, unique: "cards", order: "random", format: "json" }
-    : { q: searchQuery, format: "json" };
+    : isAdvancedSearch
+      ? advancedQueryParams
+      : { q: searchQuery, format: "json" };
   const querySeed = isRandomRoute ? dailyDay : 0;
   const singlePageSearch = useScryfallCardsSearch(
     isRandomRoute ? routeParam : null,
@@ -129,7 +141,9 @@ export default function useCardBrowserResults({
 
   const personalCardIds = useMemo(() => {
     if (!isPersonalSearch) {
-      return isRandomRoute || !searchQuery ? [] : favoriteIdList;
+      return isRandomRoute || isAdvancedSearch || !searchQuery
+        ? []
+        : favoriteIdList;
     }
 
     return [
@@ -144,6 +158,7 @@ export default function useCardBrowserResults({
   }, [
     isPersonalSearch,
     isRandomRoute,
+    isAdvancedSearch,
     searchQuery,
     favoriteIdList,
     binderCopies,
@@ -178,7 +193,9 @@ export default function useCardBrowserResults({
       );
     }
 
-    if (isRandomRoute || !searchQuery || !user) return searchCards;
+    if (isRandomRoute || isAdvancedSearch || !searchQuery || !user) {
+      return searchCards;
+    }
     const searchCardIds = new Set(
       searchCards.filter(isCardBrowserCard).map((card) => card.id),
     );
@@ -195,6 +212,7 @@ export default function useCardBrowserResults({
     isPersonalSearch,
     personalCardsQuery.data,
     isRandomRoute,
+    isAdvancedSearch,
     searchQuery,
     user,
     favoriteIds,
