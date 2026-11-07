@@ -1,5 +1,11 @@
 export type FilterFeature = "search" | "advancedSearch" | "collection" | "decks";
-export type FilterCategory = "colors" | "rarity" | "type" | "sort";
+export type FilterCategory =
+  | "colors"
+  | "rarity"
+  | "type"
+  | "sort"
+  | "place"
+  | "kind";
 
 export const FILTER_CATEGORIES_BY_FEATURE: Record<
   FilterFeature,
@@ -32,4 +38,12 @@ export const SORT_LABELS = {
   cmc: "Mana value",
   rarity: "Rarity",
   price: "Price",
+  place: "Place",
+} as const;
+
+export const KIND_LABELS = {
+  owned: "Owned",
+  proxy: "Proxy",
+  virtual: "Virtual",
+  favorite: "Favorite",
 } as const;

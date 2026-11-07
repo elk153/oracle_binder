@@ -13,7 +13,16 @@ import type { BinderCopy } from "../binder/useBinderCopies.ts";
 import useDeckManagement from "../decks/useDeckManagement.ts";
 import useCardBrowserResults from "./useCardBrowserResults.ts";
 import SearchControls from "../search/SearchControls.tsx";
+import type { CardPlaceEntry, CardPlaces } from "../card-filters/types.ts";
 import "./CardBrowserPage.css";
+
+type DeckEntryKind = "binder" | "proxy" | "virtual";
+
+function isDeckEntryKind(kind: string): kind is DeckEntryKind {
+  return ["binder", "proxy", "virtual"].some(
+    (supportedKind) => supportedKind === kind,
+  );
+}
 
 const ACTION_LABELS: Record<CardAction, string> = {
   favorite: "Favorites",
@@ -72,7 +81,68 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
     areDecksLoading: decks.isLoading,
     deckCardsError: decks.error,
   });
-  const { table, filters, setFilters, resetFilters } = useCardsTable(cards);
+  const personalCardPlaces = useMemo<CardPlaces>(() => {
+    const places = new Map<string, CardPlaceEntry>();
+    const getPlaces = (scryfallId: string) => {
+      const current = places.get(scryfallId);
+      if (current) return current;
+      const next: CardPlaceEntry = {
+        favorite: false,
+        binders: [],
+        decks: [],
+      };
+      places.set(scryfallId, next);
+      return next;
+    };
+
+    for (const id of favoriteIdList) {
+      getPlaces(id).favorite = true;
+    }
+
+    const assignedCopyIds = new Set(
+      decks.deckCards.flatMap((entry) =>
+        entry.binder_card_id ? [entry.binder_card_id] : [],
+      ),
+    );
+    for (const copy of binder.copies.copies) {
+      if (copy.status !== "owned") continue;
+      const entry = getPlaces(copy.scryfall_id);
+      if (copy.binder_id) {
+        const binderFolder = binder.binders.find(
+          (item) => item.id === copy.binder_id,
+        );
+        if (binderFolder) {
+          entry.binders.push({ id: binderFolder.id, name: binderFolder.name });
+        }
+      } else if (!assignedCopyIds.has(copy.id)) {
+        entry.binders.push({ id: "loose", name: "Loose" });
+      }
+    }
+
+    for (const deckCard of decks.deckCards) {
+      if (!isDeckEntryKind(deckCard.kind)) continue;
+      const deck = decks.decks.find((item) => item.id === deckCard.deck_id);
+      if (!deck) continue;
+      getPlaces(deckCard.scryfall_id).decks.push({
+        id: deck.id,
+        name: deck.name,
+        kind: deckCard.kind,
+      });
+    }
+
+    return places;
+  }, [
+    favoriteIdList,
+    binder.copies.copies,
+    binder.binders,
+    decks.deckCards,
+    decks.decks,
+  ]);
+  const cardPlaces =
+    isPersonalSearch && !binder.bindersLoading && !decks.isLoading
+      ? personalCardPlaces
+      : undefined;
+  const { table, filters, setFilters, resetFilters } = useCardsTable(cards, cardPlaces);
   const rows = table.getRowModel().rows;
   const cardsById = useMemo(
     () => new Map(cards.map((card) => [card.id, card])),
@@ -298,6 +368,7 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
             total={total}
             feature="search"
             layout="floating"
+            cardPlaces={cardPlaces}
           />
           <div className="card-browser__list" aria-label="Card search results">
             {orderedCards.map((card) => (

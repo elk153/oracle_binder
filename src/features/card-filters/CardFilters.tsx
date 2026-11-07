@@ -1,13 +1,27 @@
-import { COLORS, RARITIES, SORT_DIRS, SORT_KEYS, filterParsers } from "./filterParams.ts";
+import { useMemo } from "react";
+import {
+  CARD_KINDS,
+  COLORS,
+  RARITIES,
+  SORT_DIRS,
+  SORT_KEYS,
+  filterParsers,
+} from "./filterParams.ts";
 import type { UseQueryStatesReturn, inferParserType } from "nuqs";
 import useScrollVisibility from "../../hooks/useScrollVisibility.ts";
 import {
   COLOR_LABELS,
   FILTER_CATEGORIES_BY_FEATURE,
+  KIND_LABELS,
   RARITY_LABELS,
   SORT_LABELS,
 } from "./filterCategories.ts";
 import type { FilterFeature } from "./filterCategories.ts";
+import {
+  binderPlaceFilterValue,
+  deckPlaceFilterValue,
+} from "./types.ts";
+import type { CardPlaces } from "./types.ts";
 import "./CardFilters.css";
 
 type Filters = inferParserType<typeof filterParsers>;
@@ -20,6 +34,7 @@ type Props = {
   total: number;
   feature?: FilterFeature;
   layout?: "inline" | "floating";
+  cardPlaces?: CardPlaces;
 };
 
 // Add the value if missing, remove it if present.
@@ -34,9 +49,30 @@ export default function CardFilters({
   total,
   feature = "search",
   layout = "inline",
+  cardPlaces,
 }: Props) {
   const visible = useScrollVisibility({ threshold: 10, topGuard: 48 });
-  const categories = FILTER_CATEGORIES_BY_FEATURE[feature];
+  const placeOptions = useMemo(() => {
+    const options = new Map<string, string>();
+    for (const place of cardPlaces?.values() ?? []) {
+      for (const binder of place.binders) {
+        options.set(binderPlaceFilterValue(binder.id), `Binder: ${binder.name}`);
+      }
+      for (const deck of place.decks) {
+        options.set(deckPlaceFilterValue(deck.id), `Deck: ${deck.name}`);
+      }
+    }
+    return [...options].sort((a, b) => a[1].localeCompare(b[1]));
+  }, [cardPlaces]);
+  const categories = [
+    ...FILTER_CATEGORIES_BY_FEATURE[feature],
+    ...(cardPlaces && placeOptions.length ? (["place"] as const) : []),
+    ...(cardPlaces ? (["kind"] as const) : []),
+  ];
+  const sortKeys = cardPlaces
+    ? SORT_KEYS
+    : SORT_KEYS.filter((key) => key !== "place");
+  const activeSort = filters.sort === "place" && !cardPlaces ? null : filters.sort;
   const isVisible = layout !== "floating" || visible;
 
   return (
@@ -87,17 +123,51 @@ export default function CardFilters({
         />
       )}
 
+      {categories.includes("place") && (
+        <div className="card-filters__group" role="group" aria-label="Place">
+          {placeOptions.map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={filters.place.includes(value)}
+              onClick={() =>
+                setFilters({ place: toggle(filters.place, value) })
+              }
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {categories.includes("kind") && (
+        <div className="card-filters__group" role="group" aria-label="Kind">
+          {CARD_KINDS.map((kind) => (
+            <button
+              key={kind}
+              type="button"
+              aria-pressed={filters.kind.includes(kind)}
+              onClick={() =>
+                setFilters({ kind: toggle(filters.kind, kind) })
+              }
+            >
+              {KIND_LABELS[kind]}
+            </button>
+          ))}
+        </div>
+      )}
+
       {categories.includes("sort") && (
         <div className="card-filters__group">
           <select
             aria-label="Sort by"
-            value={filters.sort ?? ""}
+            value={activeSort ?? ""}
             onChange={(e) =>
               setFilters({ sort: SORT_KEYS.find((key) => key === e.target.value) ?? null })
             }
           >
             <option value="">Sort: default</option>
-            {SORT_KEYS.map((key) => (
+            {sortKeys.map((key) => (
               <option key={key} value={key}>
                 {SORT_LABELS[key]}
               </option>
@@ -105,7 +175,7 @@ export default function CardFilters({
           </select>
           <button
             type="button"
-            disabled={!filters.sort}
+            disabled={!activeSort}
             aria-label={`Sort ${filters.dir === "asc" ? "descending" : "ascending"}`}
             onClick={() => setFilters({ dir: filters.dir === SORT_DIRS[0] ? "desc" : "asc" })}
           >

@@ -71,12 +71,12 @@ static brand assets and are not React components.
 
 | File | Purpose and public contract |
 |---|---|
-| [`src/features/card-filters/CardFilters.tsx`](../../src/features/card-filters/CardFilters.tsx) | Default `CardFilters`; renders filter controls for supplied feature/layout and reports visible/total counts. |
-| [`src/features/card-filters/useCardsTable.ts`](../../src/features/card-filters/useCardsTable.ts) | Exports `useCardsTable`; converts URL parser values into controlled TanStack Table state and reset operations. |
-| [`src/features/card-filters/columns.ts`](../../src/features/card-filters/columns.ts) | Exports registered table `features` and `columns` for color, rarity, type, and sort behavior. |
-| [`src/features/card-filters/filterParams.ts`](../../src/features/card-filters/filterParams.ts) | Exports valid color/rarity/sort constants and `filterParsers` for URL-backed filters. |
+| [`src/features/card-filters/CardFilters.tsx`](../../src/features/card-filters/CardFilters.tsx) | Default `CardFilters`; renders feature/layout filter controls, optional collection place/kind controls, and visible/total counts. |
+| [`src/features/card-filters/useCardsTable.ts`](../../src/features/card-filters/useCardsTable.ts) | Exports `useCardsTable`; converts URL parser values into controlled TanStack Table state and reset operations, optionally using card-place metadata. |
+| [`src/features/card-filters/columns.ts`](../../src/features/card-filters/columns.ts) | Exports registered table `features`, default `columns`, and `createColumns` for color, rarity, type, place, kind, and sort behavior. |
+| [`src/features/card-filters/filterParams.ts`](../../src/features/card-filters/filterParams.ts) | Exports valid color/rarity/kind/sort constants and `filterParsers` for URL-backed filters. |
 | [`src/features/card-filters/filterCategories.ts`](../../src/features/card-filters/filterCategories.ts) | Exports `FilterFeature`, `FilterCategory`, feature/category mapping, and display-label dictionaries. |
-| [`src/features/card-filters/types.ts`](../../src/features/card-filters/types.ts) | Exports narrow `CardColor` and `ScryfallCard` shapes used by the table. |
+| [`src/features/card-filters/types.ts`](../../src/features/card-filters/types.ts) | Exports narrow `CardColor` and `ScryfallCard` shapes plus card-place metadata used by collection filtering. |
 | [`src/features/card-filters/CardFilters.css`](../../src/features/card-filters/CardFilters.css) | Filter bar and control styles, including responsive/floating layouts. |
 
 ## Favorites

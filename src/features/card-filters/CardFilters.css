@@ -4,7 +4,7 @@
   gap: 0.75rem;
   align-items: center;
   justify-content: center;
-  padding: 5rem 1rem 0; /* top space for the floating search bar */
+  padding: 5rem 1rem 0; /* top space for the floating navbar */
   color: var(--text-primary);
 }
 
@@ -38,6 +38,8 @@
 
 .card-filters__group {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 0.25rem;
 }
 
