@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { useSearchParams } from "react-router";
 import SearchSourceToggle from "./SearchSourceToggle.tsx";
 import NameAutocomplete from "./NameAutocomplete.tsx";
+import AdvancedSearchForm from "./AdvancedSearchForm.tsx";
 import type { SearchMode, SearchSource } from "./types.ts";
 import "./SearchControls.css";
 
@@ -93,8 +94,12 @@ export default function SearchControls({
         </p>
       )}
       {searchMode === "advanced" && (
-        <p className="search-controls__notice">
-          Advanced search is not available yet.
+        <AdvancedSearchForm nameSuggestions={nameSuggestions} />
+      )}
+      {searchMode === "advanced" && searchSource === "collection" && (
+        <p className="search-controls__notice" role="status">
+          Advanced filters do not narrow your collection yet; they apply to
+          Scryfall results only.
         </p>
       )}
     </section>

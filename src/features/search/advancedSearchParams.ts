@@ -14,6 +14,7 @@ import {
 
 export const advancedSearchParsers = {
   s_name: parseAsString.withDefault(""),
+  s_set: parseAsString.withDefault(""),
   s_text: parseAsString.withDefault(""),
   s_type: parseAsString.withDefault(""),
   s_flavor: parseAsString.withDefault(""),

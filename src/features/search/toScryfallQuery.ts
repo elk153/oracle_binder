@@ -18,8 +18,12 @@ function quoteSearchValue(value: string): string {
   return `"${value.trim().replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`;
 }
 
-function isValidManaSequence(value: string): boolean {
+export function isValidManaSequence(value: string): boolean {
   return /^(?:\{[A-Za-z0-9]+(?:\/[A-Za-z0-9]+)?\})+$/i.test(value);
+}
+
+function isValidSetCode(value: string): boolean {
+  return /^[a-z0-9]+$/i.test(value);
 }
 
 function priceTerm(operator: ">=" | "<=", value: number | null): string | null {
@@ -45,6 +49,12 @@ export function toScryfallQuery(filters: AdvancedSearchFilters): string {
   };
 
   addTextTerm("name", filters.s_name);
+
+  const setCode = filters.s_set.trim();
+  if (setCode && isValidSetCode(setCode)) {
+    terms.push(`set:${setCode.toLowerCase()}`);
+  }
+
   addTextTerm("o", filters.s_text);
   addTextTerm("t", filters.s_type);
   addTextTerm("ft", filters.s_flavor);

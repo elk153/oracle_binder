@@ -58,6 +58,7 @@ export type FormatFilter = (typeof FORMAT_FILTERS)[number];
 
 export type AdvancedSearchFilters = {
   s_name: string;
+  s_set: string;
   s_text: string;
   s_type: string;
   s_flavor: string;

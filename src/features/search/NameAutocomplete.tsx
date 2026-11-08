@@ -2,6 +2,7 @@ import { useId, useMemo } from "react";
 
 type NameAutocompleteProps = {
   label: string;
+  placeholder?: string;
   names: readonly string[];
   value: string;
   onChange: (value: string) => void;
@@ -9,6 +10,7 @@ type NameAutocompleteProps = {
 
 export default function NameAutocomplete({
   label,
+  placeholder = "Search card names",
   names,
   value,
   onChange,
@@ -37,7 +39,7 @@ export default function NameAutocomplete({
         id={listId}
         type="search"
         list={`${listId}-options`}
-        placeholder="Search card names"
+        placeholder={placeholder}
         value={value}
         onChange={(event) => onChange(event.currentTarget.value)}
         autoComplete="off"
