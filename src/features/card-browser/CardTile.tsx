@@ -54,6 +54,9 @@ type CardTileProps = {
 
 type PopoverMode = "hover" | "pinned" | null;
 
+// Keep hover behavior available for future reconsideration; card actions are click-only for now.
+const ENABLE_CARD_ACTION_HOVER = false;
+
 type CardPopoverPortalProps = {
   target: HTMLElement;
   position: { left: number; top: number } | null;
@@ -85,7 +88,12 @@ function CardPopoverPortal({
         const isActionTarget =
           nextTarget instanceof Element &&
           nextTarget.closest(".browser-card__action-wrap");
-        if (event.pointerType === "mouse" && mode === "hover" && !isActionTarget) {
+        if (
+          ENABLE_CARD_ACTION_HOVER &&
+          event.pointerType === "mouse" &&
+          mode === "hover" &&
+          !isActionTarget
+        ) {
           setMode(null);
         }
       }}
@@ -95,6 +103,7 @@ function CardPopoverPortal({
           nextTarget instanceof Element &&
           nextTarget.closest(".browser-card__action-wrap");
         if (
+          ENABLE_CARD_ACTION_HOVER &&
           mode === "hover" &&
           (!(nextTarget instanceof Node) ||
             (!event.currentTarget.contains(nextTarget) && !isActionTarget))
@@ -394,6 +403,8 @@ export default function CardTile({
                 }
                 className="browser-card__action-wrap"
                 onPointerEnter={(event) => {
+                  // Hover activation is intentionally disabled; retain this path for possible future use.
+                  if (!ENABLE_CARD_ACTION_HOVER) return;
                   if (event.pointerType !== "mouse") return;
                   if (isBinderAction && canManageBinder) {
                     setBinderPopoverMode((mode) => mode ?? "hover");
@@ -402,6 +413,8 @@ export default function CardTile({
                   }
                 }}
                 onPointerLeave={(event) => {
+                  // Hover dismissal is intentionally disabled with hover activation.
+                  if (!ENABLE_CARD_ACTION_HOVER) return;
                   if (event.pointerType !== "mouse") return;
                   const nextTarget = event.relatedTarget;
                   const isPopoverTarget =
@@ -415,6 +428,8 @@ export default function CardTile({
                   }
                 }}
                 onFocus={() => {
+                  // Keyboard focus no longer opens popovers; activating the button does.
+                  if (!ENABLE_CARD_ACTION_HOVER) return;
                   if (isBinderAction && canManageBinder) {
                     setBinderPopoverMode((mode) => mode ?? "hover");
                   } else if (isDeckAction && canManageDeck) {
@@ -422,6 +437,8 @@ export default function CardTile({
                   }
                 }}
                 onBlur={(event) => {
+                  // Keep focus-based hover cleanup paired with its disabled activation path.
+                  if (!ENABLE_CARD_ACTION_HOVER) return;
                   const nextTarget = event.relatedTarget;
                   const isPopoverTarget =
                     nextTarget instanceof Element &&
@@ -552,11 +569,15 @@ export default function CardTile({
               aria-pressed={showBack}
               title="Flip card"
               onPointerEnter={(event) => {
+                // Hover-to-flip is disabled so desktop and touch both use click.
+                if (!ENABLE_CARD_ACTION_HOVER) return;
                 if (event.pointerType !== "mouse") return;
                 mouseIsHoveringFlip.current = true;
                 setShowBack(true);
               }}
               onPointerLeave={(event) => {
+                // Retain the previous hover reset path while hover-to-flip is disabled.
+                if (!ENABLE_CARD_ACTION_HOVER) return;
                 if (event.pointerType !== "mouse") return;
                 mouseIsHoveringFlip.current = false;
                 setShowBack(false);
