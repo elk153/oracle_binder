@@ -17,6 +17,7 @@ import useScryfallCardsSearch from "./useScryfallCardsSearch.ts";
 import getSecondsUntilNextLocalFour from "../../hooks/getSecondsUntilNextLocalFour.ts";
 import { advancedSearchParsers } from "../search/advancedSearchParams.ts";
 import { toScryfallSearchParams } from "../search/toScryfallQuery.ts";
+import matchesAdvancedFilters from "../search/matchesAdvancedFilters.ts";
 
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 const NO_DATA: unknown[] = [];
@@ -185,6 +186,14 @@ export default function useCardBrowserResults({
   const displayCards = useMemo(() => {
     const searchCards = searchCardSource.cards;
     if (isPersonalSearch) {
+      // D-052: advanced mode applies the D-050 filters locally; q is not used.
+      if (isAdvancedSearch) {
+        return (personalCardsQuery.data ?? []).filter(
+          (card) =>
+            !isCardBrowserCard(card) ||
+            matchesAdvancedFilters(card, advancedFilters),
+        );
+      }
       const normalizedQuery = searchQuery.toLocaleLowerCase();
       return (personalCardsQuery.data ?? []).filter(
         (card) =>
@@ -213,6 +222,7 @@ export default function useCardBrowserResults({
     personalCardsQuery.data,
     isRandomRoute,
     isAdvancedSearch,
+    advancedFilters,
     searchQuery,
     user,
     favoriteIds,

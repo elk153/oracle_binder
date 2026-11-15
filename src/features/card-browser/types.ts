@@ -49,6 +49,8 @@ export type CardBrowserCard = Omit<ScryfallCard, "card_faces" | "prices"> & {
   legalities?: Record<string, string>;
   artist?: string;
   oracle_text?: string;
+  flavor_text?: string;
+  color_identity?: ScryfallCard["colors"];
   mana_cost?: string;
   power?: string;
   toughness?: string;
@@ -115,12 +117,13 @@ export function isCardBrowserCard(value: unknown): value is CardBrowserCard {
     typeof value.name === "string" &&
     typeof value.layout === "string" &&
     typeof value.rarity === "string" &&
-    ["set", "set_name", "collector_number", "released_at", "artist", "oracle_text", "mana_cost", "power", "toughness", "loyalty", "defense", "rulings_uri", "prints_search_uri"].every(
+    ["set", "set_name", "collector_number", "released_at", "artist", "oracle_text", "flavor_text", "mana_cost", "power", "toughness", "loyalty", "defense", "rulings_uri", "prints_search_uri"].every(
       (key) => isOptionalString(value, key),
     ) &&
     (!("cmc" in value) || typeof value.cmc === "number") &&
     (!("type_line" in value) || typeof value.type_line === "string") &&
     (!("colors" in value) || isColorArray(value.colors)) &&
+    (!("color_identity" in value) || isColorArray(value.color_identity)) &&
     (!("image_uris" in value) || isImageUris(value.image_uris)) &&
     (!("card_faces" in value) ||
       (Array.isArray(value.card_faces) && value.card_faces.every(isCardFace))) &&

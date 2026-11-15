@@ -96,12 +96,6 @@ export default function SearchControls({
       {searchMode === "advanced" && (
         <AdvancedSearchForm nameSuggestions={nameSuggestions} />
       )}
-      {searchMode === "advanced" && searchSource === "collection" && (
-        <p className="search-controls__notice" role="status">
-          Advanced filters do not narrow your collection yet; they apply to
-          Scryfall results only.
-        </p>
-      )}
     </section>
   );
 }

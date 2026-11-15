@@ -22,14 +22,17 @@ export function isValidManaSequence(value: string): boolean {
   return /^(?:\{[A-Za-z0-9]+(?:\/[A-Za-z0-9]+)?\})+$/i.test(value);
 }
 
-function isValidSetCode(value: string): boolean {
+export function isValidSetCode(value: string): boolean {
   return /^[a-z0-9]+$/i.test(value);
 }
 
+/** A usable price bound: a finite, non-negative number. Also used by D-052. */
+export function isValidPrice(value: number | null): value is number {
+  return value !== null && Number.isFinite(value) && value >= 0;
+}
+
 function priceTerm(operator: ">=" | "<=", value: number | null): string | null {
-  return value !== null && Number.isFinite(value) && value >= 0
-    ? `eur${operator}${value}`
-    : null;
+  return isValidPrice(value) ? `eur${operator}${value}` : null;
 }
 
 export function hasScryfallPriceFilter(
