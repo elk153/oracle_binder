@@ -42,6 +42,10 @@ select ok(
   'authenticated can update binder names'
 );
 select ok(
+  has_column_privilege('authenticated', 'public.binders', 'color', 'update'),
+  'authenticated can update binder cover colors'
+);
+select ok(
   not has_column_privilege('authenticated', 'public.binders', 'user_id', 'update'),
   'authenticated cannot change binder ownership'
 );
@@ -112,6 +116,55 @@ select throws_ok(
   '42501',
   null,
   'a user cannot create a binder for another user'
+);
+
+select results_eq(
+  $$select color from public.binders
+    where id = 'dddddddd-dddd-dddd-dddd-dddddddddddd'$$,
+  array['#1f2a6b'],
+  'a binder created without a color gets the default cover color'
+);
+
+select throws_ok(
+  $$insert into public.binders (name, color)
+    values ('Bad color name', 'red')$$,
+  '23514',
+  null,
+  'binder colors must look like #rrggbb'
+);
+
+select throws_ok(
+  $$insert into public.binders (name, color)
+    values ('Uppercase color', '#7A2A2A')$$,
+  '23514',
+  null,
+  'binder colors must be lowercase hex'
+);
+
+select results_eq(
+  $$update public.binders
+    set color = '#7a2a2a'
+    where id = 'dddddddd-dddd-dddd-dddd-dddddddddddd'
+    returning color$$,
+  array['#7a2a2a'],
+  'a user can change the cover color of their own binder'
+);
+
+select throws_ok(
+  $$update public.binders
+    set color = 'blue'
+    where id = 'dddddddd-dddd-dddd-dddd-dddddddddddd'$$,
+  '23514',
+  null,
+  'a binder color update must also look like #rrggbb'
+);
+
+select is_empty(
+  $$update public.binders
+    set color = '#7a2a2a'
+    where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+    returning id$$,
+  'a user cannot change the cover color of another user binder'
 );
 
 select results_eq(

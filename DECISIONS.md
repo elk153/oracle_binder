@@ -141,7 +141,7 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
 9. Add a `ProtectedRoute` layout: render `<Outlet />` with a session, nothing while `isLoading`, otherwise `<Navigate to="/v2/home" replace />`. Wrap `/v2/favorites`, `/v2/collection` and `/v2/decks` in `router.tsx`. AGENTS.md requires route-relative navigation inside the layouts; confirm the absolute redirect is acceptable for this V2-only guard before changing it.
 10. Run `npm run typecheck` and `npm run build`; both should pass. `npm run lint` still has the 19 existing errors, so compare against that baseline. Then test manually: sign in through Keycloak and return to the app, reload and stay signed in, open `/v2/favorites` signed out (redirects) and signed in (shows), then sign out and confirm the guard works again.
 
-### D-044: Search page shell, toggles and naming rule
+## D-044: Search page shell, toggles and naming rule
 
 - Status: Accepted
 - Date: 2026-11-07
@@ -151,7 +151,7 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
 - Consequences: Supersedes the navbar-toggle part of D-019. `/v2/search/advanced` (placeholder `AdvancedSearch` in `App.tsx`) becomes a redirect to `/v2/search?s_mode=advanced`. The `search/random` route and mulligan mode are untouched. Touches 3+ files: show a plan first.
 - Source: "[Search] Search refactor"
 
-### D-045: Navbar cleanup
+## D-045: Navbar cleanup
 
 - Status: Accepted
 - Date: 2026-11-07
@@ -161,7 +161,7 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
 - Consequences: In `NavBar.tsx` and `types.ts`, drop `searchSource`, `onSearchSource*`, `onSearch` and the mobile `searchFocused` state. Delete only after your approval: `NavSearchField.tsx`, `src/assets/icons/navigation/QuickSearchIcon.tsx` (used only by NavSearchField), the `SearchSourceToggle` files in `navigation/` once moved by D-044, the `.nav-search*`, `.nav-source-toggle` and `.nav-bar--search-focused` rules in `navbar-shared.css`, `navbar-desktop.css` and `navbar-mobile.css`, the `AdvancedSearch` function in `App.tsx` and its import in `router.tsx`. Update the `.nav-search` comment in `NavThemeToggle.css`. Check with `grep` before each deletion.
 - Source: "[Search] Search refactor"
 
-### D-046: Collection scope and name search
+## D-046: Collection scope and name search
 
 - Status: Accepted
 - Date: 2026-11-07
@@ -171,7 +171,7 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
 - Consequences: `CardTile` already shows Favorites, Binder and Decks icons; check `CardTile.tsx` for proxy/virtual and only add what is missing. The `personal` cache key contains the ID list, so any change in the collection rehydrates all cards; watch performance on large collections.
 - Source: "[Search] Search refactor"
 
-### D-047: Filter and sort by place and kind
+## D-047: Filter and sort by place and kind
 
 - Status: Accepted
 - Date: 2026-11-07
@@ -181,7 +181,7 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
 - Consequences: Passed only by the Search page (collection source) for now. Binder, Decks and Favorites pages already have their own location selectors and are unchanged. A card in several places matches any of them. Sorting by `place` uses the alphabetically first place name (assumption).
 - Source: "[Search] Search refactor"
 
-### D-048: Card-name catalog prefetch (stale at 04:00)
+## D-048: Card-name catalog prefetch (stale at 04:00)
 
 - Status: Accepted
 - Date: 2026-11-07
@@ -191,7 +191,7 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
 - Consequences: No change to `shouldDehydrateQuery`: queries keyed `fetchedUrl` are already persisted, in the single `REACT_QUERY_OFFLINE_CACHE` localStorage entry. The default `maxAge` (24 h, not set in `PersistenceProvider.tsx`) and `gcTime` (24 h in `queryProvider.ts`) already fit; a restored catalog older than 04:00 is stale and refetched. Quota check after implementing: that same entry also holds symbols, sets and every `cards/search` page (full Scryfall cards), so run `localStorage.getItem("REACT_QUERY_OFFLINE_CACHE").length` in the console after several searches. If it exceeds about 2 million characters (a safety margin, since the limit is typically about 5 MB), exclude `cardNames` in `shouldDehydrateQuery` and note it in the CHANGELOG as a persisted-data change. Also run `typecheck` to confirm the installed `@tanstack/react-query` (^5.104) accepts a function `staleTime`; the 04:00 boundary assumes local time.
 - Source: "[Search] Search refactor"
 
-### D-049: Name autocomplete (native datalist)
+## D-049: Name autocomplete (native datalist)
 
 - Status: Accepted
 - Date: 2026-11-07
@@ -201,7 +201,7 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
 - Consequences: Styling is limited by the browser. Matching is case-insensitive on the typed text; add a `<label>` for accessibility. The same component is used by simple search, advanced name and set fields.
 - Source: "[Search] Search refactor"
 
-### D-050: Advanced filter model and Scryfall query builder
+## D-050: Advanced filter model and Scryfall query builder
 
 - Status: Accepted
 - Date: 2026-11-07
@@ -211,7 +211,7 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
 - Consequences: Check each Scryfall operator in their syntax docs before coding. When a price is set, add `unique=prints` (prices are per printing). Submit on button press, not per keystroke, to limit requests.
 - Source: "[Search] Search refactor"
 
-### D-051: Advanced search form
+## D-051: Advanced search form
 
 - Status: Accepted
 - Date: 2026-11-07
@@ -221,7 +221,7 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
 - Consequences: Local filters (`CardFilters`, "Filter & sort") remain on the results below and refine only the loaded results.
 - Source: "[Search] Search refactor"
 
-### D-052: Advanced search over the collection
+## D-052: Advanced search over the collection
 
 - Status: Accepted
 - Date: 2026-11-07
@@ -231,7 +231,7 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
 - Consequences: Two implementations of the same semantics must be kept in sync (add tests for both). Extend `CardBrowserCard` and `isCardBrowserCard` in `card-browser/types.ts` with `color_identity` and `flavor_text`. Use face-level fallbacks for `colors`, `type_line`, `oracle_text` and `flavor_text` as `columns.ts` already does.
 - Source: "[Search] Search refactor"
 
-### D-053: Audit and streamline the project CSS
+## D-053: Audit and streamline the project CSS
 
 - Status: Evaluating
 - Date: 2026-11-07
@@ -249,7 +249,7 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
 - Consequences: Class names and CSS are not part of the public contract (AGENTS.md), so no `### Breaking` entry; the only user-visible change allowed is none (acceptance = no visual difference). Success = fewer CSS lines and a smaller gzip size than the Phase 0 baseline, not a promised percentage. Do not delete a class unless it is absent from source after expanding template strings; check unused rules with Chrome DevTools Coverage on each page. No CSS file split without a matching component split. Files touched per phase: Phases 1, 2 and 7 are small; Phases 3 and 4 touch about 10 files each and need a short plan before starting. Moving `theme.css` and `style.css` changes paths in `main.tsx`, `index.html` and the docs only.
 - Source: "[CSS] Audit and streamline"
 
-### D-054: Set filter and form details for advanced search
+## D-054: Set filter and form details for advanced search
 
 - Status: Accepted
 - Date: 2026-11-08
@@ -259,7 +259,7 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
 - Consequences: `s_set` is a new URL parameter (additive, not breaking). D-052 must mirror `s_set` in `matchesAdvancedFilters` against `card.set`, and tests must cover both implementations. Until D-052 ships, `source=collection` ignores the advanced filters and `SearchControls` says so; remove that notice with D-052. Hybrid Phyrexian costs such as `{G/W/P}` are not offered in the mana select because `isValidManaSequence` rejects them. The form copies the URL only on mount, so browser back/forward does not refresh an already-open form (known limitation). `useOracleText.tsx` still has its own copy of the symbol type guard. Not browser-tested: server render and query-builder checks only.
 - Source: "[Search] Search refactor"
 
-### D-055: Collection matcher semantics and tests
+## D-055: Collection matcher semantics and tests
 
 - Status: Accepted
 - Date: 2026-11-08
@@ -268,3 +268,13 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
 - Alternatives considered: Matching only the front face (misses back-face text); exact mana cost matching (contradicted by the check above); adding Vitest (a new dependency, not needed yet); a `test` npm script (edits `package.json`, deferred).
 - Consequences: Known approximations, not checked against Scryfall: `~` uses the full card or face name, so cards whose text uses a shorter name (for example "Niv-Mizzet" for "Niv-Mizzet, Parun") will not match; generic mana symbols are compared as separate symbols, so `{3}{U}` does not contain `{2}{U}` (whether Scryfall treats generic mana as a number was not checked); Scryfall's accent and punctuation normalization is not reproduced. Two implementations must still change together: edit the test table first. `tests/` is outside `tsconfig.json` and is not covered by `npm run typecheck`; it needs Node 22 with `--experimental-strip-types`. The temporary D-051 notice that advanced filters did not apply to the collection is removed. `CardBrowserCard` gains optional `color_identity` and `flavor_text`; a card with an invalid value in either field now counts as invalid card data.
 - Source: "[Search] Search refactor"
+
+### D-056: Colored binder covers
+
+- Status: Accepted
+- Date: 2026-11-15
+- Decision: A binder cover on the Binder page no longer shows a card print. It keeps the card shape (488:680, rounded corners), is filled with the binder's color and shows the vector app logo (`/logo.svg` in an `<img>` with `alt=""`) centered; deck covers do not change. The color is stored in a new `binders.color` column as lowercase `#rrggbb` (`text not null default '#1f2a6b'`, check `^#[0-9a-f]{6}$`, plus `grant update (color)`) and is chosen in one dialog: the page keeps only a "Create binder" button, which opens a dialog asking for a name and a color, and "Rename" becomes "Modify", which opens the same dialog to change both. The picker offers 10 colors, Navy `#1f2a6b` (default, first), Forest `#1f4526`, Olive `#3f3d14`, Violet `#4a3766`, Magenta `#6b1f5e`, Wine `#5a1a2e`, Oxblood `#7a2a2a`, Rust `#6e3312`, Umber `#523823` and Espresso `#2e1f1a`, and the "Loose" tile uses the same cover with a fixed Graphite `#33302d` that is not editable and not in the palette.
+- Why: A color is quicker to scan than a card print that changes when the best card changes, and it gives the person a way to tell binders apart. Each palette color had to pass three checks against the logo: at least 3:1 contrast with the darkest logo gold (`#cb9131`), at least 3:1 with the darker sparkle teal (`#09a19f`), and a CIEDE2000 distance of at least 20 from both lens teals (`#067c85`, `#04505c`), so the lens does not vanish. The first two checks force dark colors, which also suits the dark teal theme. Storing hex lets a custom picker be added later without another migration. The grant is needed because updates on `binders` are granted per column: on a scratch PostgreSQL, removing it made a color update fail with "permission denied".
+- Alternatives considered: A palette key such as `navy` instead of hex (a later palette change would recolor existing binders and custom colors would be impossible); browser storage for the color (does not sync between devices); keeping the card print (rejected); an inline SVG logo (the file carries a `:root` style block and fixed gradient ids that would leak into the page and clash across many covers); a single-color logo (needs a new asset); lighter colors (fail the gold contrast); teal, slate, charcoal and midnight-blue swatches that I first proposed (their distance from the lens teal is 4 to 18, so the lens disappears).
+- Consequences: The migration `20261115163138_binder_color` and its rollback `supabase/rollback/20261115163138_binder_color_reverse.sql` must be applied to the linked project (dry run first) before an app version that reads or writes the color is deployed. The column default keeps older app builds working, because inserts without a color still succeed, and it fills existing binders with Navy. Rolling back drops every chosen color. The `Binder` type gains `color: string`, hand-edited in `src/types/database.ts` and to be confirmed by regenerating it. The app must accept any valid `#rrggbb` value from the database: if a binder's color is not in the palette, the dialog shows it as an extra "Current" swatch. `coverCard`, its rarity ranking and the binder use of `CardTile` are removed from `BinderPage.tsx`. The unique binder name index still applies, so a duplicate name in the dialog shows the database error. The lens teal blends into every cover by design; the gold ring and sparkle stay readable. In the dark theme covers sit close to the page background (contrast 1.1 to 1.6), so the edge comes from the existing gold hairline border and glow; in the light theme the contrast is 8 to 13. If the logo colors change, the palette must be re-checked. pgTAP assertions were added to `supabase/tests/binder_rls_test.sql` but not run, because that needs Docker; the same scenarios (default and backfill, constraint, own and other-user updates, grants, rollback and re-apply) were run against a scratch PostgreSQL with the repository's binder migrations. This entry covers the database change; the picker, cover, dialog and page changes are the next step.
+- Source: "[Binder] Colored binder covers"
