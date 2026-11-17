@@ -9,6 +9,9 @@ import { clearLocalRealtimeChange, markLocalRealtimeChange } from "../../service
 
 export type Binder = Tables<"binders">;
 
+/** What the create and modify dialog collects (D-056). */
+export type BinderValues = { name: string; color: string };
+
 export const bindersQueryKey = (userId?: string) =>
   ["binders", userId] as const;
 
@@ -38,15 +41,15 @@ export default function useBinders() {
     queryKey,
   });
 
-  const createBinder = useMutation<Binder, Error, string>({
-    mutationFn: async (name) => {
+  const createBinder = useMutation<Binder, Error, BinderValues>({
+    mutationFn: async ({ name, color }) => {
       if (!user) throw new Error("Sign in to create a binder.");
       const id = crypto.randomUUID();
       markLocalRealtimeChange("binders", user.id, [id]);
       try {
         const { data, error } = await supabase
           .from("binders")
-          .insert({ id, user_id: user.id, name: name.trim() })
+          .insert({ id, user_id: user.id, name: name.trim(), color })
           .select("*")
           .single();
         if (error) throw error;
@@ -62,18 +65,14 @@ export default function useBinders() {
       ),
   });
 
-  const renameBinder = useMutation<
-    Binder,
-    Error,
-    { id: string; name: string }
-  >({
-    mutationFn: async ({ id, name }) => {
-      if (!user) throw new Error("Sign in to rename a binder.");
+  const updateBinder = useMutation<Binder, Error, BinderValues & { id: string }>({
+    mutationFn: async ({ id, name, color }) => {
+      if (!user) throw new Error("Sign in to modify a binder.");
       markLocalRealtimeChange("binders", user.id, [id]);
       try {
         const { data, error } = await supabase
           .from("binders")
-          .update({ name: name.trim() })
+          .update({ name: name.trim(), color })
           .eq("user_id", user.id)
           .eq("id", id)
           .select("*")
@@ -135,7 +134,7 @@ export default function useBinders() {
     realtimeError,
     binders: query.data ?? [],
     createBinder,
-    renameBinder,
+    updateBinder,
     deleteBinder,
   };
 }

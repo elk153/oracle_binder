@@ -15,39 +15,32 @@ import useFavoriteCardAction from "../favorites/useFavoriteCardAction.ts";
 import useScryfallCardsForIds from "../../hooks/useScryfallCardsForIds.ts";
 import useBinderManagement from "./useBinderManagement.ts";
 import AddBinderCopyDialog from "./AddBinderCopyDialog.tsx";
+import BinderCover from "./BinderCover.tsx";
+import BinderFormDialog from "./BinderFormDialog.tsx";
+import { LOOSE_BINDER_COLOR } from "./binderColors.ts";
 import type { BinderCopy } from "./useBinderCopies.ts";
-import type { Binder } from "./useBinders.ts";
+import type { Binder, BinderValues } from "./useBinders.ts";
 import useDeckManagement from "../decks/useDeckManagement.ts";
 import "./BinderPage.css";
 
 const BINDER_VIEWS = ["all", "binders"] as const;
 const HISTORY_FILTER = "history";
-const RARITY_RANK: Record<string, number> = {
-  common: 1,
-  uncommon: 2,
-  rare: 3,
-  mythic: 4,
-};
 
-function coverCard(
-  copies: BinderCopy[],
-  cardsById: ReadonlyMap<string, CardBrowserCard>,
-): CardBrowserCard | undefined {
-  return [...copies]
-    .sort((left, right) => {
-      const rarityDifference =
-        (RARITY_RANK[right.rarity] ?? 0) - (RARITY_RANK[left.rarity] ?? 0);
-      if (rarityDifference !== 0) return rarityDifference;
-      const leftCard = cardsById.get(left.scryfall_id);
-      const rightCard = cardsById.get(right.scryfall_id);
-      const legendaryDifference =
-        Number(Boolean(rightCard?.type_line?.includes("Legendary"))) -
-        Number(Boolean(leftCard?.type_line?.includes("Legendary")));
-      if (legendaryDifference !== 0) return legendaryDifference;
-      return left.created_at.localeCompare(right.created_at);
-    })
-    .map((copy) => cardsById.get(copy.scryfall_id))
-    .find((card): card is CardBrowserCard => Boolean(card));
+type BinderDialogState =
+  | { mode: "create" }
+  | { mode: "modify"; binder: Binder };
+
+/** 23505 is PostgreSQL's unique violation: binder names are unique per user. */
+function binderErrorMessage(error: unknown): string {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "23505"
+  ) {
+    return "You already have a binder with this name.";
+  }
+  return error instanceof Error ? error.message : "The request failed.";
 }
 
 export default function BinderPage() {
@@ -62,7 +55,9 @@ export default function BinderPage() {
   const { user } = useAuth();
   const [notice, setNotice] = useState("");
   const [cardId, setCardId] = useState<string | null>(null);
-  const [newBinderName, setNewBinderName] = useState("");
+  const [binderDialog, setBinderDialog] = useState<BinderDialogState | null>(
+    null,
+  );
   const [selectedCardIds, setSelectedCardIds] = useState<Set<string>>(
     () => new Set(),
   );
@@ -157,37 +152,23 @@ export default function BinderPage() {
     });
   }
 
-  async function createBinder() {
-    const name = newBinderName.trim();
-    if (!name) return;
+  /** Called by the dialog. It throws a readable Error so the dialog can show it. */
+  async function saveBinder(values: BinderValues) {
+    if (!binderDialog) return;
     try {
-      await binder.bindersQuery.createBinder.mutateAsync(name);
-      setNewBinderName("");
-      setNotice(`Created binder “${name}”.`);
+      if (binderDialog.mode === "create") {
+        await binder.bindersQuery.createBinder.mutateAsync(values);
+        setNotice(`Created binder “${values.name}”.`);
+      } else {
+        await binder.bindersQuery.updateBinder.mutateAsync({
+          id: binderDialog.binder.id,
+          ...values,
+        });
+        setNotice(`Updated binder “${values.name}”.`);
+      }
+      setBinderDialog(null);
     } catch (error) {
-      setNotice(
-        `Could not create binder: ${
-          error instanceof Error ? error.message : "The request failed."
-        }`,
-      );
-    }
-  }
-
-  async function renameBinder(target: Binder) {
-    const name = window.prompt("Rename binder", target.name)?.trim();
-    if (!name || name === target.name) return;
-    try {
-      await binder.bindersQuery.renameBinder.mutateAsync({
-        id: target.id,
-        name,
-      });
-      setNotice(`Renamed binder to “${name}”.`);
-    } catch (error) {
-      setNotice(
-        `Could not rename binder: ${
-          error instanceof Error ? error.message : "The request failed."
-        }`,
-      );
+      throw new Error(binderErrorMessage(error), { cause: error });
     }
   }
 
@@ -275,19 +256,6 @@ export default function BinderPage() {
     canManageDeck: Boolean(user),
   };
   const selectedCard = cards.find((card) => card.id === cardId);
-  const covers = new Map<string, CardBrowserCard | undefined>();
-  for (const target of binder.binders) {
-    covers.set(
-      target.id,
-      coverCard(
-        unallocatedOwnedCopies.filter((copy) => copy.binder_id === target.id),
-        cardsById,
-      ),
-    );
-  }
-  covers.set("loose", coverCard(looseCopies, cardsById));
-  const looseCover = covers.get("loose");
-
   return (
     <section className="binder-page">
       <header className="binder-page__heading">
@@ -343,59 +311,38 @@ export default function BinderPage() {
 
       {view === "binders" && (
         <section className="binder-page__binders" aria-label="Your binders">
-          <form
-            className="binder-page__create"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void createBinder();
-            }}
-          >
-            <label>
-              New binder
-              <input
-                value={newBinderName}
-                onChange={(event) => setNewBinderName(event.currentTarget.value)}
-                maxLength={100}
-              />
-            </label>
+          <div className="binder-page__create">
             <button
-              type="submit"
-              disabled={!newBinderName.trim() || binder.bindersQuery.createBinder.isPending}
+              type="button"
+              onClick={() => setBinderDialog({ mode: "create" })}
+              disabled={binder.bindersLoading}
             >
               Create binder
             </button>
-          </form>
+          </div>
 
           <div className="binder-page__binder-grid">
             {[...binder.binders].map((target) => {
               const count = unallocatedOwnedCopies.filter(
                 (copy) => copy.binder_id === target.id,
               ).length;
-              const cover = covers.get(target.id);
               return (
                 <article className="binder-page__binder-card" key={target.id}>
-                  {cover ? (
-                    <CardTile
-                      card={cover}
-                      onSelect={() => chooseBinder(target.id)}
-                      selectLabel={`Open ${target.name}, ${count} ${count === 1 ? "copy" : "copies"}`}
-                      showActions={false}
-                    />
-                  ) : (
-                    <button
-                      type="button"
-                      className="binder-page__binder-cover"
-                      onClick={() => chooseBinder(target.id)}
-                      aria-label={`Open ${target.name}, ${count} ${count === 1 ? "copy" : "copies"}`}
-                    >
-                      No cover yet
-                    </button>
-                  )}
+                  <BinderCover
+                    color={target.color}
+                    onSelect={() => chooseBinder(target.id)}
+                    label={`Open ${target.name}, ${count} ${count === 1 ? "copy" : "copies"}`}
+                  />
                   <h2>{target.name}</h2>
                   <p>{count} {count === 1 ? "copy" : "copies"}</p>
                   <div className="binder-page__binder-actions">
-                    <button type="button" onClick={() => void renameBinder(target)}>
-                      Rename
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setBinderDialog({ mode: "modify", binder: target })
+                      }
+                    >
+                      Modify
                     </button>
                     <button type="button" onClick={() => void deleteBinder(target)}>
                       Delete
@@ -405,24 +352,11 @@ export default function BinderPage() {
               );
             })}
             <article className="binder-page__binder-card binder-page__binder-card--loose">
-              {looseCover && (
-                <CardTile
-                  card={looseCover}
-                  onSelect={() => chooseBinder("loose")}
-                  selectLabel={`Open Loose, ${looseCopies.length} ${looseCopies.length === 1 ? "copy" : "copies"}`}
-                  showActions={false}
-                />
-              )}
-              {!looseCover && (
-                <button
-                  type="button"
-                  className="binder-page__binder-cover"
-                  onClick={() => chooseBinder("loose")}
-                  aria-label={`Open Loose, ${looseCopies.length} ${looseCopies.length === 1 ? "copy" : "copies"}`}
-                >
-                  No cover yet
-                </button>
-              )}
+              <BinderCover
+                color={LOOSE_BINDER_COLOR}
+                onSelect={() => chooseBinder("loose")}
+                label={`Open Loose, ${looseCopies.length} ${looseCopies.length === 1 ? "copy" : "copies"}`}
+              />
               <h2>Loose</h2>
               <p>{looseCopies.length} {looseCopies.length === 1 ? "copy" : "copies"}</p>
             </article>
@@ -558,6 +492,27 @@ export default function BinderPage() {
           {...binderCardProps}
           {...deckActionProps}
           onClose={() => setCardId(null)}
+        />
+      )}
+
+      {binderDialog && (
+        <BinderFormDialog
+          key={binderDialog.mode === "modify" ? binderDialog.binder.id : "create"}
+          mode={binderDialog.mode}
+          initialValues={
+            binderDialog.mode === "modify"
+              ? {
+                  name: binderDialog.binder.name,
+                  color: binderDialog.binder.color,
+                }
+              : undefined
+          }
+          onSave={saveBinder}
+          onClose={() => setBinderDialog(null)}
+          isSaving={
+            binder.bindersQuery.createBinder.isPending ||
+            binder.bindersQuery.updateBinder.isPending
+          }
         />
       )}
 

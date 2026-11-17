@@ -1,0 +1,94 @@
+/*
+ * D-056: create/modify binder dialog. The field, label, button and focus
+ * styles come from `.binder-copy-form` in Binder.css; only what is specific to
+ * this dialog is here.
+ */
+
+.binder-dialog--form {
+  width: min(100%, 28rem);
+}
+
+.binder-form__colors {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(3.6rem, 1fr));
+  gap: 0.7rem 0.5rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.binder-form__colors legend {
+  margin-bottom: 0.4rem;
+  padding: 0;
+  color: var(--text-secondary);
+  font: 0.8rem var(--font-ui);
+}
+
+.binder-form__swatch {
+  position: relative;
+  justify-items: center;
+  cursor: pointer;
+  text-align: center;
+}
+
+/*
+ * The real radio stays in the page (keyboard, arrow keys, screen readers) but
+ * is invisible. The selector is more specific than `.binder-page input`.
+ */
+.binder-form .binder-form__swatch input {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 1px;
+  min-height: 0;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* A small card-shaped chip, like the cover it will produce. */
+.binder-form__chip {
+  display: grid;
+  width: 2.6rem;
+  aspect-ratio: 488 / 680;
+  place-items: center;
+  border: 1px solid var(--surface-border);
+  border-radius: 4.5%;
+}
+
+.binder-form__swatch input:checked + .binder-form__chip {
+  box-shadow:
+    0 0 0 2px var(--bg-header),
+    0 0 0 4px var(--text-accent);
+}
+
+/* A check mark, so the selection does not rely on color alone. The chips are
+   always dark, so the mark uses a fixed light color in both themes. */
+.binder-form__swatch input:checked + .binder-form__chip::after {
+  content: "✓";
+  color: #e2ebd5;
+  font: 700 1.1rem var(--font-ui);
+}
+
+.binder-form__swatch input:focus-visible + .binder-form__chip {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 4px;
+}
+
+.binder-form__swatch-name {
+  font-size: 0.72rem;
+}
+
+.binder-form__swatch input:checked ~ .binder-form__swatch-name {
+  color: var(--text-primary);
+}
+
+.binder-form__error {
+  margin: 0;
+  color: var(--text-accent);
+  font: 0.85rem var(--font-ui);
+}

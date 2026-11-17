@@ -60,7 +60,6 @@
   color: var(--text-accent);
 }
 
-.binder-page__create label,
 .binder-page__toolbar label {
   display: grid;
   gap: 0.25rem;
@@ -91,12 +90,7 @@
   width: calc(var(--card-image-width) + 1.45rem);
 }
 
-.binder-page__binder-card .browser-card {
-  flex: 0 0 var(--card-image-width);
-  width: var(--card-image-width);
-  margin: 0 auto;
-}
-
+/* D-056: the fill color is set inline from the binder's `color`. */
 .binder-page .binder-page__binder-cover {
   display: grid;
   width: var(--card-image-width);
@@ -104,13 +98,35 @@
   place-items: center;
   overflow: hidden;
   min-height: 0;
-  padding: 0.75rem;
+  margin: 0 auto;
+  padding: 0;
   border: 1px solid var(--surface-border);
   border-radius: 4.5%;
-  color: var(--text-secondary);
-  background: var(--bg-card);
-  font: 0.9rem var(--font-ui);
+  box-shadow: 0 8px 20px -10px rgb(0 0 0 / 0.6);
   cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.binder-page .binder-page__binder-cover:hover {
+  transform: translateY(-3px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .binder-page .binder-page__binder-cover {
+    transition: none;
+  }
+
+  .binder-page .binder-page__binder-cover:hover {
+    transform: none;
+  }
+}
+
+/* logo.svg has an empty margin around the drawing (it fills about two thirds of the image), so 76% shows the logo at about half the card width. */
+.binder-page__binder-logo {
+  width: 76%;
+  height: auto;
+  pointer-events: none;
+  user-select: none;
 }
 
 .binder-page .browser-card__media {
@@ -163,7 +179,6 @@
   color: var(--text-accent);
 }
 
-.binder-page__binder-card .browser-card__media:focus-visible,
 .binder-page__binder-cover:focus-visible {
   outline: 2px solid var(--text-accent);
   outline-offset: 3px;
@@ -263,11 +278,6 @@
   .binder-page__binder-card {
     flex-basis: min(calc(var(--card-image-width) + 1.45rem), calc(100vw - 1.5rem));
     width: min(calc(var(--card-image-width) + 1.45rem), calc(100vw - 1.5rem));
-  }
-
-  .binder-page__binder-card .browser-card {
-    flex-basis: min(var(--card-image-width), calc(100vw - 2.95rem));
-    width: min(var(--card-image-width), calc(100vw - 2.95rem));
   }
 
   .binder-page .binder-page__binder-cover {
