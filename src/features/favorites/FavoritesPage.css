@@ -5,10 +5,8 @@
   margin: 0 auto 1.5rem;
 }
 
-.favorites-page__heading h1 {
-  margin: 0;
-  color: var(--text-accent);
-  font-size: clamp(1.25rem, 2.5vw, 1.8rem);
+/* For the commented-out h1 in FavoritesPage.tsx, used with .page__title. */
+.favorites-page__title {
   text-align: center;
 }
 

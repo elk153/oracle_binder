@@ -1,0 +1,40 @@
+/* ==========================================================================
+   forms.css
+   Form field classes shared by the search, advanced search, login and Binder
+   forms (D-053 Phase 4b). Imported by main.tsx after base.css and before any
+   component CSS, so a form's own class with the same specificity wins.
+   ========================================================================== */
+
+/* A label (or wrapper) holding the field's caption above its control. */
+.field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+/* The compact caption style of the Binder forms and popovers. */
+.field--soft {
+  min-width: 0;
+  gap: 0.25rem;
+  color: var(--text-secondary);
+  font: 0.8rem var(--font-ui);
+}
+
+/* Text input, number input, select or textarea. */
+.field__input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--control-radius);
+  color: var(--text-primary);
+  background: var(--bg-main);
+  font: 0.9rem var(--font-ui);
+}
+
+/* Binder forms and popovers: a little lower, rounded rectangle, translucent. */
+.field__input--soft {
+  min-height: 2.4rem;
+  border-radius: 0.65rem;
+  background: color-mix(in srgb, var(--bg-main) 86%, transparent);
+}

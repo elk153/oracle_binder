@@ -33,10 +33,11 @@ export default function NameAutocomplete({
   }, [names, value]);
 
   return (
-    <div className="name-autocomplete">
+    <div className="field name-autocomplete">
       <label htmlFor={listId}>{label}</label>
       <input
         id={listId}
+        className="field__input"
         type="search"
         list={`${listId}-options`}
         placeholder={placeholder}

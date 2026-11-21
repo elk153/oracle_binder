@@ -49,8 +49,9 @@ export default function AddBinderCopyDialog({
         aria-labelledby="binder-copy-dialog-title"
       >
         <header className="binder-dialog__header">
-          <h2 id="binder-copy-dialog-title">Add {card.name} to collection</h2>
+          <h2 id="binder-copy-dialog-title" className="binder-dialog__title">Add {card.name} to collection</h2>
           <button
+            className="binder-dialog__close"
             ref={closeRef}
             type="button"
             aria-label="Close add-copy dialog"

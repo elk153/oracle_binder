@@ -1,7 +1,7 @@
 /*
- * D-056: create/modify binder dialog. The field, label, button and focus
- * styles come from `.binder-copy-form` in Binder.css; only what is specific to
- * this dialog is here.
+ * D-056: create/modify binder dialog. The dialog, the field grid
+ * (.binder-fields), the buttons and the action row come from Binder.css, the
+ * name field from forms.css; only what is specific to this dialog is here.
  */
 
 .binder-dialog--form {
@@ -18,7 +18,7 @@
   border: 0;
 }
 
-.binder-form__colors legend {
+.binder-form__legend {
   margin-bottom: 0.4rem;
   padding: 0;
   color: var(--text-secondary);
@@ -27,16 +27,21 @@
 
 .binder-form__swatch {
   position: relative;
+  display: grid;
+  min-width: 0;
+  gap: 0.25rem;
   justify-items: center;
+  color: var(--text-secondary);
+  font: 0.8rem var(--font-ui);
   cursor: pointer;
   text-align: center;
 }
 
 /*
  * The real radio stays in the page (keyboard, arrow keys, screen readers) but
- * is invisible. The selector is more specific than `.binder-page input`.
+ * is invisible.
  */
-.binder-form .binder-form__swatch input {
+.binder-form__radio {
   position: absolute;
   top: 0;
   left: 50%;
@@ -60,7 +65,7 @@
   border-radius: var(--radius-card);
 }
 
-.binder-form__swatch input:checked + .binder-form__chip {
+.binder-form__radio:checked + .binder-form__chip {
   box-shadow:
     0 0 0 2px var(--bg-header),
     0 0 0 4px var(--text-accent);
@@ -68,13 +73,13 @@
 
 /* A check mark, so the selection does not rely on color alone. The chips are
    always dark, so the mark uses a fixed light color in both themes. */
-.binder-form__swatch input:checked + .binder-form__chip::after {
+.binder-form__radio:checked + .binder-form__chip::after {
   content: "✓";
   color: var(--bone-white);
   font: 700 1.1rem var(--font-ui);
 }
 
-.binder-form__swatch input:focus-visible + .binder-form__chip {
+.binder-form__radio:focus-visible + .binder-form__chip {
   outline: var(--focus-ring);
   outline-offset: 4px;
 }
@@ -83,7 +88,7 @@
   font-size: 0.72rem;
 }
 
-.binder-form__swatch input:checked ~ .binder-form__swatch-name {
+.binder-form__radio:checked ~ .binder-form__swatch-name {
   color: var(--text-primary);
 }
 

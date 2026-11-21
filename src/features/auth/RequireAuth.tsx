@@ -9,7 +9,7 @@ export default function RequireAuth() {
   if (isLoading) {
     return (
       <section className="app-v2__page auth-page" aria-live="polite" aria-busy="true">
-        <p>Checking your session…</p>
+        <p className="app-v2__page-text">Checking your session…</p>
       </section>
     );
   }
@@ -20,8 +20,8 @@ export default function RequireAuth() {
 
     return (
       <section className="app-v2__page auth-page">
-        <h1>Sign in required</h1>
-        <p className="auth-page__intro">
+        <h1 className="app-v2__page-title">Sign in required</h1>
+        <p className="app-v2__page-text auth-page__intro">
           Sign in to access this page.
         </p>
         <Link className="auth-submit auth-submit--link" to={loginPath}>

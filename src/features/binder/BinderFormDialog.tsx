@@ -100,11 +100,12 @@ export default function BinderFormDialog({
         aria-labelledby={titleId}
       >
         <header className="binder-dialog__header">
-          <h2 id={titleId}>
+          <h2 id={titleId} className="binder-dialog__title">
             {mode === "create" ? "Create binder" : "Modify binder"}
           </h2>
           <button
             type="button"
+            className="binder-dialog__close"
             aria-label="Close binder dialog"
             onClick={onClose}
             disabled={isSaving}
@@ -114,12 +115,13 @@ export default function BinderFormDialog({
         </header>
 
         <form
-          className="binder-copy-form binder-form"
+          className="binder-fields binder-form"
           onSubmit={(event) => void submit(event)}
         >
-          <label>
+          <label className="field field--soft">
             Name
             <input
+              className="field__input field__input--soft"
               ref={nameRef}
               value={name}
               onChange={(event) => setName(event.currentTarget.value)}
@@ -129,11 +131,12 @@ export default function BinderFormDialog({
           </label>
 
           <fieldset className="binder-form__colors">
-            <legend>Cover color</legend>
+            <legend className="binder-form__legend">Cover color</legend>
             {options.map((option) => (
               <label key={option.value} className="binder-form__swatch">
                 <input
                   type="radio"
+                  className="binder-form__radio"
                   name={colorGroupName}
                   value={option.value}
                   checked={color === option.value}
@@ -155,9 +158,10 @@ export default function BinderFormDialog({
             </p>
           )}
 
-          <div className="binder-copy-form__actions">
+          <div className="binder-actions">
             <button
               type="submit"
+              className="binder-button binder-button--primary"
               disabled={!trimmedName || isSaving || isUnchanged}
             >
               {isSaving
@@ -166,7 +170,7 @@ export default function BinderFormDialog({
                   ? "Create binder"
                   : "Save changes"}
             </button>
-            <button type="button" onClick={onClose} disabled={isSaving}>
+            <button type="button" className="binder-button" onClick={onClose} disabled={isSaving}>
               Cancel
             </button>
           </div>

@@ -24,12 +24,12 @@
   box-shadow: var(--eerie-glow);
 }
 
-.app-v2__page h1 {
+.app-v2__page-title {
   margin-top: 0;
   color: var(--text-accent);
 }
 
-.app-v2__page p {
+.app-v2__page-text {
   margin-bottom: 0;
   color: var(--text-secondary);
 }
