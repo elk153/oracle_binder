@@ -179,7 +179,7 @@ export default function ScanDebug({
                 ? `Name ${reading.name}`
                 : "No card name matched"
               : reading.parsed
-                ? `Set ${reading.parsed.setCode} · number ${reading.parsed.collectorNumber}`
+                ? `Set ${reading.parsed.setCode} · number ${reading.parsed.collectorNumber} · mark ${reading.foilMark ?? "–"} · language ${reading.language ?? "–"}`
                 : "No set and number found"}
           </p>
           <p className="scan-debug__line">
@@ -252,8 +252,14 @@ function SampleSaver({ capture, sharpness, camera, reading }: SampleSaverProps) 
   const [truthText, setTruthText] = useState("");
   const [note, setNote] = useState("");
   const [saved, setSaved] = useState(false);
-  const parsed = reading.status === "done" ? reading.parsed : null;
-  const parsedText = parsed ? `${parsed.setCode} ${parsed.collectorNumber}` : "";
+  const done = reading.status === "done" ? reading : null;
+  const parsed = done?.parsed ?? null;
+  // Set and number, then the foil mark and language when read (D-066).
+  const parsedText = parsed
+    ? [parsed.setCode, parsed.collectorNumber, done?.foilMark, done?.language?.toLowerCase()]
+        .filter(Boolean)
+        .join(" ")
+    : "";
   // An empty field means "the reading above is right".
   const truth = parseTruth(truthText || parsedText);
 
@@ -289,11 +295,11 @@ function SampleSaver({ capture, sharpness, camera, reading }: SampleSaverProps) 
     <div className="scan-debug__saver">
       <h2 className="scan-debug__heading">Save sample</h2>
       <label className="scan-debug__control">
-        What the card says (set and number)
+        What the card says (set and number, optionally star or dot and language)
         <input
           className="field__input"
           value={truthText}
-          placeholder={parsedText || "e.g. ltc 277"}
+          placeholder={parsedText || "e.g. ltc 277 dot en"}
           onChange={(event) => setTruthText(event.currentTarget.value)}
           autoCapitalize="none"
           autoCorrect="off"

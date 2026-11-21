@@ -2,14 +2,19 @@ import { useId, useMemo, useState } from "react";
 import useFetchUrl from "../../hooks/useFetchUrl.ts";
 import { isCardBrowserCard } from "../card-browser/types.ts";
 import type { CardBrowserCard } from "../card-browser/types.ts";
-import { FINISHES } from "../binder/copyOptions.ts";
+import { FINISHES, LANGUAGES } from "../binder/copyOptions.ts";
+import { guessFinish } from "./addSession.ts";
+import type { Finish } from "./addSession.ts";
+import { languageNameOf } from "./parseCollectorLine.ts";
+import type { FinishAndLanguage } from "./parseCollectorLine.ts";
 import "./AddConfirm.css";
 
-export type Finish = (typeof FINISHES)[number];
+export type { Finish };
 
 export type AddConfirmation = {
   card: CardBrowserCard; // the printing to add, possibly changed by the user
   finish: Finish | null; // null for proxies, which have no finish
+  language: string | null; // the copies' language; null for none or proxies
   quantity: number;
 };
 
@@ -17,6 +22,9 @@ type AddConfirmProps = {
   card: CardBrowserCard; // the recognized printing
   showFinish: boolean; // owned copies only
   choosePrinting?: boolean; // open the printing list at once (card found by name)
+  // Read on the card (D-066): pre-select the finish and the language.
+  read?: FinishAndLanguage;
+  defaultLanguage?: string | null; // the session's language, used when none was read
   onConfirm: (confirmation: AddConfirmation) => void;
   onSkip: () => void;
 };
@@ -39,12 +47,21 @@ export default function AddConfirm({
   card,
   showFinish,
   choosePrinting = false,
+  read = { foilMark: null, language: null },
+  defaultLanguage = null,
   onConfirm,
   onSkip,
 }: AddConfirmProps) {
   const [printing, setPrinting] = useState(card);
   const [isChoosingPrinting, setIsChoosingPrinting] = useState(choosePrinting);
-  const [finishIndex, setFinishIndex] = useState(0); // Non-foil for each card
+  // Each card starts at the finish guessed from its foil mark (D-066).
+  const [finishIndex, setFinishIndex] = useState(() =>
+    FINISHES.indexOf(guessFinish(read.foilMark, card.finishes)),
+  );
+  // The printed language wins over the session default when the app knows it.
+  const readLanguage = languageNameOf(read.language);
+  const [language, setLanguage] = useState(readLanguage ?? defaultLanguage ?? "");
+  const languageId = useId();
   const [quantity, setQuantity] = useState(1);
   const finishId = useId();
 
@@ -140,6 +157,30 @@ export default function AddConfirm({
         </div>
       )}
 
+      {showFinish && (
+        <div className="field">
+          <label htmlFor={languageId}>
+            Language
+            {readLanguage && language === readLanguage && (
+              <span className="scan-confirm__hint"> (read on the card)</span>
+            )}
+          </label>
+          <select
+            id={languageId}
+            className="field__input"
+            value={language}
+            onChange={(event) => setLanguage(event.currentTarget.value)}
+          >
+            <option value="">Not set</option>
+            {LANGUAGES.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <div className="scan-confirm__quantity">
         <span className="scan-confirm__quantity-label">Quantity</span>
         <button
@@ -173,6 +214,7 @@ export default function AddConfirm({
             onConfirm({
               card: printing,
               finish: showFinish ? FINISHES[finishIndex] : null,
+              language: showFinish && language ? language : null,
               quantity,
             })
           }

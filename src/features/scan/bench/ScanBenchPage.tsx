@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import type { ChangeEvent } from "react";
 import { createTextReader } from "../ocr.ts";
-import { parseCollectorLine } from "../parseCollectorLine.ts";
+import { parseCollectorLine, parseFinishAndLanguage } from "../parseCollectorLine.ts";
 import type { CollectorLine } from "../parseCollectorLine.ts";
 import type { ScanSample } from "../scanSample.ts";
 import { BENCH_VARIANTS, stripHeight } from "./benchVariants.ts";
@@ -20,6 +20,10 @@ type BenchResult = {
   text: string;
   parsed: CollectorLine | null;
   outcome: Outcome;
+  // D-066: whether the foil mark and language were read right; null when
+  // the sample's truth doesn't say, or no set code was read.
+  markOk: boolean | null;
+  languageOk: boolean | null;
   ms: number;
 };
 
@@ -74,6 +78,10 @@ type SummaryRow = {
   correct: number;
   wrong: number;
   none: number;
+  markRight: number;
+  markTotal: number;
+  languageRight: number;
+  languageTotal: number;
   averageMs: number;
 };
 
@@ -90,11 +98,23 @@ function summarize(samples: ScanSample[], results: BenchResult[]): SummaryRow[] 
         correct: 0,
         wrong: 0,
         none: 0,
+        markRight: 0,
+        markTotal: 0,
+        languageRight: 0,
+        languageTotal: 0,
         averageMs: 0,
         totalMs: 0,
       };
       row.total += 1;
       row[result.outcome] += 1;
+      if (result.markOk !== null) {
+        row.markTotal += 1;
+        row.markRight += result.markOk ? 1 : 0;
+      }
+      if (result.languageOk !== null) {
+        row.languageTotal += 1;
+        row.languageRight += result.languageOk ? 1 : 0;
+      }
       row.totalMs += result.ms;
       row.averageMs = row.totalMs / row.total;
       rows.set(key, row);
@@ -108,10 +128,13 @@ function percent(part: number, total: number): string {
 }
 
 function summaryText(rows: SummaryRow[], sampleCount: number): string {
-  const lines = [`Scan benchmark, ${sampleCount} samples`, "variant | group | correct | wrong | none | avg ms"];
+  const lines = [
+    `Scan benchmark, ${sampleCount} samples`,
+    "variant | group | correct | wrong | none | mark | language | avg ms",
+  ];
   for (const row of rows) {
     lines.push(
-      `${row.variantId} | ${row.group} | ${row.correct}/${row.total} (${percent(row.correct, row.total)}) | ${row.wrong} | ${row.none} | ${Math.round(row.averageMs)}`,
+      `${row.variantId} | ${row.group} | ${row.correct}/${row.total} (${percent(row.correct, row.total)}) | ${row.wrong} | ${row.none} | ${row.markRight}/${row.markTotal} | ${row.languageRight}/${row.languageTotal} | ${Math.round(row.averageMs)}`,
     );
   }
   return lines.join("\n");
@@ -160,7 +183,11 @@ export default function ScanBenchPage() {
           setProgress(`Reading ${collected.length + 1} of ${total}…`);
           const { text, ms } = await variant.read(raw, reader, stripHeight(sample.guide));
           const parsed = parseCollectorLine(text);
+          const read = parsed ? parseFinishAndLanguage(text, parsed.setCode) : null;
+          const truth = sample.truth;
           collected.push({
+            markOk: read && truth?.foilMark ? read.foilMark === truth.foilMark : null,
+            languageOk: read && truth?.language ? read.language === truth.language : null,
             sampleIndex,
             variantId: variant.id,
             text,
