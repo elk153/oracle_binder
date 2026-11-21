@@ -1,10 +1,15 @@
-import { useEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
 import useCamera from "./useCamera.ts";
 import type { CameraErrorReason } from "./useCamera.ts";
 import GuideFrame from "./GuideFrame.tsx";
 import { GUIDE_INSTRUCTIONS } from "./guideFrame.ts";
 import type { GuideStatus } from "./guideFrame.ts";
+import useSteadyFrame from "./useSteadyFrame.ts";
 import "./ScanCamera.css";
+
+// The debug panel is loaded only in development. In a production build
+// import.meta.env.DEV is false, so this import (and its CSS) is left out.
+const ScanDebug = import.meta.env.DEV ? lazy(() => import("./ScanDebug.tsx")) : null;
 
 const ERROR_MESSAGES: Record<CameraErrorReason, string> = {
   insecure: "The camera only works on a secure (https://) connection.",
@@ -27,14 +32,9 @@ const CAN_RETRY: Record<CameraErrorReason, boolean> = {
   unknown: true,
 };
 
-type ScanCameraProps = {
-  // What the scanner is doing; recognition (D-062) will change it.
-  guideStatus?: GuideStatus;
-};
-
 // The live rear-camera view of the scanner (D-061), with the guide frame over
 // it and the same guidance as text under it.
-export default function ScanCamera({ guideStatus = "aiming" }: ScanCameraProps) {
+export default function ScanCamera() {
   const { state, retry } = useCamera();
   const videoRef = useRef<HTMLVideoElement>(null);
   const stream = state.status === "live" ? state.stream : null;
@@ -47,6 +47,13 @@ export default function ScanCamera({ guideStatus = "aiming" }: ScanCameraProps) 
       video.srcObject = stream;
     }
   }, [stream]);
+
+  // Hooks must run on every render, so this comes before the early return.
+  const steady = useSteadyFrame(videoRef, state.status === "live");
+  // Prototype (D-062 stage 1): a steady card shows the collector zone as
+  // being read. The OCR stages will set the other statuses.
+  const guideStatus: GuideStatus =
+    steady.status === "steady" ? "reading-collector" : "aiming";
 
   if (state.status === "error") {
     return (
@@ -87,6 +94,15 @@ export default function ScanCamera({ guideStatus = "aiming" }: ScanCameraProps) 
       <p className="scan-camera__instruction" aria-live="polite">
         {state.status === "live" ? GUIDE_INSTRUCTIONS[guideStatus] : ""}
       </p>
+      {ScanDebug && state.status === "live" && (
+        <Suspense fallback={null}>
+          <ScanDebug
+            status={steady.status}
+            difference={steady.difference}
+            capture={steady.capture}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

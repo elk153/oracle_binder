@@ -1,0 +1,25 @@
+/* ==========================================================================
+   ScanDebug.css
+   Development-only debug panel under the scanner camera (D-062 prototype).
+   ========================================================================== */
+
+.scan-debug {
+  display: grid;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border: 1px dashed var(--surface-border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font: 0.8rem var(--font-ui);
+}
+
+.scan-debug__line {
+  margin: 0;
+}
+
+.scan-debug__image {
+  display: block;
+  max-width: 100%;
+  border: 1px solid var(--surface-border);
+}
