@@ -181,6 +181,7 @@
   overflow-wrap: anywhere;
 }
 
+/* stylelint-disable-next-line selector-max-type -- the svg is rendered by the icon components */
 .browser-card__action svg {
   width: 100%;
   height: 100%;

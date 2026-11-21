@@ -33,7 +33,13 @@ Naming and usage rules for each file format in this repo (branch `typescript`). 
 ### `.css` — Stylesheets
 
 - **Observed:** one CSS file beside each component with the same name. Global styles: `src/styles/splash.css` (linked from `index.html`), `src/styles/tokens.css` (design tokens), `src/styles/base.css` (body size, focus ring, reduced motion), `src/styles/forms.css` (shared form field classes), `src/styles/layout.css` (shared page classes) and `src/app/App.css`.
-- **Rule:** component CSS lives in the component's folder and shares its name. Colors, spacing and fonts come from the tokens in `src/styles/tokens.css` (CSS variables); do not hard-code new colors, global z-index values or corner radii. Global rules go only in the global files.
+- **Rule:** component CSS lives in the component's folder and shares its name. Global rules go only in the global files; shared page and form classes go in `layout.css` and `forms.css`, not in a component file.
+- **Naming:** one block per component file, named `block__element--modifier` (e.g. `.binder-copy-popover__close`, `.page__button`). Style elements through their own class: no element selectors such as `.deck-page button` or `.card-filters input` (they also restyle every component rendered inside, see D-053 Phase 4a). Element selectors live only in `base.css` and `splash.css`; the few exceptions for markup rendered by another component (icon `svg`, card renderer output) carry a `stylelint-disable-next-line` comment with the reason.
+- **Tokens:** colors, global z-index values, corner radii and the two shared durations come from `src/styles/tokens.css`; no hex, `rgb()`/`hsl()` or named colors anywhere else (`splash.css` is the exception because it loads before the tokens). Mix a token with `color-mix()` instead of writing a new color.
+- **No `!important`:** only `base.css` uses it, for the reduced-motion rule. Win a conflict with a more specific class or a later file instead.
+- **Focus and motion:** do not add per-component focus rings or `prefers-reduced-motion` transition overrides; `base.css` provides both. Override the ring only for a different `outline-offset`.
+- **Breakpoints:** use only the values listed in the `tokens.css` header (480, 540, 760, 860/861, 1040px).
+- **Check:** `npm run lint:css` (stylelint, `stylelint.config.mjs`) enforces the color, `!important` and element-selector rules.
 
 ## Docs and diagrams
 

@@ -33,6 +33,7 @@ Node 22 works. Install with `npm install`.
 | `npm run preview` | serve the build | works |
 | `npm run typecheck` | `tsc --noEmit` | passes |
 | `npm run lint` | ESLint | **fails: 6 pre-existing errors, 0 warnings** (checked 6 Nov 2026) |
+| `npm run lint:css` | stylelint on `src/**/*.css` (`stylelint.config.mjs`): no colors outside `tokens.css`/`splash.css`, no `!important` outside `base.css`, no element selectors | passes (checked 21 Nov 2026) |
 
 - No test framework or test script exists. The only tests are dependency-free `node:test` cases in `tests/` for the advanced-search matcher; run `node --experimental-strip-types --test "tests/**/*.test.ts"` (Node 22). They are not part of `typecheck`, and `tsconfig.json` does not include `tests/`.
 - Lint status varies as the code changes; rerun lint before attributing errors to a change.
@@ -198,5 +199,5 @@ Route prefixes such as `/v2` name a UI layout, not a release. Never read them as
 - Use `createApiClient` for Scryfall card/list endpoints. Auxiliary URL hooks use direct `fetch`; keep their query-key conventions when extending.
 - Be gentle with Scryfall: no request loops or bursts. Check Scryfall's API docs for current rate-limit and header requirements before adding new fetch patterns.
 - Keep new UI aligned with the tokens in `src/styles/tokens.css` and the component-local CSS pattern: no hard-coded colors, global z-index values, corner radii or the shared durations (`src/styles/splash.css` is the exception). Do not add per-component focus rings or reduced-motion transition overrides; `base.css` handles both (a `prefers-reduced-motion` block is still needed to cancel a hover transform).
-- Follow `docs/file-conventions.md` for naming and file types.
+- Follow `docs/file-conventions.md` for naming and file types, including the CSS rules (BEM class names, class selectors only, tokens, breakpoints); run `npm run lint:css` after CSS changes.
 - Do not convert unrelated files, rename folders, or "clean up" unused files without being asked.

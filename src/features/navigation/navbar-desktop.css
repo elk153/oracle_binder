@@ -74,7 +74,6 @@
   }
 }
 
-/* The bar is `position: fixed`, so it doesn't reserve layout space.
-   Add top padding/margin to your page's main content wrapper yourself,
-   e.g. `main { padding-top: 5.5rem; }` at the desktop breakpoint —
-   intentionally left out of this file since it depends on your layout. */
+/* The bar is `position: fixed`, so it doesn't reserve layout space. The page
+   content's top padding lives in .app-v2__main (App.css) and .page
+   (styles/layout.css), not in this file. */
