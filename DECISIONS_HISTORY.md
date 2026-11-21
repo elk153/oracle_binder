@@ -642,3 +642,40 @@ Implemented and superseded decisions are retained here with their original IDs. 
 - Alternatives considered: Lazy pages (measured above, skipped); splitting React, the router and Supabase into separate cached files (same total size; removes the warning, not chosen now); raising `chunkSizeWarningLimit` (hides the warning only); a global `vite:preloadError` handler that reloads automatically (could loop on a real outage, and reloads without telling the user); leaving React Router's default error screen.
 - Consequences: The 500 kB warning remains and is understood. Building in a folder without `.env.local` (for example a fresh worktree) now fails with a message naming the missing variable; set the variables first. The error page replaces the whole `/v2` layout, navbar included. Checked: with `.env.local` the build passes (778 kB main file); without either variable it exits with code 1 and names the missing one; with both set only in the environment it builds the full bundle; the dev server still starts. The error page was rendered on the server for every case (three chunk wordings, another error, unknown `/v2` and top-level paths) with the expected title and action, and without details in a production build. In the developer's first browser check, `/v2/nope` stayed on the pulsing splash logo: the splash was hidden by an effect in `App.tsx`, which the error page replaces. That effect moved into a `useDismissSplash` hook that both `App.tsx` and `RouteErrorPage` call (calling it again after the splash is gone changes nothing). The server-side render check could not catch this, because effects do not run there.
 - Source: "[Build] Chunk size warning"
+
+## D-064: Scan Add mode (rapid addition)
+
+- Status: Implemented
+- Release: pending (on dev)
+- Date: 2026-11-21
+- Decision: The Add mode has a session setup, then a loop of scan → confirm → next card.
+  - **Session setup (once):**
+    - Target: a binder folder, Loose, or a deck.
+    - Type: owned or proxy. Proxy is offered only when the target is a deck, because the data model has no binder proxies.
+    - For owned copies, default copy details applied to every card of the session (the fields of the binder copy form except finish, which is chosen per card). Individual copies are edited later in the Binder.
+  - **Confirm step (per card):**
+    - Shows the recognized printing (image, name, set, collector number), with a way to change the printing.
+    - A finish slider with three positions, Non-foil → Foil → Etched foil, which are the finish values of the binder copy form. It starts at Non-foil for each card. It's a native range input (`min=0`, `max=2`, `step=1`) with the three labels visible under it and the current label announced to screen readers (`aria-valuetext`). The slider sets the finish of the copies created, so finish is not one of the session defaults. It's shown only for owned cards, because deck entries (proxies) have no finish.
+    - A quantity stepper (default 1), so several copies of the same card take one scan.
+
+    Confirm adds the cards.
+  - **What Confirm creates:**
+    - Owned into a binder or Loose: new binder copies.
+    - Owned into a deck: new physical copies placed in the deck (a `kind='binder'` entry, as the add-copy dialog already does).
+    - Proxy into a deck: proxy deck entries.
+
+    The existing binder and deck mutations and cache updates are reused.
+  - **After Confirm:** an "Added N × name — Undo" message appears briefly and the scanner resumes at once. Undo deletes exactly the copies or entries just created. To avoid adding the same card twice by accident, the same printing is not offered again until the card has left the frame.
+- Why: Choosing target, type and details once, then confirming each card with one tap, is the fastest flow that still prevents wrong additions. Reusing the current data model and mutations means no migration.
+- Alternatives considered:
+  - Binder proxies (needs a data model change and its own decision).
+  - Copy details per card, collapsed or empty (slower, or more editing later).
+  - Rescanning each copy instead of a quantity stepper.
+  - A session list instead of, or in addition to, the undo message.
+- Consequences:
+  - Requires sign-in.
+  - Several copies in one confirm need several inserts. Whether that happens in one database call or a short loop is decided during implementation, and a partial failure must be reported clearly.
+  - Undo must also handle a copy placed in a deck (copy and deck entry).
+  - A two-state foil toggle was considered and replaced by the slider, so Etched foil can also be recorded.
+- Implementation (2026-11-21): `AddScanner`, `AddSessionSetup`, `AddConfirm` and `useScanAdd` in `src/features/scan/`. Several copies are created one after another in a short loop with the existing mutations (no new database function); the first failure stops the loop and the notice says "Added N of M", with Undo for what was added. Undo deletes deck entries before their copies through the new `deleteDeckCards` mutation in `useDeckManagement`, so no virtual entry is left. The option lists of the copy form moved to `src/features/binder/copyOptions.ts` to be shared. A newer notice replaces an older one, and its Undo with it.
+- Source: "[Scan] Visual card recognition plan"
