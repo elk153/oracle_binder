@@ -11,6 +11,7 @@ Keep this reference aligned with the source when moving or adding modules.
 | --- | --- |
 | [`src/main.tsx`](../../src/main.tsx) | Browser entry: validates `#root`, imports the global CSS (`tokens.css`, `base.css`, `forms.css`, then `layout.css`) before the app, and mounts `AppProviders` under `StrictMode`. |
 | [`src/app/router.tsx`](../../src/app/router.tsx) | Defines redirects, the `/v2` layout, public routes, and `RequireAuth`-protected routes; default-exports the router. |
+| [`src/app/RouteErrorPage.tsx`](../../src/app/RouteErrorPage.tsx) | Default-exported `errorElement` for both top-level routes: "new version" prompt with Reload for a failed chunk load, "Page not found" for unknown addresses, "Something went wrong" otherwise; error details only in development. |
 | [`src/app/App.tsx`](../../src/app/App.tsx) | V2 shell and splash transition; prefetches Scryfall symbols, sets, and card-name catalog. Exports `App` and route elements `Home`, `Favorites`, `Binder`, and `Decks`. |
 | [`src/app/AppProviders.tsx`](../../src/app/AppProviders.tsx) | Composes theme, query persistence/devtools, auth, and router providers; default-exports `AppProviders`. |
 | [`src/app/AppProviders/AuthContext.ts`](../../src/app/AppProviders/AuthContext.ts) | Exports `AuthContextValue`, `AuthContext`, and `useAuth`; defines the session/user/loading/sign-out contract. |

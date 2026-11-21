@@ -24,7 +24,7 @@ The developer is learning React and TypeScript and wants to understand every cha
 
 ## Commands and current status
 
-Node 22 works. Install with `npm install`.
+Node 22 works. Install with `npm install`. `npm run build` needs `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` (in `.env.local` or the environment, e.g. Netlify); `vite.config.ts` stops the build when either is missing, because without them the bundle drops Supabase and crashes on startup.
 
 | Command | Purpose | Status |
 | --- | --- | --- |
@@ -41,7 +41,7 @@ Node 22 works. Install with `npm install`.
 
 ## Routes
 
-Defined in `src/app/router.tsx`. `/` redirects to `/v2/home`.
+Defined in `src/app/router.tsx`. `/` redirects to `/v2/home`. Both top-level routes use `RouteErrorPage` as `errorElement`: a code chunk that fails to load after a deploy shows a "new version" prompt with Reload, an unknown address shows "Page not found", and other errors show "Something went wrong" (details in development only).
 
 | Path | Renders |
 | --- | --- |
@@ -93,7 +93,7 @@ Defined in `src/app/router.tsx`. `/` redirects to `/v2/home`.
 
 ## Source layout
 
-- `src/main.tsx`, `src/app/` — entry, providers, V2 layout and router.
+- `src/main.tsx`, `src/app/` — entry, providers, V2 layout, router and the route error page (`RouteErrorPage.tsx`).
 - `src/features/scryfall-card-renderer/` — shared card renderer. `types.ts` defines its raw input (`RawScryfallCard`) and normalized output (`NormalizedCard`); `normalizeCard.ts` maps raw Scryfall cards to the internal shape; `scryfallCardLayouts.ts` and `components/` (one/split/toggle/flip/meld faces, `OracleText`, `extras/` for saga, class, case, leveler, mutate, prototype) consume that shape. Each card of a meld trio shows the other two (a piece: its partner and the result; the result: both pieces), names first, then images from one `useScryfallCardsForIds` request; the renderer imports nothing from `card-browser`. Related cards open through the optional `onOpenCard(cardId)` prop, supplied by the page that owns the overlay (D-059). The V2 details overlay uses it.
 - `src/features/card-browser/` — V2 card search and query hooks, daily mulligan, Scryfall rulings fetch, reusable card tile/actions, and card details/printings overlay.
 - `src/features/binder/` — Binder copy data and mutations, copy metadata form/popover, binder-folder queries and the Binder page.
