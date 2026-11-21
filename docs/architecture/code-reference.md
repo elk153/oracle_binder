@@ -62,7 +62,7 @@ static brand assets and are not React components.
 | [`src/features/card-browser/types.ts`](../../src/features/card-browser/types.ts) | Exports card/source/action/image/face types and `isCardBrowserCard` runtime guard. |
 | [`src/features/card-browser/fetchCardRulings.ts`](../../src/features/card-browser/fetchCardRulings.ts) | Exports `CardRuling` and `fetchCardRulings`; validates and maps Scryfall rulings. |
 | [`src/features/card-browser/CardTile.tsx`](../../src/features/card-browser/CardTile.tsx) | Default reusable card tile; renders a card and optional favorite/Binder/Deck actions. Binder actions signal when disposed-copy history exists. |
-| [`src/features/card-browser/CardDetailsOverlay.tsx`](../../src/features/card-browser/CardDetailsOverlay.tsx) | Default accessible card-details overlay; loads details/rulings/prints and wires card actions. |
+| [`src/features/card-browser/CardDetailsOverlay.tsx`](../../src/features/card-browser/CardDetailsOverlay.tsx) | Default accessible card-details overlay; loads details/rulings/prints and wires card actions. Optional `onOpenCard(cardId)` lets the renderer open another card (meld trio); without `fallbackCard` it fetches the card by id. |
 | [`src/features/card-browser/CardBrowserPage.css`](../../src/features/card-browser/CardBrowserPage.css) | Search/home result layout, messages, pagination, and notice styles. |
 | [`src/features/card-browser/CardTile.css`](../../src/features/card-browser/CardTile.css) | Card tile, face flip, action popover, and entry-state styles. |
 | [`src/features/card-browser/CardDetailsOverlay.css`](../../src/features/card-browser/CardDetailsOverlay.css) | Card-details overlay, card-content, rulings, legalities, and print layout. |
@@ -151,7 +151,7 @@ static brand assets and are not React components.
 | [`src/features/scryfall-card-renderer/components/CardFrame.tsx`](../../src/features/scryfall-card-renderer/components/CardFrame.tsx) | Exports `CardFaceMetadata` and default `CardFrame`; common face image/text frame. |
 | [`src/features/scryfall-card-renderer/components/OneFaceCard.tsx`](../../src/features/scryfall-card-renderer/components/OneFaceCard.tsx) | Single-face card layout. |
 | [`src/features/scryfall-card-renderer/components/FlipVerticalCard.tsx`](../../src/features/scryfall-card-renderer/components/FlipVerticalCard.tsx) | Vertical flip-card layout. |
-| [`src/features/scryfall-card-renderer/components/MeldCard.tsx`](../../src/features/scryfall-card-renderer/components/MeldCard.tsx) | Meld-card layout; a meld piece shows the meld result (name, then image via `useScryfallCardsSearch`), the result lists its pieces. |
+| [`src/features/scryfall-card-renderer/components/MeldCard.tsx`](../../src/features/scryfall-card-renderer/components/MeldCard.tsx) | Meld-card layout; shows the other two cards of the meld trio (partner and result, or both pieces) with images from one `useScryfallCardsForIds` request; each opens through `onOpenCard`. |
 | [`src/features/scryfall-card-renderer/components/SplitFacesCard.tsx`](../../src/features/scryfall-card-renderer/components/SplitFacesCard.tsx) | Split/adventure-style card layout. |
 | [`src/features/scryfall-card-renderer/components/ToggleFacesCard.tsx`](../../src/features/scryfall-card-renderer/components/ToggleFacesCard.tsx) | Transform/modal double-faced card layout. |
 | [`src/features/scryfall-card-renderer/components/OracleText.tsx`](../../src/features/scryfall-card-renderer/components/OracleText.tsx) | Renderer adapter for symbol-aware Oracle text. |

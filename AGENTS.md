@@ -94,7 +94,7 @@ Defined in `src/app/router.tsx`. `/` redirects to `/v2/home`.
 ## Source layout
 
 - `src/main.tsx`, `src/app/` — entry, providers, V2 layout and router.
-- `src/features/scryfall-card-renderer/` — shared card renderer. `types.ts` defines its raw input (`RawScryfallCard`) and normalized output (`NormalizedCard`); `normalizeCard.ts` maps raw Scryfall cards to the internal shape; `scryfallCardLayouts.ts` and `components/` (one/split/toggle/flip/meld faces, `OracleText`, `extras/` for saga, class, case, leveler, mutate, prototype) consume that shape. A meld piece shows the card it melds into (name, then image fetched with `useScryfallCardsSearch`, the renderer's one import from `card-browser`); the meld result lists its pieces. The V2 details overlay uses it.
+- `src/features/scryfall-card-renderer/` — shared card renderer. `types.ts` defines its raw input (`RawScryfallCard`) and normalized output (`NormalizedCard`); `normalizeCard.ts` maps raw Scryfall cards to the internal shape; `scryfallCardLayouts.ts` and `components/` (one/split/toggle/flip/meld faces, `OracleText`, `extras/` for saga, class, case, leveler, mutate, prototype) consume that shape. Each card of a meld trio shows the other two (a piece: its partner and the result; the result: both pieces), names first, then images from one `useScryfallCardsForIds` request; the renderer imports nothing from `card-browser`. Related cards open through the optional `onOpenCard(cardId)` prop, supplied by the page that owns the overlay (D-059). The V2 details overlay uses it.
 - `src/features/card-browser/` — V2 card search and query hooks, daily mulligan, Scryfall rulings fetch, reusable card tile/actions, and card details/printings overlay.
 - `src/features/binder/` — Binder copy data and mutations, copy metadata form/popover, binder-folder queries and the Binder page.
 - `src/features/decks/` — user-scoped deck and deck-card queries/mutations, inline card action popover, and the Decks page.
@@ -114,7 +114,7 @@ Full deck-building tools such as format validation, collection valuation and pri
 - **All application code is TypeScript** (D-058): every file in `src/` is `.ts` or `.tsx`, and so is `vite.config.ts`. The only JavaScript file is `eslint.config.js`, which stays JS because a TS ESLint config needs the `jiti` dependency.
 - `tsconfig.json`: `strict`, `allowJs: false`, `verbatimModuleSyntax: true`, `allowImportingTsExtensions: true`, `include: ["src", "vite.config.ts"]`. Do not add `.js`/`.jsx` files to `src/`: importing one fails `npm run typecheck` (TS7016).
 - Imports of `.ts`/`.tsx` files include the extension. Use `import type` for type-only imports.
-- Avoid `any` and non-null assertions. Narrow `unknown` API data with type guards (see `isCardBrowserCard`, `toMeldResultView`).
+- Avoid `any` and non-null assertions. Narrow `unknown` API data with type guards (see `isCardBrowserCard`, `toImageUrl` in `MeldCard.tsx`).
 - `src/features/card-filters/types.ts` defines the narrow `ScryfallCard` shape used by filters. The renderer owns its own types in `src/features/scryfall-card-renderer/types.ts`; `RawScryfallCard` lists only the fields `normalizeCard` reads, so any structurally compatible card (e.g. `CardBrowserCard`) can be passed to `CardRenderer`.
 
 ## Tooling gotchas
