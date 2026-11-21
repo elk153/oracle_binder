@@ -635,7 +635,7 @@ Implemented and superseded decisions are retained here with their original IDs. 
 ## D-060: Build guard for Supabase variables and a route error page
 
 - Status: Implemented
-- Release: pending (on dev)
+- Release: v2026.11.3
 - Date: 2026-11-21
 - Decision: `vite.config.ts` stops `vite build` when `VITE_SUPABASE_URL` or `VITE_SUPABASE_PUBLISHABLE_KEY` is missing, reading them with Vite's `loadEnv` (the `.env` files for the mode and the process environment); dev and preview are unchanged. A new `RouteErrorPage` is the `errorElement` of both top-level routes: a code chunk that fails to load shows "A new version of Oracle Binder is available" with a Reload button (the Chromium, Firefox and Safari wordings of a failed dynamic import are recognized), an unknown address shows "Page not found" with a link home, and any other error shows "Something went wrong" with Reload; error details appear only in development. Pages are not lazy-loaded.
 - Why: Vite warns that the main JavaScript file is larger than 500 kB (777 kB minified, 222 kB gzip). Looking into it showed that builds without the Supabase variables had silently produced a 266 kB bundle: `supabaseClient.ts` throws at load time, so the bundler removed Supabase and everything depending on it, and the app would crash on startup while the build passed (this also made the bundle sizes reported during D-058 wrong). Failing the build makes that visible. A prototype measured lazy loading: Favorites, Binder and Decks lazy gave 713 kB, adding `AdvancedSearchForm` 705 kB (205 kB gzip, about 9 percent less), and making Login and AuthCallback lazy as well gave 737 kB, because the bundler moved shared code back into the main file. The rest is React, the router and Supabase, which the Home page (`CardBrowserPage`, with its auth, favorites, binder and deck hooks) needs immediately. The developer judged 9 percent not worth the loading states. The app already loads the rarer card layouts and extras on demand, so a deploy while the app is open can make one of those chunks 404; the error page turns React Router's default screen into a clear reload prompt.
@@ -646,7 +646,7 @@ Implemented and superseded decisions are retained here with their original IDs. 
 ## D-064: Scan Add mode (rapid addition)
 
 - Status: Implemented
-- Release: pending (on dev)
+- Release: v2026.11.3
 - Date: 2026-11-21
 - Decision: The Add mode has a session setup, then a loop of scan → confirm → next card.
   - **Session setup (once):**

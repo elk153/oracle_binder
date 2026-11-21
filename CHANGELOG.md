@@ -7,6 +7,37 @@ Release versions follow the CalVer policy in [AGENTS.md](./AGENTS.md).
 
 ## [Unreleased]
 
+## [2026.11.3] - 2026-11-21
+
+### Added
+
+- Card scanner on the new Scan page (`/v2/scan`, navbar item Scan), using the
+  phone's rear camera. A card-shaped guide frame shows where to hold the card;
+  a card held still is recognized by the set code and collector number on its
+  bottom line (cards printed since 2014), read in the browser with OCR, and
+  looked up on Scryfall.
+  - Identify mode (works signed out) opens the recognized printing on the
+    Search page with its details.
+  - Add mode (signed in) adds cards one after another to a binder, Loose or a
+    deck, as owned copies or as deck proxies, with copy details chosen once
+    per session, and per card a printing check, finish (non-foil, foil,
+    etched foil) and quantity. A notice confirms each addition and offers
+    Undo.
+- A page for routing errors: after a new deploy it offers to reload, an
+  unknown address shows "Page not found", and other errors show "Something
+  went wrong".
+
+### Changed
+
+- Production builds stop with a clear message when the Supabase settings are
+  missing, instead of producing an app that crashes on start.
+- The OCR engine and its English data (a few MB) are downloaded from the
+  jsDelivr CDN the first time the scanner is used, then cached by the browser.
+
+### Database
+
+- No migration in this release.
+
 ## [2026.11.2] - 2026-11-21
 
 ### Added
