@@ -7,6 +7,19 @@
    global z-index values, corner radii or the two shared durations.
    Only styles/splash.css (the splash screen, which loads before this file)
    keeps its own literal values.
+
+   Breakpoints (CSS variables cannot be used in media queries, so they are
+   listed here; use only these values in new @media rules):
+     480px          base.css: body text 19px -> 16px at 480px and below
+     540px          phones: full-width cards and covers, stacked page heading,
+                    full-width notice (layout.css, BinderPage.css, DecksPage.css)
+     760px          card details overlay switches to one scrolling column
+     860px / 861px  mobile <-> desktop: bottom navbar, floating filters at the
+                    bottom, page padding, fixed popovers (max-width: 860px /
+                    min-width: 861px, so the two never overlap)
+     1040px         desktop navbar hides its labels between 861px and 1040px
+   480, 760 and 1040 are one-offs kept on purpose (D-053 Phase 5); fold one
+   into 540 or 860 only after checking the change in a browser.
    ========================================================================== */
 
 :root {
