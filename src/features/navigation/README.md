@@ -1,7 +1,7 @@
 # V2 Navigation — desktop header + mobile floating bar
 
 The V2 navbar renders a desktop header and a mobile floating bar, with one
-shared visual language driven by the tokens in `src/theme.css`.
+shared visual language driven by the tokens in `src/styles/tokens.css`.
 
 ## Files
 

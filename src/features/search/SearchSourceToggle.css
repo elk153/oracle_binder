@@ -26,7 +26,7 @@
   padding: 0.1rem;
   border-radius: var(--control-radius);
   background: var(--text-secondary);
-  transition: background-color 0.2s ease;
+  transition: background-color var(--duration-fast) ease;
 }
 
 .search-source-toggle[aria-checked="true"] .search-source-toggle__track {
@@ -38,7 +38,7 @@
   height: 0.8rem;
   border-radius: 50%;
   background: var(--bg-header);
-  transition: transform 0.2s ease;
+  transition: transform var(--duration-fast) ease;
 }
 
 .search-source-toggle[aria-checked="true"] .search-source-toggle__thumb {

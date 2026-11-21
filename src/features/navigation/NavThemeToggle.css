@@ -2,7 +2,7 @@
    NavThemeToggle.css
    Round button for the NavBar (desktop and mobile). It reuses the shared
    nav surface and icon glow of .nav-item.is-active, all through the
-   theme.css tokens, so it follows the dark and light theme by itself.
+   tokens.css tokens, so it follows the dark and light theme by itself.
    ========================================================================== */
 
 .nav-theme-toggle {
@@ -19,9 +19,9 @@
   padding: 0;
   cursor: pointer;
   color: var(--text-secondary);
-  background: color-mix(in srgb, var(--sublayer-bg, #000) 55%, transparent);
+  background: color-mix(in srgb, var(--sublayer-bg) 55%, transparent);
   border: 1px solid color-mix(in srgb, var(--btn-gold) 30%, transparent);
-  border-radius: 999px;
+  border-radius: var(--control-radius);
   transition: border-color 0.4s ease, box-shadow 0.4s ease;
 }
 

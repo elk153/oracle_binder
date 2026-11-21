@@ -32,8 +32,8 @@ Naming and usage rules for each file format in this repo (branch `typescript`). 
 
 ### `.css` — Stylesheets
 
-- **Observed:** one CSS file beside each component with the same name. Global styles: `style.css` (repo root), `src/app/App.css`, and `src/theme.css` (design tokens).
-- **Rule:** component CSS lives in the component's folder and shares its name. Colors, spacing and fonts come from the tokens in `src/theme.css` (CSS variables); do not hard-code new colors. Global rules go only in the global files.
+- **Observed:** one CSS file beside each component with the same name. Global styles: `style.css` (repo root), `src/app/App.css`, and `src/styles/tokens.css` (design tokens).
+- **Rule:** component CSS lives in the component's folder and shares its name. Colors, spacing and fonts come from the tokens in `src/styles/tokens.css` (CSS variables); do not hard-code new colors, global z-index values or corner radii. Global rules go only in the global files.
 
 ## Docs and diagrams
 

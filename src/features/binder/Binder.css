@@ -1,6 +1,6 @@
 .binder-dialog-backdrop {
   position: fixed;
-  z-index: 120;
+  z-index: var(--z-dialog);
   inset: 0;
   display: grid;
   place-items: center;
@@ -19,7 +19,7 @@
   max-height: calc(100dvh - 2rem);
   overflow: hidden;
   border: 1px solid var(--surface-border);
-  border-radius: 1rem;
+  border-radius: var(--radius-lg);
   color: var(--text-primary);
   background: color-mix(in srgb, var(--bg-header) 94%, transparent);
   box-shadow: var(--eerie-glow);
@@ -56,7 +56,7 @@
   min-height: 2rem;
   padding: 0.35rem 0.6rem;
   border: 1px solid var(--surface-border);
-  border-radius: 999px;
+  border-radius: var(--control-radius);
   color: var(--text-primary);
   background: color-mix(in srgb, var(--bg-main) 82%, transparent);
   font: 0.85rem var(--font-ui);
@@ -198,7 +198,7 @@
 
 .binder-copy-popover {
   position: absolute;
-  z-index: 105;
+  z-index: var(--z-popover);
   top: 0;
   right: 100%;
   display: flex;
@@ -209,7 +209,7 @@
   overflow: hidden;
   padding: 0.85rem;
   border: 1px solid var(--surface-border);
-  border-radius: 1rem;
+  border-radius: var(--radius-lg);
   color: var(--text-primary);
   background: color-mix(in srgb, var(--bg-header) 94%, transparent);
   -webkit-backdrop-filter: blur(12px);

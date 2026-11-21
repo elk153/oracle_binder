@@ -1,6 +1,6 @@
 .card-detail-overlay {
   position: fixed;
-  z-index: 110;
+  z-index: var(--z-overlay);
   inset: 0;
   overflow: hidden;
   color: var(--text-primary);
@@ -108,7 +108,7 @@
   justify-content: center;
   overflow: hidden;
   border: 1px solid var(--surface-border);
-  border-radius: 0.75rem;
+  border-radius: var(--radius-md);
   background: var(--bg-card);
 }
 
@@ -173,7 +173,7 @@
   margin-top: 1rem;
   padding: 1rem;
   border: 1px solid var(--surface-border);
-  border-radius: 0.75rem;
+  border-radius: var(--radius-md);
   background: var(--bg-card);
 }
 
@@ -190,7 +190,7 @@
   margin-top: 1rem;
   padding: 0.75rem 1rem;
   border: 1px solid var(--surface-border);
-  border-radius: 0.75rem;
+  border-radius: var(--radius-md);
   background: var(--bg-card);
 }
 
@@ -209,7 +209,7 @@
   height: 1px;
   margin: 0.4rem 0;
   border: 0;
-  background-color: #805e24;
+  background-color: var(--gold-deep);
 }
 
 .card-detail__metadata {
@@ -263,23 +263,23 @@
 }
 
 .card-detail__color-dot.color__W {
-  background-color: #f0e6c7;
+  background-color: var(--mana-w);
 }
 
 .card-detail__color-dot.color__U {
-  background-color: #0077c8;
+  background-color: var(--mana-u);
 }
 
 .card-detail__color-dot.color__B {
-  background-color: #29252a;
+  background-color: var(--mana-b);
 }
 
 .card-detail__color-dot.color__R {
-  background-color: #d3202a;
+  background-color: var(--mana-r);
 }
 
 .card-detail__color-dot.color__G {
-  background-color: #00733e;
+  background-color: var(--mana-g);
 }
 
 .card-detail__color-dot--colorless {
@@ -292,34 +292,34 @@
 }
 
 .card-detail__rarity-pill--common {
-  color: #f5f5f5;
-  border-color: #72777c;
-  background-color: #45494d;
+  color: var(--rarity-common-text);
+  border-color: var(--rarity-common-border);
+  background-color: var(--rarity-common-bg);
 }
 
 .card-detail__rarity-pill--uncommon {
-  color: #20252a;
-  border-color: #c4cbd0;
-  background-color: #c4cbd0;
+  color: var(--rarity-uncommon-text);
+  border-color: var(--rarity-uncommon-border);
+  background-color: var(--rarity-uncommon-bg);
 }
 
 .card-detail__rarity-pill--rare {
-  color: #332300;
-  border-color: #d7ad36;
-  background-color: #e6c45b;
+  color: var(--rarity-rare-text);
+  border-color: var(--rarity-rare-border);
+  background-color: var(--rarity-rare-bg);
 }
 
 .card-detail__rarity-pill--mythic {
-  color: #391306;
-  border-color: #ee6b2c;
-  background-color: #f18a3d;
+  color: var(--rarity-mythic-text);
+  border-color: var(--rarity-mythic-border);
+  background-color: var(--rarity-mythic-bg);
 }
 
 .card-detail__rarity-pill--special,
 .card-detail__rarity-pill--bonus {
   color: var(--text-primary);
-  border-color: #9c79c7;
-  background-color: #62447f;
+  border-color: var(--rarity-special-border);
+  background-color: var(--rarity-special-bg);
 }
 
 .card-detail__renderer .scryfall-card__oracle-text p,
@@ -395,7 +395,7 @@
   width: calc(var(--card-image-width) + 1.45rem);
   padding: 0.6rem;
   border: 1px solid var(--surface-border);
-  border-radius: 0.75rem;
+  border-radius: var(--radius-md);
   background: var(--bg-card);
 }
 

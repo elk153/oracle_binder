@@ -111,7 +111,7 @@
   margin: 0 auto;
   padding: 0.75rem;
   border: 1px solid var(--surface-border);
-  border-radius: 4.5%;
+  border-radius: var(--radius-card);
   color: var(--text-secondary);
   background: var(--bg-card);
   font: 0.9rem var(--font-ui);
@@ -121,7 +121,7 @@
   min-height: 0;
   padding: 0;
   border: 0;
-  border-radius: 4.5%;
+  border-radius: var(--radius-card);
   background: transparent;
 }
 
@@ -155,7 +155,7 @@
   flex: 0 0 auto;
   padding: 0.25rem 0.6rem;
   border: 1px solid var(--surface-border);
-  border-radius: 999px;
+  border-radius: var(--control-radius);
   color: var(--text-accent);
   background: color-mix(in srgb, var(--text-accent) 10%, var(--bg-card));
   font: 700 0.72rem var(--font-ui);
@@ -169,7 +169,7 @@
 .deck-page__deck-actions button {
   min-height: 2rem;
   padding: 0.35rem 0.65rem;
-  border-radius: 999px;
+  border-radius: var(--control-radius);
   color: var(--text-secondary);
   background: transparent;
   font-size: 0.78rem;
@@ -202,7 +202,7 @@
   padding: 0.3rem 0.7rem;
   overflow: hidden;
   border: 1px solid var(--surface-border);
-  border-radius: 999px;
+  border-radius: var(--control-radius);
   color: var(--text-primary);
   background: color-mix(in srgb, var(--bg-card) 92%, transparent);
   font: 700 0.72rem var(--font-ui);
@@ -236,7 +236,7 @@
 
 .deck-page__notice {
   position: fixed;
-  z-index: 95;
+  z-index: var(--z-notice);
   right: 1rem;
   bottom: 1rem;
   display: flex;

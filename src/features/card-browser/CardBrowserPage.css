@@ -80,7 +80,7 @@
 
 .card-browser__notice {
   position: fixed;
-  z-index: 95;
+  z-index: var(--z-notice);
   right: 1rem;
   bottom: 1rem;
   display: flex;

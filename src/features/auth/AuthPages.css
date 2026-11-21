@@ -24,7 +24,7 @@
   color: var(--text-primary);
   background: var(--bg-main);
   border: 1px solid var(--surface-border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   font: inherit;
 }
 
@@ -41,7 +41,7 @@
   color: var(--bg-main);
   background: var(--btn-gold);
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   font: inherit;
   font-weight: 700;
   cursor: pointer;
@@ -73,7 +73,7 @@
 }
 
 .auth-message--error {
-  color: #d65b54;
+  color: var(--text-error);
 }
 
 .auth-mode-switch {

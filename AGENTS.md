@@ -59,7 +59,7 @@ Defined in `src/app/router.tsx`. `/` redirects to `/v2/home`.
 
 ## V2 flow
 
-- `index.html` loads `/src/main.tsx`; `main.tsx` imports `src/theme.css` and mounts `AppProviders` in `StrictMode`.
+- `index.html` loads `/src/main.tsx`; `main.tsx` imports `src/styles/tokens.css` and mounts `AppProviders` in `StrictMode`.
 - `AppProviders.tsx` nests `ThemeProvider` > `PersistenceProvider` > `QueryDevToolsProvider` (receives `queryClient` as a prop) > `RouterProvider`.
 - `src/app/App.tsx` renders the V2 `NavBar`, prefetches Scryfall card symbols, set metadata, and the card-name catalog, and renders child routes through `<Outlet />`. The card-name catalog refreshes at the next local 04:00 boundary. The Home route renders `CardBrowserPage` in mulligan mode.
 - `src/features/card-browser/CardBrowserPage.tsx` handles `/v2/home`, `/v2/search`, and `/v2/search/random`. Home chooses a stable set per UTC day from released, non-digital, booster-focused Scryfall set types, requests unique cards in random order, and displays up to seven cards from the first result page. The set-type allowlist lives in `mulliganSets.ts`; Scryfall does not supply a direct booster-eligibility flag.
@@ -100,7 +100,7 @@ Defined in `src/app/router.tsx`. `/` redirects to `/v2/home`.
 - `src/features/card-filters/` — V2 browser and favorites filtering, sorting, URL parsers and table setup.
 - `src/features/navigation/` — V2 desktop/mobile navbar and theme toggle (see above).
 - `src/hooks/`, `src/services/` — see Data and state.
-- `src/theme.css` — theme tokens (dark/light), imported by `main.tsx`. `ThemeContext.ts` and `ThemeProvider.tsx` provide shared theme state and synchronize the document theme and browser theme color. `style.css` (root) is linked from `index.html`. `src/app/App.css` holds layer styles.
+- `src/styles/tokens.css` — design tokens, imported by `main.tsx`: the dark/light theme colors plus the shape (radii), motion (two durations), global z-index layers and identity colors (mana, rarity) that are the same in both themes. `ThemeContext.ts` and `ThemeProvider.tsx` provide shared theme state and synchronize the document theme and browser theme color. `style.css` (root) is linked from `index.html`. `src/app/App.css` holds layer styles.
 - `src/assets/icons/` — individual inline SVG React components, with navigation icons grouped under `navigation/`. `public/` contains site-root branding SVGs and favicons.
 - `docs/` — `architecture/` guides (overview, state/data flows, and source reference), theme/Scryfall notes, file conventions, external resources, and filter guidance. Some historical notes may lag the code; verify in source.
 
@@ -197,6 +197,6 @@ Route prefixes such as `/v2` name a UI layout, not a release. Never read them as
 - Keep the pipeline separated: raw Scryfall data enters through the hooks and client, `normalizeCard.js` maps it, renderer components consume the normalized shape only.
 - Use `createApiClient` for Scryfall card/list endpoints. Auxiliary URL hooks use direct `fetch`; keep their query-key conventions when extending.
 - Be gentle with Scryfall: no request loops or bursts. Check Scryfall's API docs for current rate-limit and header requirements before adding new fetch patterns.
-- Keep new UI aligned with the tokens in `src/theme.css` and the component-local CSS pattern.
+- Keep new UI aligned with the tokens in `src/styles/tokens.css` and the component-local CSS pattern: no hard-coded colors, global z-index values, corner radii or the shared durations (`style.css`, the splash, is the exception).
 - Follow `docs/file-conventions.md` for naming and file types.
 - Do not convert unrelated files, rename folders, or "clean up" unused files without being asked.

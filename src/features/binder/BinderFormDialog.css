@@ -57,7 +57,7 @@
   aspect-ratio: 488 / 680;
   place-items: center;
   border: 1px solid var(--surface-border);
-  border-radius: 4.5%;
+  border-radius: var(--radius-card);
 }
 
 .binder-form__swatch input:checked + .binder-form__chip {
@@ -70,7 +70,7 @@
    always dark, so the mark uses a fixed light color in both themes. */
 .binder-form__swatch input:checked + .binder-form__chip::after {
   content: "✓";
-  color: #e2ebd5;
+  color: var(--bone-white);
   font: 700 1.1rem var(--font-ui);
 }
 

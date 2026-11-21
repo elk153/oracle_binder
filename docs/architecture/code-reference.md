@@ -8,7 +8,7 @@ Keep this reference aligned with the source when moving or adding modules.
 ## Entry, providers, and routing
 
 | File | Purpose and public contract |
-|---|---|
+| --- | --- |
 | [`src/main.tsx`](../../src/main.tsx) | Browser entry: validates `#root`, imports global theme CSS, and mounts `AppProviders` under `StrictMode`. |
 | [`src/app/router.tsx`](../../src/app/router.tsx) | Defines redirects, the `/v2` layout, public routes, and `RequireAuth`-protected routes; default-exports the router. |
 | [`src/app/App.tsx`](../../src/app/App.tsx) | V2 shell and splash transition; prefetches Scryfall symbols, sets, and card-name catalog. Exports `App` and route elements `Home`, `Favorites`, `Binder`, and `Decks`. |
@@ -28,7 +28,7 @@ grouped in the nested folder; `public/favicon.svg` and `public/logo.svg` are
 static brand assets and are not React components.
 
 | File | Contract |
-|---|---|
+| --- | --- |
 | [`src/assets/icons/IconClose.tsx`](../../src/assets/icons/IconClose.tsx) | Default `IconClose`; SVG props allow use in the card-details close control. |
 | [`src/assets/icons/IconTurnAround.tsx`](../../src/assets/icons/IconTurnAround.tsx) | Default `IconTurnAround`; SVG props allow reuse on double-faced card tiles. |
 | [`src/assets/icons/navigation/AdvancedSearchIcon.tsx`](../../src/assets/icons/navigation/AdvancedSearchIcon.tsx) | Default navigation icon for the Search item. |
@@ -43,7 +43,7 @@ static brand assets and are not React components.
 ## Authentication
 
 | File | Purpose and public contract |
-|---|---|
+| --- | --- |
 | [`src/features/auth/LoginPage.tsx`](../../src/features/auth/LoginPage.tsx) | Default login/signup page; owns auth form interaction and error display. |
 | [`src/features/auth/AuthCallbackPage.tsx`](../../src/features/auth/AuthCallbackPage.tsx) | Default callback page; completes confirmation and redirects to a safe V2 path. |
 | [`src/features/auth/RequireAuth.tsx`](../../src/features/auth/RequireAuth.tsx) | Default protected-route gate; routes unauthenticated users through login. |
@@ -53,7 +53,7 @@ static brand assets and are not React components.
 ## Card browser
 
 | File | Purpose and public contract |
-|---|---|
+| --- | --- |
 | [`src/features/card-browser/CardBrowserPage.tsx`](../../src/features/card-browser/CardBrowserPage.tsx) | Default `CardBrowserPage`; composes search results, filters, card actions, details, and Binder add-copy dialog. `mode` selects search or mulligan rendering. |
 | [`src/features/card-browser/useCardBrowserResults.ts`](../../src/features/card-browser/useCardBrowserResults.ts) | Default `useCardBrowserResults`; interprets URL/search scope, builds advanced Scryfall queries, owns daily mulligan timing, queries card sources and autocomplete names, validates records, and returns display state. |
 | [`src/features/card-browser/useScryfallCardsSearch.ts`](../../src/features/card-browser/useScryfallCardsSearch.ts) | Default single-request Scryfall React Query hook; uses the `scryfallCards` query-key family. |
@@ -70,7 +70,7 @@ static brand assets and are not React components.
 ## Card filters
 
 | File | Purpose and public contract |
-|---|---|
+| --- | --- |
 | [`src/features/card-filters/CardFilters.tsx`](../../src/features/card-filters/CardFilters.tsx) | Default `CardFilters`; renders feature/layout filter controls, optional collection place/kind controls, and visible/total counts. |
 | [`src/features/card-filters/useCardsTable.ts`](../../src/features/card-filters/useCardsTable.ts) | Exports `useCardsTable`; converts URL parser values into controlled TanStack Table state and reset operations, optionally using card-place metadata. |
 | [`src/features/card-filters/columns.ts`](../../src/features/card-filters/columns.ts) | Exports registered table `features`, default `columns`, and `createColumns` for color, rarity, type, place, kind, and sort behavior. |
@@ -82,7 +82,7 @@ static brand assets and are not React components.
 ## Favorites
 
 | File | Purpose and public contract |
-|---|---|
+| --- | --- |
 | [`src/features/favorites/FavoritesPage.tsx`](../../src/features/favorites/FavoritesPage.tsx) | Default protected favorites page; composes paginated favorite hydration, filters, card tiles, and details. |
 | [`src/features/favorites/useFavoriteCards.ts`](../../src/features/favorites/useFavoriteCards.ts) | Default paginated favorites hook; hydrates Supabase favorite IDs through Scryfall while preserving database ordering. |
 | [`src/features/favorites/useFavorites.ts`](../../src/features/favorites/useFavorites.ts) | Exports `useFavoriteIds` and `useToggleFavorite`; reads and mutates the current user's favorites. |
@@ -92,7 +92,7 @@ static brand assets and are not React components.
 ## Binder
 
 | File | Purpose and public contract |
-|---|---|
+| --- | --- |
 | [`src/features/binder/BinderPage.tsx`](../../src/features/binder/BinderPage.tsx) | Default Binder page; opens the binder list unless an explicit view is set, and owns URL-backed view/folder/history selection, bulk moves, filters, and card presentation. Deck-assigned copies are excluded from Binder folders and Loose; History includes retained sold, lost, and given-away copies. |
 | [`src/features/binder/useBinders.ts`](../../src/features/binder/useBinders.ts) | Exports `Binder`, `bindersQueryKey`, and `useBinders`; provides user-scoped binder-folder queries and mutations. |
 | [`src/features/binder/useBinderCopies.ts`](../../src/features/binder/useBinderCopies.ts) | Exports Binder copy and mutation types, `binderCopiesQueryKey`, and `useBinderCopies`; manages per-copy records, atomic deck assignment/moves, and history actions. |
@@ -106,7 +106,7 @@ static brand assets and are not React components.
 ## Decks
 
 | File | Purpose and public contract |
-|---|---|
+| --- | --- |
 | [`src/features/decks/DecksPage.tsx`](../../src/features/decks/DecksPage.tsx) | Default protected Decks page; opens the deck list unless an explicit view is set, and owns URL-backed views, deck CRUD interaction, filters, and entries presentation. |
 | [`src/features/decks/useDeckManagement.ts`](../../src/features/decks/useDeckManagement.ts) | Exports `Deck`, `DeckCard`, insert/update types, query-key factories, `useDeckManagement`, and derived `DeckActions`; user-scoped queries and mutations that synchronize physical copy storage on deck assignment/release. |
 | [`src/features/decks/DeckCardPopover.tsx`](../../src/features/decks/DeckCardPopover.tsx) | Default deck-entry action popover for adding/removing/changing card entry kinds. |
@@ -116,7 +116,7 @@ static brand assets and are not React components.
 ## Navigation
 
 | File | Purpose and public contract |
-|---|---|
+| --- | --- |
 | [`src/features/navigation/NavBar.tsx`](../../src/features/navigation/NavBar.tsx) | Default responsive navbar coordinator; owns sign-out handling. |
 | [`src/features/navigation/NavBarDesktop.tsx`](../../src/features/navigation/NavBarDesktop.tsx) | Desktop navbar presentation and navigation actions. |
 | [`src/features/navigation/NavBarMobile.tsx`](../../src/features/navigation/NavBarMobile.tsx) | Mobile navbar presentation and navigation actions. |
@@ -132,7 +132,7 @@ static brand assets and are not React components.
 ## Search
 
 | File | Purpose and public contract |
-|---|---|
+| --- | --- |
 | [`src/features/search/SearchControls.tsx`](../../src/features/search/SearchControls.tsx) | Search-page controls for Scryfall/collection source, simple/advanced mode, and URL-backed simple name search. |
 | [`src/features/search/NameAutocomplete.tsx`](../../src/features/search/NameAutocomplete.tsx) | Reusable labeled native-datalist input; displays up to 20 case-insensitive name matches after four characters. |
 | [`src/features/search/advancedSearchParams.ts`](../../src/features/search/advancedSearchParams.ts) | Exports the typed nuqs parsers for the `s_`-prefixed advanced-search URL parameters. |
@@ -143,7 +143,7 @@ static brand assets and are not React components.
 ## Shared card renderer
 
 | File | Purpose and public contract |
-|---|---|
+| --- | --- |
 | [`src/features/scryfall-card-renderer/CardRenderer.jsx`](../../src/features/scryfall-card-renderer/CardRenderer.jsx) | Default card renderer; selects a layout-specific component using normalized card data. |
 | [`src/features/scryfall-card-renderer/normalizeCard.js`](../../src/features/scryfall-card-renderer/normalizeCard.js) | Exports `normalizeCard`; maps raw Scryfall records to renderer shape. |
 | [`src/features/scryfall-card-renderer/scryfallCardLayouts.js`](../../src/features/scryfall-card-renderer/scryfallCardLayouts.js) | Exports layout/shape constants and `getCardRenderConfig`; maps Scryfall layouts to renderer behavior. |
@@ -165,7 +165,7 @@ static brand assets and are not React components.
 ## Shared hooks, services, and generated types
 
 | File | Purpose and public contract |
-|---|---|
+| --- | --- |
 | [`src/hooks/useFetchUrl.ts`](../../src/hooks/useFetchUrl.ts) | Default cached auxiliary-URL query hook; validates HTTP responses and list-shaped data, with fixed or query-derived stale time. |
 | [`src/hooks/usePreFetchUrl.ts`](../../src/hooks/usePreFetchUrl.ts) | Default prefetch hook for auxiliary Scryfall resources; supports fixed or query-derived stale time. |
 | [`src/hooks/getSecondsUntilNextLocalFour.ts`](../../src/hooks/getSecondsUntilNextLocalFour.ts) | Exports the query stale-time helper that expires data at the next local 04:00 based on `dataUpdatedAt`. |
@@ -183,6 +183,6 @@ static brand assets and are not React components.
 ## Global styles
 
 | File | Responsibility |
-|---|---|
-| [`src/theme.css`](../../src/theme.css) | Global theme tokens and dark/light document styles. |
+| --- | --- |
+| [`src/styles/tokens.css`](../../src/styles/tokens.css) | Design tokens: dark/light theme colors, shape, motion, global z-index layers and identity colors. |
 | [`src/app/App.css`](../../src/app/App.css) | V2 shell, main content spacing, placeholder page, and theme-specific navbar integration. |

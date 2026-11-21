@@ -45,7 +45,7 @@
   margin: 0;
   padding: 0.6rem 0.8rem 0.8rem;
   border: 1px solid var(--surface-border);
-  border-radius: 0.75rem;
+  border-radius: var(--radius-md);
 }
 
 .advanced-search__fieldset legend {

@@ -1,7 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import AppProviders from "./app/AppProviders.tsx";
-import "./theme.css";
+import "./styles/tokens.css";
 
 const container = document.getElementById("root");
 
