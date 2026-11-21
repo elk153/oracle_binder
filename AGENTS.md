@@ -29,6 +29,7 @@ Node 22 works. Install with `npm install`. `npm run build` needs `VITE_SUPABASE_
 | Command | Purpose | Status |
 | --- | --- | --- |
 | `npm run dev` | Vite dev server | works |
+| `npm run dev:phone` | Vite dev server on the local network over HTTPS (self-signed certificate from `@vitejs/plugin-basic-ssl`, `phone` mode), for testing on a phone; phones allow camera access only over HTTPS | works |
 | `npm run build` | production build into `dist/` | passes |
 | `npm run preview` | serve the build | works |
 | `npm run typecheck` | `tsc --noEmit` | passes |

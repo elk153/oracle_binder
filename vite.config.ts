@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
+import basicSsl from '@vitejs/plugin-basic-ssl'
 
 // Variables the app cannot start without. Without them, src/services/
 // supabaseClient.ts throws at load time, and the bundler then drops Supabase
@@ -22,7 +23,13 @@ export default defineConfig(({ command, mode }) => {
     }
   }
 
+  // "npm run dev:phone" runs Vite in the "phone" mode: it listens on the local
+  // network (--host) and serves HTTPS with a self-signed certificate, because
+  // phones only allow camera access (card scanning, D-061) over HTTPS. Plain
+  // "npm run dev" stays on http://localhost.
+  const isPhone = mode === 'phone'
+
   return {
-    plugins: [react()],
+    plugins: [react(), ...(isPhone ? [basicSsl()] : [])],
   }
 })
