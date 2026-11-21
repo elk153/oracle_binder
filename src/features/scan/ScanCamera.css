@@ -70,3 +70,10 @@
   padding: 1rem;
   background: color-mix(in srgb, var(--bg-main) 94%, transparent);
 }
+
+/* Test mode: the button that allows the next capture. */
+.scan-camera__reset {
+  display: block;
+  width: 100%;
+  margin-top: 0.5rem;
+}

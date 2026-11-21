@@ -57,13 +57,18 @@ function cropToCanvas(video: HTMLVideoElement, rect: PixelRect): HTMLCanvasEleme
 //   card clearly moves again. Two thresholds (hysteresis) keep one card from
 //   being captured over and over, or flickering between the two states.
 // - `difference` is the latest change value, for the debug panel.
+// - With `holdCaptures` (the scanner's Test mode), a capture is kept and no
+//   new one is taken, even when the card moves, until `reset()` is called.
 export default function useSteadyFrame(
   videoRef: RefObject<HTMLVideoElement | null>,
   enabled: boolean,
+  { holdCaptures = false }: { holdCaptures?: boolean } = {},
 ) {
   const [status, setStatus] = useState<SteadyStatus>("moving");
   const [difference, setDifference] = useState<number | null>(null);
   const [capture, setCapture] = useState<SteadyCapture | null>(null);
+  // Changing this number restarts the watching effect with a clean slate.
+  const [resetCount, setResetCount] = useState(0);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -100,7 +105,7 @@ export default function useSteadyFrame(
         setDifference(change);
 
         if (captured) {
-          if (change > MOVED_ABOVE) {
+          if (!holdCaptures && change > MOVED_ABOVE) {
             captured = false;
             stillCount = 0;
             setStatus("moving");
@@ -127,7 +132,14 @@ export default function useSteadyFrame(
     }, SAMPLE_INTERVAL_MS);
 
     return () => window.clearInterval(timer);
-  }, [videoRef, enabled]);
+  }, [videoRef, enabled, holdCaptures, resetCount]);
 
-  return { status, difference, capture };
+  // Drops the current capture and starts watching for a new still card.
+  function reset() {
+    setCapture(null);
+    setStatus("moving");
+    setResetCount((count) => count + 1);
+  }
+
+  return { status, difference, capture, reset };
 }

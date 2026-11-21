@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Scanner OCR samples saved from the debug panel (benchmark input, not committed)
+scan-samples/

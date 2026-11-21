@@ -73,13 +73,17 @@ type ScanCameraProps = {
   // The camera stays mounted underneath, so a found card is not offered
   // again until it has left the frame.
   overlay?: ReactNode;
+  // The development-only Test mode: shows the debug panel, keeps each
+  // capture until Reset is pressed, and never reports a found card, so the
+  // tester can look at the result and save a sample.
+  testMode?: boolean;
 };
 
 // The live rear-camera view of the scanner (D-061), with the guide frame over
 // it and the same guidance as text under it.
-export default function ScanCamera({ onFound, overlay }: ScanCameraProps) {
-  // Camera choice, set from the development-only debug panel; production
-  // always uses the default rear camera at 4K.
+export default function ScanCamera({ onFound, overlay, testMode = false }: ScanCameraProps) {
+  // Camera choice, set from the debug panel in Test mode; otherwise always
+  // the default rear camera at 4K.
   const [cameraOptions, setCameraOptions] = useState<CameraOptions>({});
   const { state, retry } = useCamera(cameraOptions);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -96,7 +100,7 @@ export default function ScanCamera({ onFound, overlay }: ScanCameraProps) {
 
   // Hooks must run on every render, so this comes before the early return.
   const isLive = state.status === "live";
-  const steady = useSteadyFrame(videoRef, isLive);
+  const steady = useSteadyFrame(videoRef, isLive, { holdCaptures: testMode });
   const reading = useCollectorReading(steady.capture, isLive);
   const lookup = usePrintingLookup(reading.status === "done" ? reading.parsed : null);
   const guideStatus = toGuideStatus(steady.status, reading, lookup);
@@ -104,6 +108,9 @@ export default function ScanCamera({ onFound, overlay }: ScanCameraProps) {
     guideStatus === "found" && lookup.status === "found"
       ? `Card found: ${lookup.card.name}.`
       : GUIDE_INSTRUCTIONS[guideStatus];
+  // import.meta.env.DEV first, so a production build drops the Test-mode
+  // instruction and Reset button entirely.
+  const isHolding = import.meta.env.DEV && testMode && steady.capture !== null;
 
   // The found card while the frame shows it as found. The same cached object
   // stays the same across renders, so the effect below only restarts for a
@@ -162,9 +169,18 @@ export default function ScanCamera({ onFound, overlay }: ScanCameraProps) {
       </div>
       {/* Read out by screen readers whenever the guidance changes. */}
       <p className="scan-camera__instruction" aria-live="polite">
-        {state.status === "live" ? instruction : ""}
+        {state.status !== "live"
+          ? ""
+          : isHolding
+            ? `${instruction} Capture kept: save a sample below if you want, then tap Reset for the next card.`
+            : instruction}
       </p>
-      {ScanDebug && state.status === "live" && (
+      {isHolding && (
+        <button type="button" className="page__action scan-camera__reset" onClick={steady.reset}>
+          Reset for a new capture
+        </button>
+      )}
+      {ScanDebug && testMode && state.status === "live" && (
         <Suspense fallback={null}>
           <ScanDebug
             stream={stream}
