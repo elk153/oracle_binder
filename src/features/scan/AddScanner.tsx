@@ -6,16 +6,25 @@ import ScanCamera from "./ScanCamera.tsx";
 import AddConfirm from "./AddConfirm.tsx";
 import type { AddConfirmation } from "./AddConfirm.tsx";
 import type { CardBrowserCard } from "../card-browser/types.ts";
+import useScanAdd from "./useScanAdd.ts";
+import type { AddedBatch } from "./useScanAdd.ts";
 import { describeTarget, describeType } from "./addSession.ts";
 import type { AddSession } from "./addSession.ts";
 import "./AddScanner.css";
 
-// How long a notice stays on screen.
+// How long a notice stays on screen, and with it the Undo button.
 const NOTICE_MS = 8000;
+
+// A short message under the scanner, with Undo after a successful add.
+type Notice = {
+  text: string;
+  undo?: { batch: AddedBatch; count: number; name: string };
+};
 
 // The scanner's Add mode for a signed-in user (D-064): the session setup
 // first, then the camera with a summary of the session above it. Each found
-// card opens the confirm step over the camera. Saving follows in step C.
+// card opens the confirm step over the camera; Add saves in the background,
+// so scanning resumes at once, and the notice offers Undo.
 export default function AddScanner() {
   const binders = useBinders();
   const decks = useDeckManagement();
@@ -24,14 +33,15 @@ export default function AddScanner() {
   const [isEditing, setIsEditing] = useState(true);
   // The recognized card waiting for Confirm or Skip.
   const [pendingCard, setPendingCard] = useState<CardBrowserCard | null>(null);
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState<Notice | null>(null);
+  const { addCards, undo } = useScanAdd();
 
   // Hides the notice after a while; a new notice restarts the timer.
   useEffect(() => {
     if (!notice) {
       return;
     }
-    const timer = window.setTimeout(() => setNotice(""), NOTICE_MS);
+    const timer = window.setTimeout(() => setNotice(null), NOTICE_MS);
     return () => window.clearTimeout(timer);
   }, [notice]);
 
@@ -40,12 +50,35 @@ export default function AddScanner() {
     setPendingCard((current) => current ?? card);
   }
 
-  function confirm({ card, finish, quantity }: AddConfirmation) {
+  async function confirm(confirmation: AddConfirmation) {
+    if (!session) {
+      return;
+    }
+    // Close the confirm step first, so the scanner is ready for the next card
+    // while this one is saved.
     setPendingCard(null);
-    // Step B: nothing is saved yet; the notice shows what step C will add.
-    setNotice(
-      `Not saved yet: ${quantity} × ${card.name}${finish ? ` (${finish})` : ""}.`,
-    );
+    const { name } = confirmation.card;
+    setNotice({ text: `Adding ${confirmation.quantity} × ${name}…` });
+
+    const { batch, added, requested, error } = await addCards(session, confirmation);
+    if (added === 0) {
+      setNotice({ text: `Could not add ${name}: ${error?.message ?? "the request failed."}` });
+    } else if (error) {
+      setNotice({
+        text: `Added ${added} of ${requested} × ${name}. The rest failed: ${error.message}`,
+        undo: { batch, count: added, name },
+      });
+    } else {
+      setNotice({ text: `Added ${added} × ${name}.`, undo: { batch, count: added, name } });
+    }
+  }
+
+  async function undoAdd({ batch, count, name }: NonNullable<Notice["undo"]>) {
+    setNotice({ text: `Removing ${count} × ${name}…` });
+    const { error } = await undo(batch);
+    setNotice({
+      text: error ? `Undo failed: ${error.message}` : `Removed ${count} × ${name}.`,
+    });
   }
 
   if (binders.isLoading || decks.isLoading) {
@@ -103,16 +136,25 @@ export default function AddScanner() {
               key={pendingCard.id}
               card={pendingCard}
               showFinish={session.type === "owned"}
-              onConfirm={confirm}
+              onConfirm={(confirmation) => void confirm(confirmation)}
               onSkip={() => setPendingCard(null)}
             />
           )
         }
       />
       {notice && (
-        <p className="page__notice" role="status">
-          {notice}
-        </p>
+        <div className="page__notice" role="status">
+          <span>{notice.text}</span>
+          {notice.undo && (
+            <button
+              type="button"
+              className="page__notice-action"
+              onClick={() => notice.undo && void undoAdd(notice.undo)}
+            >
+              Undo
+            </button>
+          )}
+        </div>
       )}
     </>
   );
