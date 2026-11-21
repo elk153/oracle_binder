@@ -13,7 +13,6 @@ export default function SplitFacesCard({ card, showDetailsMetadata = false }: Sh
   const differentFaceOrientation = card.faces[0].rotation !== card.faces[1].rotation
   const activeFace = card.faces[activeIndex];
   const nextFace = activeIndex === 0 ? 1 : 0;
-  console.log(card)
 
   if (!differentFaceOrientation) {
   return (
@@ -28,7 +27,7 @@ export default function SplitFacesCard({ card, showDetailsMetadata = false }: Sh
 
       <div className="card-frame">
         {card.faces.map((face) => (
-          <div className="card-description">
+          <div className="card-description" key={face.name}>
             <div className="scryfall-card__header">
               <h3 className="scryfall-card__name">{face.name}</h3>
             </div>
@@ -41,7 +40,7 @@ export default function SplitFacesCard({ card, showDetailsMetadata = false }: Sh
             ) : (
               <>
                 {face.manaCost && (
-                  <span className="scryfall-card__mana-cost"><OracleText text={face.manaCost} /></span>
+                  <span className="scryfall-card__mana-cost"><OracleText text={face.manaCost} container="span" /></span>
                 )}
                 {face.power && <span className="color-pill color__M">{face.power}/{face.toughness ?? "—"}</span>}
                 {face.loyalty && <span className="color-pill color__M">{face.loyalty}</span>}
@@ -95,7 +94,7 @@ export default function SplitFacesCard({ card, showDetailsMetadata = false }: Sh
               ) : (
                 <>
                   {activeFace.manaCost && (
-                    <span className="scryfall-card__mana-cost"><OracleText text={activeFace.manaCost} /></span>
+                    <span className="scryfall-card__mana-cost"><OracleText text={activeFace.manaCost} container="span" /></span>
                   )}
                   {activeFace.power && <span className="color-pill color__M">{activeFace.power}/{activeFace.toughness ?? "—"}</span>}
                   {activeFace.loyalty && <span className="color-pill color__M">{activeFace.loyalty}</span>}
@@ -106,7 +105,7 @@ export default function SplitFacesCard({ card, showDetailsMetadata = false }: Sh
               {activeFace.oracleText && (
                 <>
                   <hr style={{ border: "none", height: "1px", backgroundColor: "#805e24" }} />
-                  <p className="scryfall-card__oracle-text"><OracleText text={activeFace.oracleText} /></p>
+                  <div className="scryfall-card__oracle-text"><OracleText text={activeFace.oracleText} /></div>
                 </>
               )}
       

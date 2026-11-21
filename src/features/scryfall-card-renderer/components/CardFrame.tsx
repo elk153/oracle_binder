@@ -112,7 +112,6 @@ type CardFrameProps = {
 export default function CardFrame({ face, image, rotation, showDetailsMetadata = false }: CardFrameProps) {
   const resolvedImage = image ?? face.image;
   const resolvedRotation = rotation ?? face.rotation ?? 0;
-  console.log(resolvedRotation);
 
   return (
     <div className="card-frame">
@@ -139,7 +138,7 @@ export default function CardFrame({ face, image, rotation, showDetailsMetadata =
         ) : (
           <>
             {face.manaCost && (
-              <span className="scryfall-card__mana-cost"><OracleText text={face.manaCost} /></span>
+              <span className="scryfall-card__mana-cost"><OracleText text={face.manaCost} container="span" /></span>
             )}
             &nbsp;
             {face.power && (

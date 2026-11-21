@@ -20,8 +20,6 @@ export default function FlipVerticalCard({ card, showDetailsMetadata = false }: 
   const face = card.faces[activeIndex];
   const image = face.image ?? card.rootImage;
 
-  console.log(face)
-
   return (
     <div className="">
       
