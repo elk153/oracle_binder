@@ -7,6 +7,39 @@ Release versions follow the CalVer policy in [AGENTS.md](./AGENTS.md).
 
 ## [Unreleased]
 
+## [2026.11.4] - 2026-11-21
+
+Scanner hotfix: more consistent reading of the set and number.
+
+### Changed
+
+- The scanner no longer needs the whole card in the frame. One wide box in
+  the middle of a shorter camera view takes the set code and collector
+  number (bottom left of the card), held close: the small text gets more
+  than twice as many camera pixels, and iPhones switch to their macro lens.
+  A small card sketch shows which part goes in the box.
+- The camera asks for 4K by default.
+- The number row and the set row are read one at a time, each with only the
+  characters it can contain.
+
+### Added
+
+- Name fallback: when the set and number can't be read twice in a row, or
+  with "Read the name instead", the scanner asks for the card name in the
+  same box and recognizes it even with a few misread letters. In Add mode
+  the printing list then opens so you can pick the printing you hold; in
+  Identify mode the card opens on its default printing.
+
+### Fixed
+
+- Collector numbers of basic lands (rarity L) and numbers with the rarity
+  letter read without a space are recognized.
+- A 5 read as S in the collector number is corrected.
+
+### Database
+
+- No migration in this release.
+
 ## [2026.11.3] - 2026-11-21
 
 ### Added

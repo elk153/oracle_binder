@@ -3,6 +3,7 @@ import useBinders from "../binder/useBinders.ts";
 import useDeckManagement from "../decks/useDeckManagement.ts";
 import AddSessionSetup from "./AddSessionSetup.tsx";
 import ScanCamera from "./ScanCamera.tsx";
+import type { FoundMatch } from "./ScanCamera.tsx";
 import AddConfirm from "./AddConfirm.tsx";
 import type { AddConfirmation } from "./AddConfirm.tsx";
 import type { CardBrowserCard } from "../card-browser/types.ts";
@@ -32,7 +33,8 @@ export default function AddScanner() {
   // Starts in setup; "Change" returns to it with the current session filled in.
   const [isEditing, setIsEditing] = useState(true);
   // The recognized card waiting for Confirm or Skip.
-  const [pendingCard, setPendingCard] = useState<CardBrowserCard | null>(null);
+  // The card being confirmed, and whether it was found by its name only.
+  const [pending, setPending] = useState<{ card: CardBrowserCard; byName: boolean } | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const { addCards, undo } = useScanAdd();
 
@@ -46,8 +48,8 @@ export default function AddScanner() {
   }, [notice]);
 
   // A card found while another one is being confirmed is ignored.
-  function offerCard(card: CardBrowserCard) {
-    setPendingCard((current) => current ?? card);
+  function offerCard(card: CardBrowserCard, { byName }: FoundMatch) {
+    setPending((current) => current ?? { card, byName });
   }
 
   async function confirm(confirmation: AddConfirmation) {
@@ -56,7 +58,7 @@ export default function AddScanner() {
     }
     // Close the confirm step first, so the scanner is ready for the next card
     // while this one is saved.
-    setPendingCard(null);
+    setPending(null);
     const { name } = confirmation.card;
     setNotice({ text: `Adding ${confirmation.quantity} × ${name}…` });
 
@@ -130,14 +132,17 @@ export default function AddScanner() {
       <ScanCamera
         onFound={offerCard}
         overlay={
-          pendingCard && (
+          pending && (
             <AddConfirm
               // A new card starts with fresh choices (finish, quantity).
-              key={pendingCard.id}
-              card={pendingCard}
+              key={pending.card.id}
+              card={pending.card}
+              // Found by name: Scryfall's default printing, so the printing
+              // list opens at once for the user to pick theirs (D-065).
+              choosePrinting={pending.byName}
               showFinish={session.type === "owned"}
               onConfirm={(confirmation) => void confirm(confirmation)}
-              onSkip={() => setPendingCard(null)}
+              onSkip={() => setPending(null)}
             />
           )
         }

@@ -40,6 +40,11 @@
   border-color: var(--btn-gold);
 }
 
+/* The development-only Test mode stands apart from the real modes. */
+.scan-page__mode--dev {
+  border-style: dashed;
+}
+
 .scan-page__mode-title {
   color: var(--text-accent);
   font-size: 1.15rem;

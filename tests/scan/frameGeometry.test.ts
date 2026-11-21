@@ -1,4 +1,4 @@
-// D-061 / D-062: the scanner reads exactly the areas the guide frame shows.
+// D-062 / D-065: the scanner reads exactly the area the guide box shows.
 // These tests check the mapping from the on-screen frame to video pixels.
 //
 // Run from the repository root (Node 22, no dependency):
@@ -9,10 +9,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   coverCrop,
-  getScanRects,
+  getGuideRect,
   placeIn,
 } from "../../src/features/scan/frameGeometry.ts";
-import { CARD_RATIO, VIEW_RATIO } from "../../src/features/scan/guideFrame.ts";
+import { GUIDE_BOX_RATIO, VIEW_RATIO } from "../../src/features/scan/guideFrame.ts";
 
 test("coverCrop cuts the sides of a landscape video for a portrait box", () => {
   // 1920×1080 into 3:4: visible width is 1080 × 3/4 = 810, centered.
@@ -50,21 +50,28 @@ test("placeIn scales and offsets a fractional rectangle", () => {
   );
 });
 
-test("the card outline keeps the 63 × 88 card shape on screen", () => {
-  // CARD_RECT is in fractions of a 3:4 box, so convert to a real shape first.
-  const { card } = getScanRects(900, 1200);
-  assert.ok(Math.abs(card.width / card.height - CARD_RATIO) < 0.01);
-  assert.equal(VIEW_RATIO, 3 / 4);
+test("the guide box keeps its 4:1 shape in video pixels", () => {
+  for (const [w, h] of [[2160, 3840], [3840, 2160], [1080, 1920], [1280, 720]]) {
+    const box = getGuideRect(w, h);
+    assert.ok(Math.abs(box.width / box.height - GUIDE_BOX_RATIO) < 0.02, `${w}×${h}`);
+  }
 });
 
-test("both zones lie inside the card, title above collector", () => {
-  for (const [w, h] of [[1920, 1080], [1080, 1920], [1280, 720]]) {
-    const { card, title, collector } = getScanRects(w, h);
-    for (const zone of [title, collector]) {
-      assert.ok(zone.x >= card.x && zone.y >= card.y, `${w}×${h} zone starts inside`);
-      assert.ok(zone.x + zone.width <= card.x + card.width, `${w}×${h} zone ends inside (x)`);
-      assert.ok(zone.y + zone.height <= card.y + card.height, `${w}×${h} zone ends inside (y)`);
-    }
-    assert.ok(title.y + title.height < collector.y, `${w}×${h} title above collector`);
+test("the guide box is centered inside the visible part of the video", () => {
+  for (const [w, h] of [[2160, 3840], [3840, 2160], [1080, 1920]]) {
+    const visible = coverCrop(w, h, VIEW_RATIO);
+    const box = getGuideRect(w, h);
+    assert.ok(box.x >= visible.x && box.y >= visible.y, `${w}×${h} starts inside`);
+    assert.ok(box.x + box.width <= visible.x + visible.width, `${w}×${h} ends inside (x)`);
+    assert.ok(box.y + box.height <= visible.y + visible.height, `${w}×${h} ends inside (y)`);
+    const centerX = box.x + box.width / 2;
+    const centerY = box.y + box.height / 2;
+    assert.ok(Math.abs(centerX - w / 2) <= 1, `${w}×${h} centered (x)`);
+    assert.ok(Math.abs(centerY - h / 2) <= 1, `${w}×${h} centered (y)`);
   }
+});
+
+test("a portrait 4K video gives the box most of its 2160 px width", () => {
+  // The 4:3 view shows the full 2160 px width; the box takes 90% of it.
+  assert.equal(getGuideRect(2160, 3840).width, 1944);
 });

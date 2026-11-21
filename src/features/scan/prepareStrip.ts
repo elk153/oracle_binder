@@ -1,3 +1,5 @@
+import { splitRow } from "./stripFilters.ts";
+
 // Cleans up a cut-out text strip before OCR (D-062): Tesseract reads best
 // from large, black text on a white background with some margin around it.
 
@@ -98,4 +100,32 @@ export function prepareStrip(source: HTMLCanvasElement): HTMLCanvasElement {
   outputContext.fillRect(0, 0, output.width, output.height);
   outputContext.putImageData(image, PADDING, PADDING);
   return output;
+}
+
+// Cuts a prepared (black and white) two-row strip at its emptiest middle row
+// (splitRow), so each row can be read on its own with the characters it can
+// contain: the number row and the set row of the info line. Each part keeps
+// the white margin on its outer side; the cut itself runs through white.
+export function splitStripRows(prepared: HTMLCanvasElement): [HTMLCanvasElement, HTMLCanvasElement] {
+  const { width, height } = prepared;
+  const context = prepared.getContext("2d", { willReadFrequently: true });
+  if (!context || height < 4) {
+    return [prepared, prepared];
+  }
+  const { data } = context.getImageData(0, 0, width, height);
+  // Black and white already: the red channel is the gray value.
+  const binary = new Uint8Array(width * height);
+  for (let i = 0; i < binary.length; i += 1) {
+    binary[i] = data[i * 4];
+  }
+  const cut = splitRow(binary, width, height);
+  return [rowsOf(prepared, 0, cut), rowsOf(prepared, cut, height)];
+}
+
+function rowsOf(source: HTMLCanvasElement, from: number, to: number): HTMLCanvasElement {
+  const canvas = document.createElement("canvas");
+  canvas.width = source.width;
+  canvas.height = Math.max(1, to - from);
+  canvas.getContext("2d")?.drawImage(source, 0, from, source.width, to - from, 0, 0, source.width, to - from);
+  return canvas;
 }

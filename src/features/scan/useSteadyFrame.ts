@@ -1,17 +1,19 @@
 import { useEffect, useState } from "react";
 import type { RefObject } from "react";
-import { getScanRects } from "./frameGeometry.ts";
+import { getGuideRect } from "./frameGeometry.ts";
+import { INFO_LINE_WIDTH_MM } from "./guideFrame.ts";
 import type { PixelRect } from "./frameGeometry.ts";
+import { toGray } from "./imageMath.ts";
 
 // Stage 1 of the recognition pipeline (D-062): notice when the card is held
-// still, then cut the title and collector zones out of that one frame.
+// still in the guide box, then cut the box out of that one frame (D-065).
 //
 // Tuning values. The thresholds were raised from 6 / 14 to 20 / 30 after a
 // hand-held test on a phone (2026-11-21): camera noise alone kept the change
 // near 20. Retune with the debug panel (ScanDebug) on other phones.
 const SAMPLE_INTERVAL_MS = 250; // about 4 samples a second
-const SAMPLE_WIDTH = 45; // tiny copy of the card area, 63:88 card shape
-const SAMPLE_HEIGHT = 63;
+const SAMPLE_WIDTH = 96; // tiny copy of the guide box, 4:1 like the box
+const SAMPLE_HEIGHT = 24;
 // Average change per pixel between two samples, on a 0–255 gray scale.
 const STEADY_BELOW = 20; // under this, the picture counts as still
 const MOVED_ABOVE = 30; // over this, the card has moved away
@@ -19,22 +21,16 @@ const STEADY_SAMPLES = 3; // still samples in a row before capturing (~0.75 s)
 
 export type SteadyStatus = "moving" | "steady";
 
-// The zones cut out of the steady frame, at full video resolution.
+// The guide box cut out of the steady frame, at full video resolution.
 export type SteadyCapture = {
-  title: HTMLCanvasElement;
   collector: HTMLCanvasElement;
   capturedAt: number;
+  videoWidth: number;
+  videoHeight: number;
+  // Estimated video pixels per millimetre of card, if the info line spans
+  // the box's width as asked (INFO_LINE_WIDTH_MM).
+  pixelsPerMm: number;
 };
-
-function toGray(rgba: Uint8ClampedArray): Uint8Array {
-  const gray = new Uint8Array(rgba.length / 4);
-  for (let i = 0; i < gray.length; i += 1) {
-    const p = i * 4;
-    // Standard luma weights: green looks brightest to the eye.
-    gray[i] = (rgba[p] * 299 + rgba[p + 1] * 587 + rgba[p + 2] * 114) / 1000;
-  }
-  return gray;
-}
 
 function meanDifference(a: Uint8Array, b: Uint8Array): number {
   let total = 0;
@@ -54,18 +50,23 @@ function cropToCanvas(video: HTMLVideoElement, rect: PixelRect): HTMLCanvasEleme
   return canvas;
 }
 
-// Watches the card area of `videoRef` while `enabled` is true.
+// Watches the guide box of `videoRef` while `enabled` is true.
 // - `status` is "steady" from the moment a still frame was captured until the
 //   card clearly moves again. Two thresholds (hysteresis) keep one card from
 //   being captured over and over, or flickering between the two states.
 // - `difference` is the latest change value, for the debug panel.
+// - With `holdCaptures` (the scanner's Test mode), a capture is kept and no
+//   new one is taken, even when the card moves, until `reset()` is called.
 export default function useSteadyFrame(
   videoRef: RefObject<HTMLVideoElement | null>,
   enabled: boolean,
+  { holdCaptures = false }: { holdCaptures?: boolean } = {},
 ) {
   const [status, setStatus] = useState<SteadyStatus>("moving");
   const [difference, setDifference] = useState<number | null>(null);
   const [capture, setCapture] = useState<SteadyCapture | null>(null);
+  // Changing this number restarts the watching effect with a clean slate.
+  const [resetCount, setResetCount] = useState(0);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -92,9 +93,8 @@ export default function useSteadyFrame(
         return;
       }
       // Recomputed each time: the video size can change, e.g. on rotation.
-      const rects = getScanRects(video.videoWidth, video.videoHeight);
-      const { card } = rects;
-      context.drawImage(video, card.x, card.y, card.width, card.height, 0, 0, SAMPLE_WIDTH, SAMPLE_HEIGHT);
+      const box = getGuideRect(video.videoWidth, video.videoHeight);
+      context.drawImage(video, box.x, box.y, box.width, box.height, 0, 0, SAMPLE_WIDTH, SAMPLE_HEIGHT);
       const gray = toGray(context.getImageData(0, 0, SAMPLE_WIDTH, SAMPLE_HEIGHT).data);
 
       if (previous) {
@@ -102,7 +102,7 @@ export default function useSteadyFrame(
         setDifference(change);
 
         if (captured) {
-          if (change > MOVED_ABOVE) {
+          if (!holdCaptures && change > MOVED_ABOVE) {
             captured = false;
             stillCount = 0;
             setStatus("moving");
@@ -112,9 +112,11 @@ export default function useSteadyFrame(
           if (stillCount >= STEADY_SAMPLES) {
             captured = true;
             setCapture({
-              title: cropToCanvas(video, rects.title),
-              collector: cropToCanvas(video, rects.collector),
+              collector: cropToCanvas(video, box),
               capturedAt: Date.now(),
+              videoWidth: video.videoWidth,
+              videoHeight: video.videoHeight,
+              pixelsPerMm: box.width / INFO_LINE_WIDTH_MM,
             });
             setStatus("steady");
           }
@@ -126,7 +128,14 @@ export default function useSteadyFrame(
     }, SAMPLE_INTERVAL_MS);
 
     return () => window.clearInterval(timer);
-  }, [videoRef, enabled]);
+  }, [videoRef, enabled, holdCaptures, resetCount]);
 
-  return { status, difference, capture };
+  // Drops the current capture and starts watching for a new still card.
+  function reset() {
+    setCapture(null);
+    setStatus("moving");
+    setResetCount((count) => count + 1);
+  }
+
+  return { status, difference, capture, reset };
 }

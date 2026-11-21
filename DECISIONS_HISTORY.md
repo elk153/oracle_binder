@@ -679,3 +679,28 @@ Implemented and superseded decisions are retained here with their original IDs. 
   - A two-state foil toggle was considered and replaced by the slider, so Etched foil can also be recorded.
 - Implementation (2026-11-21): `AddScanner`, `AddSessionSetup`, `AddConfirm` and `useScanAdd` in `src/features/scan/`. Several copies are created one after another in a short loop with the existing mutations (no new database function); the first failure stops the loop and the notice says "Added N of M", with Undo for what was added. Undo deletes deck entries before their copies through the new `deleteDeckCards` mutation in `useDeckManagement`, so no virtual entry is left. The option lists of the copy form moved to `src/features/binder/copyOptions.ts` to be shared. A newer notice replaces an older one, and its Undo with it.
 - Source: "[Scan] Visual card recognition plan"
+
+## D-065: Scanner guide for the code only, with a name fallback in the same box
+
+- Status: Implemented (steps 1 and 2). Step 3 (low-light help) was tried on the phone and read cards worse than without it; it is kept on the branch `2026.11.3a-low-light` (flashlight button, sharpest of the still frames, automatic retry after a failed reading) and was not released. Seen in the test: the OCR found many characters that are not on the card. The likely cause is the sharpness measure (Laplacian variance), which also rises with sensor noise, so in poor light it picks the noisiest frame rather than the sharpest; the retries then add more misreadings. If this is tried again, measure sharpness after a light blur, or choose between frames by OCR confidence or by an agreeing reading.
+- Release: v2026.11.4
+- Date: 2026-11-21
+- Decision: Replace D-061's card-shaped guide with one wide box (4:1) in the middle of a 4:3 landscape camera view, 90% of its width. The user fills the box with the card's info line (set code and collector number, bottom left), not the whole card. A small card sketch in the corner shows which part goes in the box. The steady-frame check and the OCR both use only this box.
+  1. **Code in the box:** the strip is read as before (D-062 stage 2).
+  2. **Name fallback in the same box:** after 2 captures in a row whose code can't be read or found (or with a "Read the name instead" button), the text asks the user to put the card name in the box. The OCR text is matched against the card-name catalog, allowing one wrong letter in five, and `/cards/named` gives the card. In Add mode the printing list then opens at once for the user to pick theirs (D-061, D-062 stage 3); in Identify mode the card opens on its default printing, and the details overlay lists the others. After a found card, the next card starts with the code again.
+  3. **Low-light help:** a flashlight button only where the camera reports torch support, and the sharpest of the last few frames before giving up.
+- Why:
+  - Measured on an iPhone 13 Pro (Test mode, 2026-11-21): with the whole card in a 3:4 view at 4K, the info text gets about 31 px/mm, and the reading succeeds only about half the time in poor light. That is below the target of 75% in low light (90% in normal light, no wrong printings).
+  - With only the 28 mm info line across the box, the same 4K video gives about 65–70 px/mm, more than twice the pixels per character.
+  - Held this close, the iPhone switches to its macro lens by itself, which looked clearly sharper in the test. A whole card can't fit the frame at that distance.
+  - A shorter camera view leaves more of the screen for the instruction and the Add-mode controls.
+- Alternatives considered:
+  - Keep the card guide and improve the clean-up filters (Sauvola, contrast stretch; benchmark at `/v2/scan-bench`): filters can't recover detail the camera didn't capture. They stay in the benchmark to tune the new strips.
+  - Another OCR library (ppu-paddle-ocr, D-062): a new dependency and a larger download. Kept for later if the box isn't enough.
+  - A cloud OCR step: cost and a backend. Kept as D-062's optional last fallback.
+- Consequences:
+  - Changes D-061's guide frame (card outline with title and collector zones) and the D-062 stages that cut strips "at the guide frame's zones": they now cut the box.
+  - The user aims at a small part of the card instead of fitting the whole card, and moves the card once more for the name fallback.
+  - Saved scan samples get a `guide` field (`"code"`; older files count as `"card"`). The benchmark groups by guide and scales each strip so the text is about 30 px tall.
+  - Identify and Add both use `ScanCamera`, so both modes change.
+- Source: hotfix "OCR reading is not consistent enough" (branch `2026.11.3a`, 2026-11-21).

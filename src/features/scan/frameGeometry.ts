@@ -1,4 +1,4 @@
-import { CARD_RECT, COLLECTOR_ZONE, TITLE_ZONE, VIEW_RATIO } from "./guideFrame.ts";
+import { GUIDE_RECT, VIEW_RATIO } from "./guideFrame.ts";
 import type { Rect } from "./guideFrame.ts";
 
 // A rectangle in whole video pixels.
@@ -24,7 +24,7 @@ export function coverCrop(
 }
 
 // Places `rect` (fractions of `outer`) inside `outer`. Works for fractions in
-// fractions (a zone inside the card) and for fractions in pixels.
+// fractions and for fractions in pixels.
 export function placeIn(rect: Rect, outer: Rect): Rect {
   return {
     x: outer.x + rect.x * outer.width,
@@ -43,20 +43,9 @@ function roundRect(rect: Rect): PixelRect {
   };
 }
 
-export type ScanRects = {
-  card: PixelRect;
-  title: PixelRect;
-  collector: PixelRect;
-};
-
-// Where the card outline and the two zones of the guide frame (guideFrame.ts)
-// fall in the video's own pixels, for a video of the given size.
-export function getScanRects(videoWidth: number, videoHeight: number): ScanRects {
+// Where the guide box (guideFrame.ts) falls in the video's own pixels, for a
+// video of the given size.
+export function getGuideRect(videoWidth: number, videoHeight: number): PixelRect {
   const visible = coverCrop(videoWidth, videoHeight, VIEW_RATIO);
-  const card = placeIn(CARD_RECT, visible);
-  return {
-    card: roundRect(card),
-    title: roundRect(placeIn(TITLE_ZONE, card)),
-    collector: roundRect(placeIn(COLLECTOR_ZONE, card)),
-  };
+  return roundRect(placeIn(GUIDE_RECT, visible));
 }
