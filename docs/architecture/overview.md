@@ -52,7 +52,7 @@ The route definitions live in [`src/app/router.tsx`](../../src/app/router.tsx).
 | `/v2/login` | `LoginPage` | Email/password authentication. |
 | `/v2/auth/callback` | `AuthCallbackPage` | Completes the Supabase auth callback and returns to a safe V2 URL. |
 | `/v2/collection` | Router redirect | Compatibility path to `/v2/binder`. |
-| `/v2/scan` | `ScanPage` | Public card scanner (D-061); `?mode=identify\|add`; Add mode asks for sign-in inside the page. Shows the rear camera and guide frame; recognition is not implemented yet. |
+| `/v2/scan` | `ScanPage` | Public card scanner (D-061); `?mode=identify\|add`; Add mode asks for sign-in inside the page. Shows the rear camera and guide frame and recognizes cards by their collector line (D-062 prototype); Identify opens the found card on `/v2/search?q=<name>&card=<id>` (D-063). |
 | `/v2/favorites` | `FavoritesPage` | Sign-in required. |
 | `/v2/binder` | `BinderPage` | Sign-in required; opens the binder list by default; binder folders, owned copies, and loose copies. |
 | `/v2/decks` | `DecksPage` | Sign-in required; opens the deck list by default; deck management and card entries. |

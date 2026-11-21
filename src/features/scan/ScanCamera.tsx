@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useEffectEvent, useRef } from "react";
 import useCamera from "./useCamera.ts";
 import type { CameraErrorReason } from "./useCamera.ts";
 import GuideFrame from "./GuideFrame.tsx";
@@ -10,6 +10,7 @@ import useCollectorReading from "./useCollectorReading.ts";
 import type { CollectorReading } from "./useCollectorReading.ts";
 import usePrintingLookup from "./usePrintingLookup.ts";
 import type { PrintingLookup } from "./usePrintingLookup.ts";
+import type { CardBrowserCard } from "../card-browser/types.ts";
 import "./ScanCamera.css";
 
 // The debug panel is loaded only in development. In a production build
@@ -37,6 +38,10 @@ const CAN_RETRY: Record<CameraErrorReason, boolean> = {
   unknown: true,
 };
 
+// How long the success color shows before the found card is reported, so the
+// user sees that the scan worked (D-061).
+const FOUND_DELAY_MS = 700;
+
 // What the guide frame shows, from the recognition stages (D-062):
 // still working → the collector zone is being read; a printing found → the
 // success state; a failed reading or lookup → back to aiming, so the user
@@ -58,9 +63,15 @@ function toGuideStatus(
   return "aiming";
 }
 
+type ScanCameraProps = {
+  // Called once a printing has been found and shown as found for a moment.
+  // The page decides what happens next (D-063 Identify, D-064 Add).
+  onFound?: (card: CardBrowserCard) => void;
+};
+
 // The live rear-camera view of the scanner (D-061), with the guide frame over
 // it and the same guidance as text under it.
-export default function ScanCamera() {
+export default function ScanCamera({ onFound }: ScanCameraProps) {
   const { state, retry } = useCamera();
   const videoRef = useRef<HTMLVideoElement>(null);
   const stream = state.status === "live" ? state.stream : null;
@@ -84,6 +95,25 @@ export default function ScanCamera() {
     guideStatus === "found" && lookup.status === "found"
       ? `Card found: ${lookup.card.name}.`
       : GUIDE_INSTRUCTIONS[guideStatus];
+
+  // The found card while the frame shows it as found. The same cached object
+  // stays the same across renders, so the effect below only restarts for a
+  // different card or when the found state ends.
+  const foundCard = guideStatus === "found" && lookup.status === "found" ? lookup.card : null;
+  // useEffectEvent: the effect calls the latest onFound without depending on
+  // it. ScanCamera re-renders about four times a second, and an inline
+  // onFound from the page is a new function each time; as a dependency it
+  // would restart the timer before it could ever fire.
+  const reportFound = useEffectEvent((card: CardBrowserCard) => onFound?.(card));
+  useEffect(() => {
+    if (!foundCard) {
+      return;
+    }
+    // Moving the card away ends the found state; the cleanup then cancels
+    // the report.
+    const timer = window.setTimeout(() => reportFound(foundCard), FOUND_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [foundCard]);
 
   if (state.status === "error") {
     return (

@@ -1,7 +1,8 @@
-import { Link, useLocation } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { useAuth } from "../../app/AppProviders/AuthContext.ts";
 import ScanCamera from "./ScanCamera.tsx";
+import type { CardBrowserCard } from "../card-browser/types.ts";
 import "./ScanPage.css";
 
 // The two scanner modes (D-061). The mode lives in the URL (?mode=), so a
@@ -22,6 +23,17 @@ export default function ScanPage() {
     parseAsStringLiteral(SCAN_MODES).withOptions({ history: "push" }),
   );
 
+  const navigate = useNavigate();
+
+  // Identify mode (D-063): open the found printing on the search page. The
+  // search runs for the card's name and ?card= opens the details overlay on
+  // this exact printing. It is a normal history entry, so Back returns to the
+  // scanner; leaving this page also stops the camera.
+  function openCard(card: CardBrowserCard) {
+    const params = new URLSearchParams({ q: card.name, card: card.id });
+    navigate(`/v2/search?${params.toString()}`);
+  }
+
   if (mode === null) {
     return <ModeChoice onChoose={setMode} />;
   }
@@ -38,7 +50,7 @@ export default function ScanPage() {
           Change mode
         </button>
       </div>
-      {mode === "add" ? <AddModeGate /> : <ScanCamera />}
+      {mode === "add" ? <AddModeGate /> : <ScanCamera onFound={openCard} />}
     </section>
   );
 }
