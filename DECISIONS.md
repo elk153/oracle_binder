@@ -127,21 +127,21 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
 9. Add a `ProtectedRoute` layout: render `<Outlet />` with a session, nothing while `isLoading`, otherwise `<Navigate to="/v2/home" replace />`. Wrap `/v2/favorites`, `/v2/collection` and `/v2/decks` in `router.tsx`. AGENTS.md requires route-relative navigation inside the layouts; confirm the absolute redirect is acceptable for this V2-only guard before changing it.
 10. Run `npm run typecheck` and `npm run build`; both should pass. `npm run lint` still has the 19 existing errors, so compare against that baseline. Then test manually: sign in through Keycloak and return to the app, reload and stay signed in, open `/v2/favorites` signed out (redirects) and signed in (shows), then sign out and confirm the guard works again.
 
-## D-060: Card scanning feature: scope, route and modes
+## D-061: Card scanning feature: scope, route and modes
 
 - Status: Evaluating
 - Date: 2026-11-21
 - Decision: Add a card scanning feature on a new route `/v2/scan`, reached from a new navbar item (Scan). The page first asks for a mode:
-  - **Identify** finds a card and opens its details (D-062). It works signed out, like search.
-  - **Add** adds recognized cards one after another to a binder or a deck (D-063). It requires sign-in, because binders and decks belong to a user.
+  - **Identify** finds a card and opens its details (D-063). It works signed out, like search.
+  - **Add** adds recognized cards one after another to a binder or a deck (D-064). It requires sign-in, because binders and decks belong to a user.
 
-  Input is the live rear camera with automatic detection: a card is recognized as soon as it is held steady in the frame, with no capture button. Recognition must find the exact printing (set and collector number), because binder copies and deck entries store a Scryfall card id. When the printing can't be read, the app falls back to the recognized name and lets the user pick from that card's printings. The design targets phones first (portrait layout, one-handed controls) and must work in both iOS Safari and Chrome on Android. How recognition works is decided in D-061.
+  Input is the live rear camera with automatic detection: a card is recognized as soon as it is held steady in the frame, with no capture button. Recognition must find the exact printing (set and collector number), because binder copies and deck entries store a Scryfall card id. When the printing can't be read, the app falls back to the recognized name and lets the user pick from that card's printings. The design targets phones first (portrait layout, one-handed controls) and must work in both iOS Safari and Chrome on Android. How recognition works is decided in D-062.
 
   **Guide frame (visual cue in the camera view):** a card-shaped outline (the 63 × 88 mm card ratio) is drawn over the camera picture, and the area outside it is dimmed. Two zones are marked inside the outline:
   - the **collector zone**, a box at the bottom left where the set code and collector number must sit;
   - the **title zone**, a box along the top where the card name must sit.
 
-  A short line of text under the frame tells the user what to do, for example "Fit the card in the frame. Set and number in the lower box." While a zone is being read, it is highlighted. When the app falls back to the name (D-061 step 3), the title zone is highlighted and the text says so. When a card is found, the frame briefly turns to a success color.
+  A short line of text under the frame tells the user what to do, for example "Fit the card in the frame. Set and number in the lower box." While a zone is being read, it is highlighted. When the app falls back to the name (D-062 step 3), the title zone is highlighted and the text says so. When a card is found, the frame briefly turns to a success color.
 
   The zones are fixed positions in the frame, and the OCR reads exactly those areas, so the guide is what makes the user scan the right part of the card. The outline and zones use the theme tokens, stay visible on both light and dark cards (a light line with a dark edge), and the instructions are also given as text for screen readers (`aria-live`).
 - Why: Adding a collection one card at a time through search is too slow. A camera flow that keeps running between cards makes rapid addition possible. One route for both modes shares the camera and recognition code.
@@ -153,18 +153,18 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
   - A new public route and navbar item. The Add mode checks the session inside the page rather than protecting the whole route.
   - A new feature folder `src/features/scan/`. AGENTS.md (routes, source layout) and the architecture docs must be updated when this is implemented.
   - Camera access needs HTTPS (Netlify and `localhost` qualify) and a permission prompt. Denied permission must show a clear message.
-  - No data model change: the feature reuses the binder copy and deck entry tables (D-063).
+  - No data model change: the feature reuses the binder copy and deck entry tables (D-064).
   - Out of scope: scanning several cards in one frame, binder proxies, price or collection valuation.
 - Source: "[Scan] Visual card recognition plan"
 
-## D-061: Card recognition technology
+## D-062: Card recognition technology
 
 - Status: Evaluating
 - Date: 2026-11-21
 - Decision (recommended, to be confirmed by a prototype): a staged pipeline that runs in the browser first and uses a cloud service only as a fallback.
   1. **Steady frame (no library):** draw camera frames on a canvas a few times per second and compare them. When the picture stops changing, take that frame. This avoids recognizing a card while it is still moving.
-  2. **Collector line by in-browser OCR:** cut the small info line at the bottom left of the card (collector number and set code, printed on cards since Magic 2015 in 2014) out of the frame and read only that strip with tesseract.js (see "OCR library evaluation" below). The strip is cut out at the position of the guide frame's collector zone (D-060). tesseract.js runs in a Web Worker and is loaded only on `/v2/scan`. Look the printing up with Scryfall's `/cards/:code/:number`, which returns exactly one printing.
-  3. **Name fallback:** if the line can't be read (older cards, glare, foreign language), OCR the title (cut out at the guide frame's title zone) and match it, allowing small errors, against the Scryfall card-name catalog the app already prefetches. Then show that card's printings to pick from (D-060).
+  2. **Collector line by in-browser OCR:** cut the small info line at the bottom left of the card (collector number and set code, printed on cards since Magic 2015 in 2014) out of the frame and read only that strip with tesseract.js (see "OCR library evaluation" below). The strip is cut out at the position of the guide frame's collector zone (D-061). tesseract.js runs in a Web Worker and is loaded only on `/v2/scan`. Look the printing up with Scryfall's `/cards/:code/:number`, which returns exactly one printing.
+  3. **Name fallback:** if the line can't be read (older cards, glare, foreign language), OCR the title (cut out at the guide frame's title zone) and match it, allowing small errors, against the Scryfall card-name catalog the app already prefetches. Then show that card's printings to pick from (D-061).
   4. **Optional cloud fallback:** only if steps 2 and 3 fail, send that one still frame to a cloud vision service through a Supabase Edge Function, which keeps the API key secret. Never send video frames continuously.
 
   Before this decision is accepted, a prototype on one iPhone (Safari) and one Android phone (Chrome) measures how often steps 2 and 3 succeed and how long they take. Based on that, the cloud step is either kept, with a chosen service and budget, or dropped. The prototype also settles the OCR library (see "OCR library evaluation" below).
@@ -203,7 +203,7 @@ Package versions, licenses and dates below were read from the npm registry on 20
 
 Decision (developer choice, 2026-11-21): **use tesseract.js** (version 7) as the OCR library of the card scanner.
 
-- Why tesseract.js: it is the most proven and documented option, and it is one dependency with a permissive license (Apache-2.0). Its character whitelist, single-line mode and rectangle options fit the pre-cut strips exactly: digits and letters for the collector line, one line of text for the title. The guide frame in the camera view (D-060) makes the user place those strips where the app cuts them out, which avoids Tesseract's weak point: finding text in a busy photo.
+- Why tesseract.js: it is the most proven and documented option, and it is one dependency with a permissive license (Apache-2.0). Its character whitelist, single-line mode and rectangle options fit the pre-cut strips exactly: digits and letters for the collector line, one line of text for the title. The guide frame in the camera view (D-061) makes the user place those strips where the app cuts them out, which avoids Tesseract's weak point: finding text in a busy photo.
 - How it is used:
   - It is loaded with a dynamic `import()` only on `/v2/scan`, so the main bundle doesn't grow.
   - One worker with the English data is created when the scanner opens and reused for every card.
@@ -225,11 +225,11 @@ Switching would need a new or amended decision and approval for the new dependen
 
 Research references for this section: npm registry entries for each package (2026-11-21), "PaddleOCR vs Tesseract vs TrOCR: OCR in the Browser" (lofttools.com/blog/on-device-ocr-reviewed, June 2026), the ppu-paddle-ocr README (github.com/PT-Perkasa-Pilar-Utama/ppu-paddle-ocr), the tesseract.js 7.0.0 release notes, the tesseract-wasm README, the Scribe.js README, and "Deterministic OCR in JavaScript: PaddleOCR for Node, Bun, Deno, and the Browser" (dev.to).
 
-## D-062: Scan Identify mode
+## D-063: Scan Identify mode
 
 - Status: Evaluating
 - Date: 2026-11-21
-- Decision: When a card is recognized in Identify mode, the app stops the camera and navigates to `/v2/search?q=<card name>&card=<scryfall id>`. This pushes a normal browser history entry: the search runs for that name and the existing details overlay opens on the recognized printing. If only the name was recognized and the user picked a printing (D-060), that printing's id is used. No scan history is stored.
+- Decision: When a card is recognized in Identify mode, the app stops the camera and navigates to `/v2/search?q=<card name>&card=<scryfall id>`. This pushes a normal browser history entry: the search runs for that name and the existing details overlay opens on the recognized printing. If only the name was recognized and the user picked a printing (D-061), that printing's id is used. No scan history is stored.
 - Why: It reuses the existing search page and overlay (`?card=` already opens the overlay without replacing the search URL). Back returns to the scanner, and the URL can be shared.
 - Alternatives considered: a stored list of recent scans (local or Supabase), alone or in addition. It needs new storage and UI, and was not wanted.
 - Consequences:
@@ -237,7 +237,7 @@ Research references for this section: npm registry entries for each package (202
   - Going back to `/v2/scan` restarts the camera, which asks for permission again only if the browser forgot it.
 - Source: "[Scan] Visual card recognition plan"
 
-## D-063: Scan Add mode (rapid addition)
+## D-064: Scan Add mode (rapid addition)
 
 - Status: Evaluating
 - Date: 2026-11-21
