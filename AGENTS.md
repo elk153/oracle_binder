@@ -1,6 +1,6 @@
 # Agent Context
 
-Working map of the app for AI coding agents. Checked against the repository source on 7 Nov 2026; app version v2026.11.0. Where this file and the source disagree, the source wins; update this file when the architecture or behavior changes.
+Working map of the app for AI coding agents. Checked against the repository source on 21 Nov 2026; app version v2026.11.3. Where this file and the source disagree, the source wins; update this file when the architecture or behavior changes.
 
 ## How to work with me (read first)
 
