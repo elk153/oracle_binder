@@ -1,6 +1,6 @@
 # Agent Context
 
-Working map of the app for AI coding agents. Checked against the repository source on 21 Nov 2026; app version v2026.11.3. Where this file and the source disagree, the source wins; update this file when the architecture or behavior changes.
+Working map of the app for AI coding agents. Checked against the repository source on 21 Nov 2026; app version v2026.11.4. Where this file and the source disagree, the source wins; update this file when the architecture or behavior changes.
 
 ## How to work with me (read first)
 
@@ -157,13 +157,25 @@ The app uses Calendar Versioning (CalVer): `YYYY.M.MICRO`, unpadded (e.g. `2026.
 
 Component structure, CSS and Scryfall response handling are not part of it. Any change to the contract is listed under `### Breaking` in that release's `CHANGELOG.md` section and recorded in `DECISIONS.md`.
 
-**Release flow** (solo developer, no release branches):
+**Release flow** (solo developer). An agent releases only when asked; a request to release covers every step below, including the push.
 
-1. Work on `dev`. `package.json` keeps the last released version.
-2. Merge `dev` into `main` through a PR; `npm run typecheck` and `npm run build` must pass.
-3. On `main`: update `CHANGELOG.md`, replace every `Release: pending (on dev)` in `DECISIONS_HISTORY.md` with the new `vYYYY.M.MICRO`, and commit; run `npm version patch` or `npm version YYYY.M.0` per the table above; run `git push --follow-tags`. This commits both package files and creates the annotated tag `vYYYY.M.MICRO`.
-4. Hotfix: branch from the latest tag, fix, bump with `npm version patch` (or an explicit version if the month changed), merge back into `dev`.
-5. Pre-release builds, only if needed: `2026.12.0-beta.1`.
+1. **Daily work:** feature branches (`feature/<name>`) are merged into `dev`. `package.json` keeps the last released version; `CHANGELOG.md` collects nothing until release time.
+2. **Regular release** from `dev`:
+   1. `git switch -c release/YYYY.M.MICRO dev` (the version the release will get, per the bump table).
+   2. Check: `npm run typecheck`, `npm run lint`, `npx stylelint "src/**/*.css"`, the tests (`node --experimental-strip-types --test "tests/**/*.test.ts"`) and `npm run build` must pass.
+   3. Update `CHANGELOG.md`: a new `## [YYYY.M.MICRO] - YYYY-MM-DD` section under `## [Unreleased]`, written for users (`### Added`, `### Changed`, `### Fixed`, `### Breaking` when the public contract changes, and always `### Database`, saying which migration is needed or "No migration in this release."). Development-only tools are left out.
+   4. Decisions: move each implemented decision from `DECISIONS.md` to the end of `DECISIONS_HISTORY.md` with `- Status: Implemented` and `- Release: vYYYY.M.MICRO`; replace every remaining `Release: pending (on dev)` there with the version.
+   5. Update the version stamp in this file's header (check date and app version).
+   6. Commit as `Changelog and decision releases for YYYY.M.MICRO`.
+   7. `npm version patch -m "Release %s"` (or `npm version YYYY.M.0 -m "Release %s"` for a new month): it commits both package files and creates the annotated tag `vYYYY.M.MICRO`.
+   8. `git switch main && git merge --no-ff release/YYYY.M.MICRO` (message `Merge branch 'release/YYYY.M.MICRO' into main`), then `git switch dev && git merge --no-ff main` (`Merge branch 'main' into dev`).
+   9. `git push origin main dev --follow-tags`, then delete the release branch locally (`git branch -d`).
+3. **Hotfix** (a fix that can't wait for `dev`):
+   1. Branch from the latest release tag: `git switch -c YYYY.M.MICROa vYYYY.M.MICRO` (for example `2026.11.3a` from `v2026.11.3`). The letter only names the branch; it is not a version, because npm versions can't carry it.
+   2. Fix and commit there, and test on the device concerned.
+   3. Release it with steps 2.2 to 2.9 on the hotfix branch instead of a release branch: the release gets the next `MICRO` with `npm version patch` (for example `2026.11.4`), the hotfix branch is merged into `main`, then `main` into `dev`.
+   4. Work tried on the hotfix but not kept stays on a side branch (for example `2026.11.3a-low-light`) and is not merged; the decision records why.
+4. Pre-release builds, only if needed: `2026.12.0-beta.1`.
 
 A release that depends on a Supabase migration needs that migration applied to the linked project before the app is deployed.
 
