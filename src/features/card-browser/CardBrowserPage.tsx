@@ -250,7 +250,7 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
   };
 
   return (
-    <section className="card-browser-page">
+    <section className="page card-browser-page">
       {mode === "search" && !isRandomRoute && (
         <header className="card-browser__heading">
           <SearchControls
@@ -270,19 +270,19 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
       )}
 
       {isRandomRoute && setsQuery.isLoading && (
-        <p className="card-browser__message" role="status">
+        <p className="page__message card-browser__message" role="status">
           Choosing today’s set…
         </p>
       )}
 
       {isRandomRoute && setsQuery.error && (
-        <p className="card-browser__message card-browser__message--error" role="alert">
+        <p className="page__message page__message--error card-browser__message" role="alert">
           Could not load Scryfall sets: {setsQuery.error.message}
         </p>
       )}
 
       {isRandomRoute && invalidSetData && (
-        <p className="card-browser__message card-browser__message--error" role="alert">
+        <p className="page__message page__message--error card-browser__message" role="alert">
           Scryfall returned set data in an unexpected format.
         </p>
       )}
@@ -292,68 +292,68 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
         !setsQuery.error &&
         !invalidSetData &&
         !mulliganSet && (
-          <p className="card-browser__message" role="status">
+          <p className="page__message card-browser__message" role="status">
             No booster-focused sets are available for today’s mulligan.
           </p>
         )}
 
       {cardSource.isLoading && (
-        <p className="card-browser__message" role="status">
+        <p className="page__message card-browser__message" role="status">
           {isRandomRoute ? "Choosing seven cards…" : "Loading cards…"}
         </p>
       )}
 
       {cardSource.error && (
-        <p className="card-browser__message card-browser__message--error" role="alert">
+        <p className="page__message page__message--error card-browser__message" role="alert">
           Could not load {isRandomRoute || cards.length === 0 ? "cards" : "additional cards"}:{" "}
           {cardSource.error.message}
         </p>
       )}
 
       {user && favoritesError && (
-        <p className="card-browser__message card-browser__message--error" role="alert">
+        <p className="page__message page__message--error card-browser__message" role="alert">
           Could not load favorites: {favoritesError.message}
         </p>
       )}
       {user && favoritesRealtimeError && (
-        <p className="card-browser__message card-browser__message--error" role="alert">
+        <p className="page__message page__message--error card-browser__message" role="alert">
           Favorites updates from other devices may be delayed: {favoritesRealtimeError.message}
         </p>
       )}
       {user && personalCardsError && !cardSource.error && (
-        <p className="card-browser__message card-browser__message--error" role="alert">
+        <p className="page__message page__message--error card-browser__message" role="alert">
           Could not load owned card printings: {personalCardsError.message}
         </p>
       )}
       {user && binder.copies.error && (
-        <p className="card-browser__message card-browser__message--error" role="alert">
+        <p className="page__message page__message--error card-browser__message" role="alert">
           Could not load Binder copies: {binder.copies.error.message}
         </p>
       )}
       {user && binder.bindersError && (
-        <p className="card-browser__message card-browser__message--error" role="alert">
+        <p className="page__message page__message--error card-browser__message" role="alert">
           Could not load binders: {binder.bindersError.message}
         </p>
       )}
       {user && binder.realtimeError && (
-        <p className="card-browser__message card-browser__message--error" role="alert">
+        <p className="page__message page__message--error card-browser__message" role="alert">
           Binder updates from other devices may be delayed: {binder.realtimeError.message}
         </p>
       )}
       {user && decks.error && (
-        <p className="card-browser__message card-browser__message--error" role="alert">
+        <p className="page__message page__message--error card-browser__message" role="alert">
           Could not load decks: {decks.error.message}
         </p>
       )}
 
       {invalidCardData && (
-        <p className="card-browser__message card-browser__message--error" role="alert">
+        <p className="page__message page__message--error card-browser__message" role="alert">
           Scryfall returned card data in an unexpected format.
         </p>
       )}
 
       {!user && isPersonalSearch && (
-        <p className="card-browser__message" role="status">
+        <p className="page__message card-browser__message" role="status">
           <Link to={`/v2/login?next=${encodeURIComponent(`${location.pathname}${location.search}`)}`}>
             Sign in
           </Link>{" "}
@@ -362,7 +362,7 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
       )}
 
       {!cardSource.isLoading && !cardSource.error && !invalidCardData && (routeParam || isPersonalSearch) && total === 0 && (
-        <p className="card-browser__message">No cards found.</p>
+        <p className="page__message card-browser__message">No cards found.</p>
       )}
 
       {cards.length > 0 && (
@@ -377,7 +377,7 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
             layout="floating"
             cardPlaces={cardPlaces}
           />
-          <div className="card-browser__list" aria-label="Card search results">
+          <div className="card-grid card-browser__list" aria-label="Card search results">
             {orderedCards.map((card) => (
               <CardTile
                 key={card.id}
@@ -393,10 +393,10 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
             ))}
           </div>
           {rows.length === 0 && (
-            <p className="card-browser__message">No cards match these filters.</p>
+            <p className="page__message card-browser__message">No cards match these filters.</p>
           )}
           {!isRandomRoute && cardSource.hasNextPage && (
-            <div className="card-browser__pagination">
+            <div className="pagination">
               <button
                 type="button"
                 onClick={cardSource.fetchNextPage}
@@ -414,7 +414,7 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
       )}
 
       {notice && (
-        <div className="card-browser__notice" role="status">
+        <div className="page__notice" role="status">
           <span>{notice}</span>
           {signInPath && <Link to={signInPath}>Sign in</Link>}
           <button

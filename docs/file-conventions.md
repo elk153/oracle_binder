@@ -32,7 +32,7 @@ Naming and usage rules for each file format in this repo (branch `typescript`). 
 
 ### `.css` — Stylesheets
 
-- **Observed:** one CSS file beside each component with the same name. Global styles: `src/styles/splash.css` (linked from `index.html`), `src/styles/tokens.css` (design tokens), `src/styles/base.css` (body size, focus ring, reduced motion) and `src/app/App.css`.
+- **Observed:** one CSS file beside each component with the same name. Global styles: `src/styles/splash.css` (linked from `index.html`), `src/styles/tokens.css` (design tokens), `src/styles/base.css` (body size, focus ring, reduced motion), `src/styles/layout.css` (shared page classes) and `src/app/App.css`.
 - **Rule:** component CSS lives in the component's folder and shares its name. Colors, spacing and fonts come from the tokens in `src/styles/tokens.css` (CSS variables); do not hard-code new colors, global z-index values or corner radii. Global rules go only in the global files.
 
 ## Docs and diagrams

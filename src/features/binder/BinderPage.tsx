@@ -257,9 +257,9 @@ export default function BinderPage() {
   };
   const selectedCard = cards.find((card) => card.id === cardId);
   return (
-    <section className="binder-page">
-      <header className="binder-page__heading">
-        <h1>Binder</h1>
+    <section className="page binder-page">
+      <header className="page__heading">
+        <h1 className="page__title">Binder</h1>
         <div className="binder-page__view-switch" role="group" aria-label="Binder view">
           <button
             type="button"
@@ -279,32 +279,32 @@ export default function BinderPage() {
       </header>
 
       {binder.copies.error && (
-        <p className="binder-page__message binder-page__message--error" role="alert">
+        <p className="page__message page__message--error" role="alert">
           Could not load Binder copies: {binder.copies.error.message}
         </p>
       )}
       {binder.bindersError && (
-        <p className="binder-page__message binder-page__message--error" role="alert">
+        <p className="page__message page__message--error" role="alert">
           Could not load binders: {binder.bindersError.message}
         </p>
       )}
       {binder.realtimeError && (
-        <p className="binder-page__message binder-page__message--error" role="alert">
+        <p className="page__message page__message--error" role="alert">
           Updates from other devices may be delayed: {binder.realtimeError.message}
         </p>
       )}
       {decks.error && (
-        <p className="binder-page__message" role="alert">
+        <p className="page__message" role="alert">
           Could not load decks: {decks.error.message}
         </p>
       )}
       {cardsQuery.error && (
-        <p className="binder-page__message binder-page__message--error" role="alert">
+        <p className="page__message page__message--error" role="alert">
           Could not load card printings: {cardsQuery.error.message}
         </p>
       )}
       {invalidCardData && (
-        <p className="binder-page__message binder-page__message--error" role="alert">
+        <p className="page__message page__message--error" role="alert">
           Scryfall returned card data in an unexpected format.
         </p>
       )}
@@ -366,7 +366,7 @@ export default function BinderPage() {
 
       {view === "all" && (
         <>
-          <div className="binder-page__toolbar">
+          <div className="page__toolbar binder-page__toolbar">
             <label>
               Show
               <select
@@ -427,9 +427,9 @@ export default function BinderPage() {
           )}
 
           {binder.copies.isLoading || decks.isLoading || cardsQuery.isLoading ? (
-            <p className="binder-page__message" role="status">Loading Binder…</p>
+            <p className="page__message" role="status">Loading Binder…</p>
           ) : orderedCards.length > 0 ? (
-            <div className="binder-page__list" aria-label="Binder cards">
+            <div className="card-grid" aria-label="Binder cards">
               {orderedCards.map((card) => (
                 <article className="binder-page__card" key={card.id}>
                   {selectedBinderId !== HISTORY_FILTER && (
@@ -457,7 +457,7 @@ export default function BinderPage() {
               ))}
             </div>
           ) : (
-            <p className="binder-page__message">
+            <p className="page__message">
               {selectedBinderId === HISTORY_FILTER
                 ? "Your Binder has no disposed copies."
                 : selectedBinderId
@@ -466,7 +466,7 @@ export default function BinderPage() {
             </p>
           )}
           {rows.length === 0 && viewCards.length > 0 && (
-            <p className="binder-page__message">
+            <p className="page__message">
               No cards match these filters.
             </p>
           )}
@@ -474,7 +474,7 @@ export default function BinderPage() {
       )}
 
       {notice && (
-        <p className="binder-page__notice" role="status">
+        <p className="page__notice binder-page__notice" role="status">
           <span>{notice}</span>
           <button type="button" onClick={() => setNotice("")}>Dismiss</button>
         </p>

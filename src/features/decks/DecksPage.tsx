@@ -244,9 +244,9 @@ export default function DecksPage() {
   const isLoading = decks.isLoading || cardsQuery.isLoading;
 
   return (
-    <section className="deck-page">
-      <header className="deck-page__heading">
-        <h1>Decks</h1>
+    <section className="page deck-page">
+      <header className="page__heading">
+        <h1 className="page__title">Decks</h1>
         <div className="deck-page__view-switch" role="group" aria-label="Deck view">
           <button
             type="button"
@@ -266,42 +266,42 @@ export default function DecksPage() {
       </header>
 
       {decks.error && (
-        <p className="deck-page__message deck-page__message--error" role="alert">
+        <p className="page__message page__message--error" role="alert">
           Could not load decks: {decks.error.message}
         </p>
       )}
       {binder.copies.error && (
-        <p className="deck-page__message deck-page__message--error" role="alert">
+        <p className="page__message page__message--error" role="alert">
           Could not load Binder copies: {binder.copies.error.message}
         </p>
       )}
       {binder.bindersError && (
-        <p className="deck-page__message deck-page__message--error" role="alert">
+        <p className="page__message page__message--error" role="alert">
           Could not load binders: {binder.bindersError.message}
         </p>
       )}
       {cardsQuery.error && (
-        <p className="deck-page__message deck-page__message--error" role="alert">
+        <p className="page__message page__message--error" role="alert">
           Could not load card printings: {cardsQuery.error.message}
         </p>
       )}
       {invalidCardData && (
-        <p className="deck-page__message deck-page__message--error" role="alert">
+        <p className="page__message page__message--error" role="alert">
           Scryfall returned card data in an unexpected format.
         </p>
       )}
       {binder.realtimeError && (
-        <p className="deck-page__message" role="alert">
+        <p className="page__message" role="alert">
           Binder updates from other devices may be delayed: {binder.realtimeError.message}
         </p>
       )}
       {favoritesError && (
-        <p className="deck-page__message deck-page__message--error" role="alert">
+        <p className="page__message page__message--error" role="alert">
           Could not load favorite status: {favoritesError.message}
         </p>
       )}
       {cardsQuery.isLoading && (
-        <p className="deck-page__message" role="status">
+        <p className="page__message" role="status">
           Loading card printings…
         </p>
       )}
@@ -383,14 +383,14 @@ export default function DecksPage() {
             })}
           </div>
           {!decks.isLoading && !decks.error && decks.decks.length === 0 && (
-            <p className="deck-page__message">You have no decks yet.</p>
+            <p className="page__message">You have no decks yet.</p>
           )}
         </section>
       )}
 
       {view === "all" && (
         <>
-          <div className="deck-page__toolbar">
+          <div className="page__toolbar deck-page__toolbar">
             <label>
               Show
               <select
@@ -427,9 +427,9 @@ export default function DecksPage() {
           )}
 
           {isLoading ? (
-            <p className="deck-page__message" role="status">Loading deck cards…</p>
+            <p className="page__message" role="status">Loading deck cards…</p>
           ) : filteredEntries.length > 0 ? (
-            <div className="deck-page__list" aria-label="Deck cards">
+            <div className="card-grid" aria-label="Deck cards">
               {filteredEntries.map(({ entry, card }) => {
                 const binderCopy =
                   entry.kind === "binder"
@@ -477,7 +477,7 @@ export default function DecksPage() {
             !decks.error &&
             !cardsQuery.error &&
             !invalidCardData && (
-              <p className="deck-page__message">
+              <p className="page__message">
                 {visibleEntries.length > 0
                   ? "No available card printings were found for these deck entries."
                   : selectedDeckId
@@ -487,13 +487,13 @@ export default function DecksPage() {
             )
           )}
           {rows.length === 0 && tableCards.length > 0 && (
-            <p className="deck-page__message">No cards match these filters.</p>
+            <p className="page__message">No cards match these filters.</p>
           )}
           {!cardsQuery.isLoading &&
             !cardsQuery.error &&
             !invalidCardData &&
             cardsMissingFromScryfall > 0 && (
-            <p className="deck-page__message">
+            <p className="page__message">
               {cardsMissingFromScryfall}{" "}
               {cardsMissingFromScryfall === 1 ? "entry was" : "entries were"} skipped
               because the printing is no longer available from Scryfall.
@@ -503,7 +503,7 @@ export default function DecksPage() {
       )}
 
       {notice && (
-        <p className="deck-page__notice" role="status">
+        <p className="page__notice deck-page__notice" role="status">
           <span>{notice}</span>
           <button type="button" onClick={() => setNotice("")}>Dismiss</button>
         </p>
