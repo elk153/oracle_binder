@@ -348,6 +348,15 @@
   min-width: 0;
 }
 
+/* The card a meld piece melds into (MeldCard). The overlay hides the
+   renderer's own face images, so this is the only image in the panel. */
+.card-detail__renderer .scryfall-card__meld-result-image {
+  display: block;
+  width: min(100%, var(--card-image-width));
+  height: auto;
+  margin-top: 0.5rem;
+}
+
 .card-detail__rulings {
   margin: 0;
   padding-left: 1.25rem;
