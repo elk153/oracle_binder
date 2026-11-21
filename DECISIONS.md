@@ -129,7 +129,7 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
 
 ## D-061: Card scanning feature: scope, route and modes
 
-- Status: Evaluating
+- Status: Accepted (2026-11-21). The route, navbar item, mode choice, Add-mode sign-in check, rear camera with error messages, and guide frame are implemented in `src/features/scan/`. It stays in this list until recognition (D-062), Identify (D-063) and Add (D-064) are built on it.
 - Date: 2026-11-21
 - Decision: Add a card scanning feature on a new route `/v2/scan`, reached from a new navbar item (Scan). The page first asks for a mode:
   - **Identify** finds a card and opens its details (D-063). It works signed out, like search.
