@@ -1,4 +1,5 @@
 import { isRouteErrorResponse, Link, useRouteError } from "react-router";
+import useDismissSplash from "../hooks/useDismissSplash.ts";
 import "./RouteErrorPage.css";
 
 // Browsers word a failed dynamic import differently (Chromium, Firefox,
@@ -29,6 +30,10 @@ function describeError(error: unknown): string {
  * reload. Error details are shown only in development.
  */
 export default function RouteErrorPage() {
+  // This page replaces the App layout, whose effect normally hides the
+  // splash; without this call a direct visit to an error route keeps the
+  // pulsing logo on screen.
+  useDismissSplash();
   const error = useRouteError();
   const notFound = isRouteErrorResponse(error) && error.status === 404;
   const newVersion = isChunkLoadError(error);

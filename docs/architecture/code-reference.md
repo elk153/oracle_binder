@@ -174,6 +174,7 @@ static brand assets and are not React components.
 | [`src/hooks/useOracleText.tsx`](../../src/hooks/useOracleText.tsx) | Default symbol-aware Oracle text hook; uses cached Scryfall symbology data. |
 | [`src/hooks/useRealtimeInvalidation.ts`](../../src/hooks/useRealtimeInvalidation.ts) | Default user-filtered Supabase Realtime invalidation hook. |
 | [`src/hooks/useScrollVisibility.ts`](../../src/hooks/useScrollVisibility.ts) | Default scroll-direction visibility hook used by navbar and filters. |
+| [`src/hooks/useDismissSplash.ts`](../../src/hooks/useDismissSplash.ts) | Default-exported hook that fades out the `index.html` splash and reveals `#root`; called by `App.tsx` and `RouteErrorPage.tsx`, since the error page replaces the layout. |
 | [`src/hooks/useScryfallCardsForIds.ts`](../../src/hooks/useScryfallCardsForIds.ts) | Default cached hook for batched Scryfall card hydration by ID. |
 | [`src/services/createApiClient.ts`](../../src/services/createApiClient.ts) | Exports API record/parameter types and `createApiClient`; normalizes Scryfall card/list responses. |
 | [`src/services/fetchScryfallCards.ts`](../../src/services/fetchScryfallCards.ts) | Exports collection endpoint limit and card-record type; validated, abortable request bounded to 75 identifiers. |

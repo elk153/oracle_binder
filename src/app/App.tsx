@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import NavBar from "../features/navigation/NavBar.tsx";
 import { Outlet } from "react-router";
 import CardBrowserPage from "../features/card-browser/CardBrowserPage.tsx";
@@ -8,12 +7,7 @@ import DecksPage from "../features/decks/DecksPage.tsx";
 import "./App.css";
 import usePreFetchUrl from "../hooks/usePreFetchUrl.ts";
 import getSecondsUntilNextLocalFour from "../hooks/getSecondsUntilNextLocalFour.ts";
-
-declare global {
-  interface Window {
-    reactIsReady: boolean;
-  }
-}
+import useDismissSplash from "../hooks/useDismissSplash.ts";
 
 export default function App() {
   usePreFetchUrl(
@@ -28,40 +22,7 @@ export default function App() {
     getSecondsUntilNextLocalFour,
   );
 
-  useEffect(() => {
-    window.reactIsReady = true;
-
-    const splashLogo = document.getElementById("splash-logo");
-    const splashBackground = document.getElementById("splash-background");
-    const root = document.getElementById("root");
-
-    if (!splashLogo || !splashBackground || !root) {
-      return;
-    }
-
-    // Trigger the visual transition: both splash background and logo
-    // will transition their opacity to the same level to keep a uniform color.
-    splashBackground.classList.add("ready");
-    splashLogo.classList.add("ready");
-
-    const handleTransitionEnd = (event: TransitionEvent): void => {
-      if (event.target !== splashBackground || event.propertyName !== "opacity") return;
-
-      // Reveal the app root and move the splash behind the app content
-      root.classList.add("visible");
-      splashBackground.classList.add("background");
-
-      // Clean up listener
-      splashBackground.removeEventListener("transitionend", handleTransitionEnd);
-    };
-
-    // Attach to splashBackground so we observe the container opacity end
-    splashBackground.addEventListener("transitionend", handleTransitionEnd);
-
-    return () => {
-      splashBackground.removeEventListener("transitionend", handleTransitionEnd);
-    };
-  }, []);
+  useDismissSplash();
 
   return (
     <div className="App AppV2">
