@@ -7,6 +7,18 @@ Release versions follow the CalVer policy in [AGENTS.md](./AGENTS.md).
 
 ## [Unreleased]
 
+## [2026.11.5] - 2026-11-21
+
+### Fixed
+
+- Scanner Add mode: after a card is recognized, the confirm step no longer
+  hides the quantity and the Add button. The camera area now grows to fit
+  it.
+
+### Database
+
+- No migration in this release.
+
 ## [2026.11.4] - 2026-11-21
 
 Scanner hotfix: more consistent reading of the set and number.

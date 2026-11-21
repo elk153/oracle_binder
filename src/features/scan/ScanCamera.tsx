@@ -216,7 +216,7 @@ export default function ScanCamera({ onFound, overlay, testMode = false }: ScanC
 
   return (
     <div className="scan-camera">
-      <div className="scan-camera__view">
+      <div className={`scan-camera__view${overlay ? " scan-camera__view--overlay" : ""}`}>
         {/* playsInline and muted keep iOS Safari from opening the video full
             screen or refusing to autoplay it. */}
         <video
