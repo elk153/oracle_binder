@@ -1,32 +1,26 @@
 # File Conventions
 
-Naming and usage rules for each file format in this repo (branch `typescript`). Each entry has **Observed** (what the repo does today) and **Rule** (what to follow for new files). Where the repo is inconsistent, the rule picks one direction; do not rename existing files without asking.
+Naming and usage rules for each file format in this repo. Each entry has **Observed** (what the repo does today) and **Rule** (what to follow for new files). Where the repo is inconsistent, the rule picks one direction; do not rename existing files without asking.
 
 ## Source code
 
 ### `.tsx` — TypeScript + JSX
 
-- **Use for:** new React components and providers; the target format for the migration.
-- **Observed:** `main.tsx` (entry), `AppProviders.tsx`, `PersistenceProvider.tsx`, `QueryDevToolsProvider.tsx`.
+- **Use for:** every React component and provider.
+- **Observed:** `main.tsx` (entry), `AppProviders.tsx`, `NavBar.tsx`, `CardDetailsOverlay.tsx`, the renderer components (`CardRenderer.tsx`, `CardFrame.tsx`), icons as `Icon<Name>.tsx`, router as `router.tsx` (lowercase, not a component).
 - **Rule:** PascalCase name matching the default export, one component per file, typed props (`type XProps = {...}`), `import type` for type-only imports, include the extension in imports of `.ts`/`.tsx` files.
 
 ### `.ts` — TypeScript, no JSX
 
-- **Use for:** hooks, services, types, helpers that return no JSX.
-- **Observed:** `queryProvider.ts`.
+- **Use for:** hooks, services, types, helpers that return no JSX, and config files that support TypeScript.
+- **Observed:** `queryProvider.ts`, hooks `useFetchUrl.ts`, `useScrollVisibility.ts`; services `createApiClient.ts`, `fetchScryfallCards.ts`; helpers `normalizeCard.ts`, `scryfallCardLayouts.ts`; config `vite.config.ts`.
 - **Rule:** camelCase name (`queryProvider.ts`). Hooks start with `use`. Shared types go in a `types.ts` next to the feature that owns them.
 
-### `.jsx` — JavaScript + JSX (legacy, being migrated)
+### `.js` / `.jsx` — JavaScript (config only)
 
-- **Use for:** existing components only. Do not create new `.jsx` files.
-- **Observed:** components in PascalCase (`NavBar.tsx`, `CardDetailsOverlay.tsx`), icons as `Icon<Name>.tsx`, router as `router.tsx` (lowercase, not a component).
-- **Rule:** when converting, rename to `.tsx` in the same commit, then run `npm run typecheck`. Some hooks are `.jsx` without any JSX (`useOracleText.jsx`, `useScryfallCardsSearch.jsx`); they should become `.ts`.
-
-### `.js` — JavaScript, no JSX (legacy and config)
-
-- **Use for:** config files that must stay JS, plus existing hooks and services.
-- **Observed:** `eslint.config.js`, `vite.config.js` (config, lowercase with `.config`); hooks `useFetchUrl.ts`, `usePreFetchUrl.ts`, `useScrollVisibility.ts`; services `createApiClient.ts`, `fetchScryfallCards.ts`; helpers `normalizeCard.js`, `scryfallCardLayouts.js`.
-- **Rule:** camelCase. New non-config code should be `.ts`.
+- **Use for:** config files whose tool cannot load TypeScript without an extra dependency. Do not create `.js` or `.jsx` files in `src/`.
+- **Observed:** only `eslint.config.js` (a TS ESLint config would need the `jiti` dependency). The JS-to-TS migration finished in D-058.
+- **Rule:** `tsconfig.json` has `allowJs: false`, so importing a `.js` file from `src/` fails `npm run typecheck`.
 
 ## Styles
 
@@ -53,7 +47,7 @@ Naming and usage rules for each file format in this repo (branch `typescript`). 
 ### `.json` — JSON
 
 - **Observed:** `package.json`, `package-lock.json`, `tsconfig.json`, `references/CARD.json` (sample Scryfall card).
-- **Rule:** no comments and no trailing commas. Never edit `package-lock.json` by hand; change dependencies with `npm install`. `tsconfig.json` has `checkJs: false`, so JS is not type-checked.
+- **Rule:** no comments and no trailing commas. Never edit `package-lock.json` by hand; change dependencies with `npm install`. `tsconfig.json` has `allowJs: false`; it type-checks `src/` and `vite.config.ts`.
 
 ### `.html` — HTML
 
@@ -85,7 +79,7 @@ Naming and usage rules for each file format in this repo (branch `typescript`). 
 | Component CSS | same name as component | `CardOverlay.css` |
 | Hook | `use` + camelCase | `useFetchUrl.ts` |
 | Service or helper | camelCase | `createApiClient.ts` |
-| Config file | lowercase + `.config` | `vite.config.js` |
+| Config file | lowercase + `.config` | `vite.config.ts` |
 | Docs in `references/` | kebab-case | `card-search-sequences.md` |
 | Diagrams | kebab-case, numbered sets | `card-search-seq-01-initial-random.mmd` |
 | Feature code | `src/features/<feature-name>/` (kebab-case) | `scryfall-card-renderer/` |

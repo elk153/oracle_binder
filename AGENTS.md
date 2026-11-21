@@ -32,9 +32,9 @@ Node 22 works. Install with `npm install`.
 | `npm run build` | production build into `dist/` | passes |
 | `npm run preview` | serve the build | works |
 | `npm run typecheck` | `tsc --noEmit` | passes |
-| `npm run lint` | ESLint | **fails: 6 pre-existing errors, 0 warnings** (checked 6 Nov 2026) |
+| `npm run lint` | ESLint | passes: 0 errors, 0 warnings (checked 21 Nov 2026) |
 
-- No test framework or test script exists. The only tests are dependency-free `node:test` cases in `tests/` for the advanced-search matcher; run `node --experimental-strip-types --test "tests/**/*.test.ts"` (Node 22). They are not part of `typecheck`, and `tsconfig.json` does not include `tests/`.
+- No test framework or test script exists. The only tests are dependency-free `node:test` cases in `tests/` for the advanced-search matcher and the binder colors; run `node --experimental-strip-types --test "tests/**/*.test.ts"` (Node 22). They are not part of `typecheck`, and `tsconfig.json` does not include `tests/`. On 21 Nov 2026, two `binderColors.test.ts` cases failed on `dev` ("the palette has ten valid, unique, named colors" and "Gray #8da399: contrast…"); the matcher tests pass.
 - Lint status varies as the code changes; rerun lint before attributing errors to a change.
 - Run the narrowest check that fits. At minimum run `npm run typecheck` and `npm run build`.
 
@@ -87,13 +87,13 @@ Defined in `src/app/router.tsx`. `/` redirects to `/v2/home`.
 - `queryProvider.ts`: `gcTime` is 24 h and must stay >= the persisted data's max age.
 - `QueryDevToolsProvider.tsx` loads Devtools lazily and only when `import.meta.env.DEV`.
 - `features/card-filters/` uses TanStack Table and `nuqs` to filter by color, rarity, type, place and card kind, sort by name/CMC/rarity/price/place, and keep filter state in the URL. Place and kind filters are enabled only for collection search; other pages keep their existing controls.
-- Many files contain debug `console.log` calls (e.g. `createApiClient.js`, `useFetchUrl.js`). Do not add more; ask before removing.
+- Many files contain debug `console.log` calls (e.g. `createApiClient.ts`, `useFetchUrl.ts`). Do not add more; ask before removing. The card renderer's logs were removed in D-058.
 - Prices are current per-printing Scryfall data, not history or collection valuation.
 
 ## Source layout
 
 - `src/main.tsx`, `src/app/` — entry, providers, V2 layout and router.
-- `src/features/scryfall-card-renderer/` — shared card renderer. `normalizeCard.js` maps raw Scryfall cards to the internal shape; `scryfallCardLayouts.js` and `components/` (one/split/toggle/flip/meld faces, `OracleText`, `extras/` for saga, class, case, leveler, mutate, prototype) consume that shape. The V2 details overlay uses it.
+- `src/features/scryfall-card-renderer/` — shared card renderer. `types.ts` defines its raw input (`RawScryfallCard`) and normalized output (`NormalizedCard`); `normalizeCard.ts` maps raw Scryfall cards to the internal shape; `scryfallCardLayouts.ts` and `components/` (one/split/toggle/flip/meld faces, `OracleText`, `extras/` for saga, class, case, leveler, mutate, prototype) consume that shape. A meld piece shows the card it melds into (name, then image fetched with `useScryfallCardsSearch`, the renderer's one import from `card-browser`); the meld result lists its pieces. The V2 details overlay uses it.
 - `src/features/card-browser/` — V2 card search and query hooks, daily mulligan, Scryfall rulings fetch, reusable card tile/actions, and card details/printings overlay.
 - `src/features/binder/` — Binder copy data and mutations, copy metadata form/popover, binder-folder queries and the Binder page.
 - `src/features/decks/` — user-scoped deck and deck-card queries/mutations, inline card action popover, and the Decks page.
@@ -110,11 +110,11 @@ Full deck-building tools such as format validation, collection valuation and pri
 
 ## TypeScript
 
-- **TypeScript today:** `src/main.tsx`, `src/app/App.tsx`, `src/app/AppProviders.tsx`, all files in `src/app/AppProviders/`, `src/app/router.tsx`, `src/hooks/`, theme and navigation components, and all files in `src/features/card-filters/`, `src/features/card-browser/`, `src/features/binder/`, `src/features/decks/`, and `src/features/favorites/`. Most renderer components and some services remain JS/JSX.
-- `tsconfig.json`: `strict`, `allowJs: true`, `checkJs: false`, `verbatimModuleSyntax: true`, `allowImportingTsExtensions: true`, `include: ["src"]`. JS files are **not** type-checked, so passing `typecheck` does not type-check the JS/JSX files.
+- **All application code is TypeScript** (D-058): every file in `src/` is `.ts` or `.tsx`, and so is `vite.config.ts`. The only JavaScript file is `eslint.config.js`, which stays JS because a TS ESLint config needs the `jiti` dependency.
+- `tsconfig.json`: `strict`, `allowJs: false`, `verbatimModuleSyntax: true`, `allowImportingTsExtensions: true`, `include: ["src", "vite.config.ts"]`. Do not add `.js`/`.jsx` files to `src/`: importing one fails `npm run typecheck` (TS7016).
 - Imports of `.ts`/`.tsx` files include the extension. Use `import type` for type-only imports.
-- Convert one file at a time, only when asked. Avoid `any` and non-null assertions in TS files.
-- `src/features/card-filters/types.ts` defines the narrow `ScryfallCard` shape used by filters; the renderer's normalized card shape is maintained separately in JavaScript.
+- Avoid `any` and non-null assertions. Narrow `unknown` API data with type guards (see `isCardBrowserCard`, `toMeldResultView`).
+- `src/features/card-filters/types.ts` defines the narrow `ScryfallCard` shape used by filters. The renderer owns its own types in `src/features/scryfall-card-renderer/types.ts`; `RawScryfallCard` lists only the fields `normalizeCard` reads, so any structurally compatible card (e.g. `CardBrowserCard`) can be passed to `CardRenderer`.
 
 ## Tooling gotchas
 
@@ -194,7 +194,7 @@ Route prefixes such as `/v2` name a UI layout, not a release. Never read them as
 ## Conventions
 
 - Always create a matching rollback SQL file alongside every forward Supabase migration, using the same migration filename with `_reverse` appended before `.sql` and placing it in `supabase/rollback/`. Keep rollback scripts out of `supabase/migrations/` so Supabase does not apply them as forward migrations.
-- Keep the pipeline separated: raw Scryfall data enters through the hooks and client, `normalizeCard.js` maps it, renderer components consume the normalized shape only.
+- Keep the pipeline separated: raw Scryfall data enters through the hooks and client, `normalizeCard.ts` maps it, renderer components consume the normalized shape only.
 - Use `createApiClient` for Scryfall card/list endpoints. Auxiliary URL hooks use direct `fetch`; keep their query-key conventions when extending.
 - Be gentle with Scryfall: no request loops or bursts. Check Scryfall's API docs for current rate-limit and header requirements before adding new fetch patterns.
 - Keep new UI aligned with the tokens in `src/theme.css` and the component-local CSS pattern.

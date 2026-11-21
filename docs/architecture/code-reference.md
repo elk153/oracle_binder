@@ -144,23 +144,24 @@ static brand assets and are not React components.
 
 | File | Purpose and public contract |
 |---|---|
-| [`src/features/scryfall-card-renderer/CardRenderer.jsx`](../../src/features/scryfall-card-renderer/CardRenderer.jsx) | Default card renderer; selects a layout-specific component using normalized card data. |
-| [`src/features/scryfall-card-renderer/normalizeCard.js`](../../src/features/scryfall-card-renderer/normalizeCard.js) | Exports `normalizeCard`; maps raw Scryfall records to renderer shape. |
-| [`src/features/scryfall-card-renderer/scryfallCardLayouts.js`](../../src/features/scryfall-card-renderer/scryfallCardLayouts.js) | Exports layout/shape constants and `getCardRenderConfig`; maps Scryfall layouts to renderer behavior. |
-| [`src/features/scryfall-card-renderer/components/CardFrame.jsx`](../../src/features/scryfall-card-renderer/components/CardFrame.jsx) | Exports `CardFaceMetadata` and default `CardFrame`; common face image/text frame. |
-| [`src/features/scryfall-card-renderer/components/OneFaceCard.jsx`](../../src/features/scryfall-card-renderer/components/OneFaceCard.jsx) | Single-face card layout. |
-| [`src/features/scryfall-card-renderer/components/FlipVerticalCard.jsx`](../../src/features/scryfall-card-renderer/components/FlipVerticalCard.jsx) | Vertical flip-card layout. |
-| [`src/features/scryfall-card-renderer/components/MeldCard.jsx`](../../src/features/scryfall-card-renderer/components/MeldCard.jsx) | Meld-card layout and related-card lookup. |
-| [`src/features/scryfall-card-renderer/components/SplitFacesCard.jsx`](../../src/features/scryfall-card-renderer/components/SplitFacesCard.jsx) | Split/adventure-style card layout. |
-| [`src/features/scryfall-card-renderer/components/ToggleFacesCard.jsx`](../../src/features/scryfall-card-renderer/components/ToggleFacesCard.jsx) | Transform/modal double-faced card layout. |
-| [`src/features/scryfall-card-renderer/components/OracleText.jsx`](../../src/features/scryfall-card-renderer/components/OracleText.jsx) | Renderer adapter for symbol-aware Oracle text. |
-| [`src/features/scryfall-card-renderer/components/extras/CardExtras.jsx`](../../src/features/scryfall-card-renderer/components/extras/CardExtras.jsx) | Selects layout-specific supplemental text widgets. |
-| [`src/features/scryfall-card-renderer/components/extras/CaseSections.jsx`](../../src/features/scryfall-card-renderer/components/extras/CaseSections.jsx) | Case-card section display. |
-| [`src/features/scryfall-card-renderer/components/extras/ClassLevels.jsx`](../../src/features/scryfall-card-renderer/components/extras/ClassLevels.jsx) | Class-card level display. |
-| [`src/features/scryfall-card-renderer/components/extras/LevelerStats.jsx`](../../src/features/scryfall-card-renderer/components/extras/LevelerStats.jsx) | Leveler-card level/stat display. |
-| [`src/features/scryfall-card-renderer/components/extras/MutateBanner.jsx`](../../src/features/scryfall-card-renderer/components/extras/MutateBanner.jsx) | Mutate-card supplemental text. |
-| [`src/features/scryfall-card-renderer/components/extras/PrototypeBanner.jsx`](../../src/features/scryfall-card-renderer/components/extras/PrototypeBanner.jsx) | Prototype-card supplemental text. |
-| [`src/features/scryfall-card-renderer/components/extras/SagaTracker.jsx`](../../src/features/scryfall-card-renderer/components/extras/SagaTracker.jsx) | Saga chapter display. |
+| [`src/features/scryfall-card-renderer/CardRenderer.tsx`](../../src/features/scryfall-card-renderer/CardRenderer.tsx) | Default card renderer; selects a layout-specific component using normalized card data. |
+| [`src/features/scryfall-card-renderer/normalizeCard.ts`](../../src/features/scryfall-card-renderer/normalizeCard.ts) | Exports `normalizeCard`; maps raw Scryfall records to renderer shape. |
+| [`src/features/scryfall-card-renderer/scryfallCardLayouts.ts`](../../src/features/scryfall-card-renderer/scryfallCardLayouts.ts) | Exports layout/shape constants and `getCardRenderConfig`; maps Scryfall layouts to renderer behavior. |
+| [`src/features/scryfall-card-renderer/types.ts`](../../src/features/scryfall-card-renderer/types.ts) | Renderer-owned types: raw input (`RawScryfallCard`, only the fields `normalizeCard` reads), normalized output (`NormalizedCard`, `NormalizedFace`), `FaceRotation`, `ShapeComponentProps`. |
+| [`src/features/scryfall-card-renderer/components/CardFrame.tsx`](../../src/features/scryfall-card-renderer/components/CardFrame.tsx) | Exports `CardFaceMetadata` and default `CardFrame`; common face image/text frame. |
+| [`src/features/scryfall-card-renderer/components/OneFaceCard.tsx`](../../src/features/scryfall-card-renderer/components/OneFaceCard.tsx) | Single-face card layout. |
+| [`src/features/scryfall-card-renderer/components/FlipVerticalCard.tsx`](../../src/features/scryfall-card-renderer/components/FlipVerticalCard.tsx) | Vertical flip-card layout. |
+| [`src/features/scryfall-card-renderer/components/MeldCard.tsx`](../../src/features/scryfall-card-renderer/components/MeldCard.tsx) | Meld-card layout; a meld piece shows the meld result (name, then image via `useScryfallCardsSearch`), the result lists its pieces. |
+| [`src/features/scryfall-card-renderer/components/SplitFacesCard.tsx`](../../src/features/scryfall-card-renderer/components/SplitFacesCard.tsx) | Split/adventure-style card layout. |
+| [`src/features/scryfall-card-renderer/components/ToggleFacesCard.tsx`](../../src/features/scryfall-card-renderer/components/ToggleFacesCard.tsx) | Transform/modal double-faced card layout. |
+| [`src/features/scryfall-card-renderer/components/OracleText.tsx`](../../src/features/scryfall-card-renderer/components/OracleText.tsx) | Renderer adapter for symbol-aware Oracle text. |
+| [`src/features/scryfall-card-renderer/components/extras/CardExtras.tsx`](../../src/features/scryfall-card-renderer/components/extras/CardExtras.tsx) | Selects layout-specific supplemental text widgets. |
+| [`src/features/scryfall-card-renderer/components/extras/CaseSections.tsx`](../../src/features/scryfall-card-renderer/components/extras/CaseSections.tsx) | Case-card section display. |
+| [`src/features/scryfall-card-renderer/components/extras/ClassLevels.tsx`](../../src/features/scryfall-card-renderer/components/extras/ClassLevels.tsx) | Class-card level display. |
+| [`src/features/scryfall-card-renderer/components/extras/LevelerStats.tsx`](../../src/features/scryfall-card-renderer/components/extras/LevelerStats.tsx) | Leveler-card level/stat display. |
+| [`src/features/scryfall-card-renderer/components/extras/MutateBanner.tsx`](../../src/features/scryfall-card-renderer/components/extras/MutateBanner.tsx) | Mutate-card supplemental text. |
+| [`src/features/scryfall-card-renderer/components/extras/PrototypeBanner.tsx`](../../src/features/scryfall-card-renderer/components/extras/PrototypeBanner.tsx) | Prototype-card supplemental text. |
+| [`src/features/scryfall-card-renderer/components/extras/SagaTracker.tsx`](../../src/features/scryfall-card-renderer/components/extras/SagaTracker.tsx) | Saga chapter display. |
 
 ## Shared hooks, services, and generated types
 
