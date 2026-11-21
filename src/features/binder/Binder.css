@@ -157,15 +157,6 @@
   resize: vertical;
 }
 
-.binder-copy-form input:focus-visible,
-.binder-copy-form select:focus-visible,
-.binder-copy-form textarea:focus-visible,
-.binder-copy-form button:focus-visible,
-.binder-dialog__header button:focus-visible {
-  outline: 2px solid var(--text-accent);
-  outline-offset: 2px;
-}
-
 .binder-copy-form__actions,
 .binder-copy-popover__actions {
   display: flex;

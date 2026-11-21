@@ -1,3 +1,11 @@
+/* ==========================================================================
+   splash.css
+   Linked directly from index.html, so it loads before the app bundle and
+   tokens.css. Holds the page reset, the #root fade-in and the splash screen
+   (the .visible and .ready class handshake with the app). It keeps its own
+   literal values and var() fallbacks because the tokens may not be loaded yet.
+   ========================================================================== */
+
 body {
   /* Reset default margins so the container doesn't create scrollbars */
   margin: 0;

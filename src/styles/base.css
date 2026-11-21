@@ -1,0 +1,35 @@
+/* ==========================================================================
+   base.css
+   App-wide element rules, imported by main.tsx right after tokens.css and
+   before any component CSS, so component rules win ties. Only four rules live
+   here: body text size, the keyboard focus ring and reduced motion.
+   ========================================================================== */
+
+body {
+  font-size: 19px;
+}
+
+@media (max-width: 480px) {
+  body {
+    font-size: 16px;
+  }
+}
+
+/* One focus ring for every control. Components only override it when they
+   need a different offset or must beat a more specific outline rule. */
+:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* !important is allowed here only: component transitions and animations are
+   more specific and would otherwise win. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

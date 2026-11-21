@@ -103,9 +103,3 @@
     transform: translate(-50%, 160%);
   }
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .card-filters--floating {
-    transition: opacity var(--duration-fast) ease;
-  }
-}

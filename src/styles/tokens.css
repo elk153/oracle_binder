@@ -5,8 +5,8 @@
    and identity colors); the data-theme blocks hold what changes with the theme.
    Component CSS uses these through var(); it does not hard-code colors,
    global z-index values, corner radii or the two shared durations.
-   Only style.css (the splash screen, which loads before this file) keeps its
-   own literal values.
+   Only styles/splash.css (the splash screen, which loads before this file)
+   keeps its own literal values.
    ========================================================================== */
 
 :root {
@@ -25,6 +25,9 @@
   /* Motion: the two durations used more than once */
   --duration-fast: 0.2s;
   --duration-slow: 0.5s;
+
+  /* Focus: the keyboard focus ring drawn by base.css; components that repeat it use this token */
+  --focus-ring: 2px solid var(--text-accent);
 
   /* Stacking: global layers, lowest to highest. Local 0-2 values stay in components. */
   --z-filters: 90;

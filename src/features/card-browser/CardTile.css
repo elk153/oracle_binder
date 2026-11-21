@@ -17,7 +17,6 @@
 
 .browser-card__media:focus-visible,
 .browser-card__action:focus-visible {
-  outline: 2px solid var(--text-accent);
   outline-offset: 3px;
 }
 
@@ -34,8 +33,9 @@
   outline-offset: -3px;
 }
 
+/* Repeats the ring: the dashed proxy outline above is more specific than the global :focus-visible rule. */
 .browser-card--proxy .browser-card__media:focus-visible {
-  outline: 2px solid var(--text-accent);
+  outline: var(--focus-ring);
   outline-offset: 3px;
 }
 
@@ -201,10 +201,4 @@
   opacity: 1;
   filter: drop-shadow(0 0 5px var(--text-accent));
   box-shadow: 0 0 12px color-mix(in srgb, var(--text-accent) 42%, transparent);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .browser-card__action {
-    transition: none;
-  }
 }

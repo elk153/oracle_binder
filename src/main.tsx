@@ -1,7 +1,9 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import AppProviders from "./app/AppProviders.tsx";
+// Global CSS first, so component CSS imported by the app comes later and wins ties.
 import "./styles/tokens.css";
+import "./styles/base.css";
+import AppProviders from "./app/AppProviders.tsx";
 
 const container = document.getElementById("root");
 

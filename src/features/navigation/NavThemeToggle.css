@@ -32,11 +32,6 @@
     0 0 14px color-mix(in srgb, var(--text-accent) 30%, transparent);
 }
 
-.nav-theme-toggle:focus-visible {
-  outline: 2px solid var(--text-accent);
-  outline-offset: 2px;
-}
-
 /* Same "lit up" look as a selected nav item, shown on hover and focus. */
 .nav-theme-toggle:hover .nc-trace,
 .nav-theme-toggle:focus-visible .nc-trace {

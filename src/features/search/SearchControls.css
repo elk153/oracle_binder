@@ -48,11 +48,6 @@
   font: 0.9rem var(--font-ui);
 }
 
-.name-autocomplete input:focus-visible {
-  outline: 2px solid var(--text-accent);
-  outline-offset: 2px;
-}
-
 .search-controls__form > button {
   min-height: 2.5rem;
   padding: 0.5rem 1rem;
@@ -66,11 +61,6 @@
 
 .search-controls__form > button:hover {
   background: var(--btn-gold-hover);
-}
-
-.search-controls__form > button:focus-visible {
-  outline: 2px solid var(--text-accent);
-  outline-offset: 2px;
 }
 
 .search-controls__mode {
@@ -96,11 +86,6 @@
 .search-controls__mode button[aria-pressed="true"] {
   color: var(--bg-header);
   background: var(--btn-gold);
-}
-
-.search-controls__mode button:focus-visible {
-  outline: 2px solid var(--text-accent);
-  outline-offset: 2px;
 }
 
 .search-controls__source .search-source-toggle {

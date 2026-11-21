@@ -75,7 +75,7 @@
 }
 
 .binder-form__swatch input:focus-visible + .binder-form__chip {
-  outline: 2px solid var(--text-accent);
+  outline: var(--focus-ring);
   outline-offset: 4px;
 }
 

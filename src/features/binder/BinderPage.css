@@ -111,11 +111,8 @@
   transform: translateY(-3px);
 }
 
+/* The global reduced-motion rule in base.css shortens the transition but does not cancel the hover lift. */
 @media (prefers-reduced-motion: reduce) {
-  .binder-page .binder-page__binder-cover {
-    transition: none;
-  }
-
   .binder-page .binder-page__binder-cover:hover {
     transform: none;
   }
@@ -180,7 +177,6 @@
 }
 
 .binder-page__binder-cover:focus-visible {
-  outline: 2px solid var(--text-accent);
   outline-offset: 3px;
 }
 

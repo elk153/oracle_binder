@@ -9,7 +9,7 @@ Keep this reference aligned with the source when moving or adding modules.
 
 | File | Purpose and public contract |
 | --- | --- |
-| [`src/main.tsx`](../../src/main.tsx) | Browser entry: validates `#root`, imports global theme CSS, and mounts `AppProviders` under `StrictMode`. |
+| [`src/main.tsx`](../../src/main.tsx) | Browser entry: validates `#root`, imports the global CSS (`tokens.css`, then `base.css`) before the app, and mounts `AppProviders` under `StrictMode`. |
 | [`src/app/router.tsx`](../../src/app/router.tsx) | Defines redirects, the `/v2` layout, public routes, and `RequireAuth`-protected routes; default-exports the router. |
 | [`src/app/App.tsx`](../../src/app/App.tsx) | V2 shell and splash transition; prefetches Scryfall symbols, sets, and card-name catalog. Exports `App` and route elements `Home`, `Favorites`, `Binder`, and `Decks`. |
 | [`src/app/AppProviders.tsx`](../../src/app/AppProviders.tsx) | Composes theme, query persistence/devtools, auth, and router providers; default-exports `AppProviders`. |
@@ -185,4 +185,6 @@ static brand assets and are not React components.
 | File | Responsibility |
 | --- | --- |
 | [`src/styles/tokens.css`](../../src/styles/tokens.css) | Design tokens: dark/light theme colors, shape, motion, global z-index layers and identity colors. |
+| [`src/styles/base.css`](../../src/styles/base.css) | App-wide element rules imported after the tokens: body text size, the global `:focus-visible` ring and the reduced-motion rule. |
+| [`src/styles/splash.css`](../../src/styles/splash.css) | Linked from `index.html`, loads before the app: page reset, `#root` fade-in and the splash screen, with its own literal values. |
 | [`src/app/App.css`](../../src/app/App.css) | V2 shell, main content spacing, placeholder page, and theme-specific navbar integration. |
