@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useEffectEvent, useRef } from "react";
+import type { ReactNode } from "react";
 import useCamera from "./useCamera.ts";
 import type { CameraErrorReason } from "./useCamera.ts";
 import GuideFrame from "./GuideFrame.tsx";
@@ -67,11 +68,15 @@ type ScanCameraProps = {
   // Called once a printing has been found and shown as found for a moment.
   // The page decides what happens next (D-063 Identify, D-064 Add).
   onFound?: (card: CardBrowserCard) => void;
+  // Drawn over the camera view, e.g. the Add mode's confirm step (D-064).
+  // The camera stays mounted underneath, so a found card is not offered
+  // again until it has left the frame.
+  overlay?: ReactNode;
 };
 
 // The live rear-camera view of the scanner (D-061), with the guide frame over
 // it and the same guidance as text under it.
-export default function ScanCamera({ onFound }: ScanCameraProps) {
+export default function ScanCamera({ onFound, overlay }: ScanCameraProps) {
   const { state, retry } = useCamera();
   const videoRef = useRef<HTMLVideoElement>(null);
   const stream = state.status === "live" ? state.stream : null;
@@ -144,6 +149,7 @@ export default function ScanCamera({ onFound }: ScanCameraProps) {
           aria-label="Camera view"
         />
         {state.status === "live" && <GuideFrame status={guideStatus} />}
+        {overlay && <div className="scan-camera__overlay">{overlay}</div>}
         {state.status === "starting" && (
           <p className="scan-camera__status" aria-live="polite">
             Starting the camera…

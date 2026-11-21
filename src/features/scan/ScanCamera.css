@@ -60,3 +60,13 @@
   color: var(--text-primary);
   text-align: center;
 }
+
+/* Content drawn over the camera, such as the Add mode's confirm step. It
+   scrolls when it is taller than the camera box. */
+.scan-camera__overlay {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  padding: 1rem;
+  background: color-mix(in srgb, var(--bg-main) 94%, transparent);
+}
