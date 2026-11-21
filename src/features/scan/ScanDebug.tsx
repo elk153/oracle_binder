@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { SteadyCapture, SteadyStatus } from "./useSteadyFrame.ts";
 import type { CollectorReading } from "./useCollectorReading.ts";
+import type { PrintingLookup } from "./usePrintingLookup.ts";
 import "./ScanDebug.css";
 
 type ScanDebugProps = {
@@ -8,15 +9,23 @@ type ScanDebugProps = {
   difference: number | null;
   capture: SteadyCapture | null;
   reading: CollectorReading;
+  lookup: PrintingLookup;
 };
 
 // Development-only panel for the recognition prototype (D-062): shows the
 // change value used for steady detection, the last two cut-out zones, and the
 // OCR result for the collector strip (cleaned-up image, raw text, parsed set
-// and number, confidence, timings), to tune the pipeline on a real phone.
+// and number, confidence, timings) and the Scryfall lookup, to tune the
+// pipeline on a real phone.
 // ScanCamera loads it only when import.meta.env.DEV is true, so it never
 // reaches production.
-export default function ScanDebug({ status, difference, capture, reading }: ScanDebugProps) {
+export default function ScanDebug({
+  status,
+  difference,
+  capture,
+  reading,
+  lookup,
+}: ScanDebugProps) {
   // Canvas → image URL once per capture, not on every render.
   const images = useMemo(
     () =>
@@ -63,6 +72,13 @@ export default function ScanDebug({ status, difference, capture, reading }: Scan
           </p>
         </>
       )}
+      <p className="scan-debug__line">Scryfall: {lookup.status}</p>
+      {lookup.status === "found" && (
+        <p className="scan-debug__line">
+          {lookup.card.name} · {lookup.card.set_name ?? lookup.card.set} #{lookup.card.collector_number}
+        </p>
+      )}
+      {lookup.status === "error" && <p className="scan-debug__line">{lookup.message}</p>}
     </section>
   );
 }

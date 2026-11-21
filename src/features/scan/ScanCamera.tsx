@@ -5,7 +5,11 @@ import GuideFrame from "./GuideFrame.tsx";
 import { GUIDE_INSTRUCTIONS } from "./guideFrame.ts";
 import type { GuideStatus } from "./guideFrame.ts";
 import useSteadyFrame from "./useSteadyFrame.ts";
+import type { SteadyStatus } from "./useSteadyFrame.ts";
 import useCollectorReading from "./useCollectorReading.ts";
+import type { CollectorReading } from "./useCollectorReading.ts";
+import usePrintingLookup from "./usePrintingLookup.ts";
+import type { PrintingLookup } from "./usePrintingLookup.ts";
 import "./ScanCamera.css";
 
 // The debug panel is loaded only in development. In a production build
@@ -33,6 +37,27 @@ const CAN_RETRY: Record<CameraErrorReason, boolean> = {
   unknown: true,
 };
 
+// What the guide frame shows, from the recognition stages (D-062):
+// still working → the collector zone is being read; a printing found → the
+// success state; a failed reading or lookup → back to aiming, so the user
+// adjusts the card (any movement triggers a new capture).
+function toGuideStatus(
+  steady: SteadyStatus,
+  reading: CollectorReading,
+  lookup: PrintingLookup,
+): GuideStatus {
+  if (steady !== "steady") {
+    return "aiming";
+  }
+  if (lookup.status === "found") {
+    return "found";
+  }
+  if (reading.status === "reading" || lookup.status === "loading") {
+    return "reading-collector";
+  }
+  return "aiming";
+}
+
 // The live rear-camera view of the scanner (D-061), with the guide frame over
 // it and the same guidance as text under it.
 export default function ScanCamera() {
@@ -53,10 +78,12 @@ export default function ScanCamera() {
   const isLive = state.status === "live";
   const steady = useSteadyFrame(videoRef, isLive);
   const reading = useCollectorReading(steady.capture, isLive);
-  // Prototype (D-062 stage 1): a steady card shows the collector zone as
-  // being read. The OCR stages will set the other statuses.
-  const guideStatus: GuideStatus =
-    steady.status === "steady" ? "reading-collector" : "aiming";
+  const lookup = usePrintingLookup(reading.status === "done" ? reading.parsed : null);
+  const guideStatus = toGuideStatus(steady.status, reading, lookup);
+  const instruction =
+    guideStatus === "found" && lookup.status === "found"
+      ? `Card found: ${lookup.card.name}.`
+      : GUIDE_INSTRUCTIONS[guideStatus];
 
   if (state.status === "error") {
     return (
@@ -95,7 +122,7 @@ export default function ScanCamera() {
       </div>
       {/* Read out by screen readers whenever the guidance changes. */}
       <p className="scan-camera__instruction" aria-live="polite">
-        {state.status === "live" ? GUIDE_INSTRUCTIONS[guideStatus] : ""}
+        {state.status === "live" ? instruction : ""}
       </p>
       {ScanDebug && state.status === "live" && (
         <Suspense fallback={null}>
@@ -104,6 +131,7 @@ export default function ScanCamera() {
             difference={steady.difference}
             capture={steady.capture}
             reading={reading}
+            lookup={lookup}
           />
         </Suspense>
       )}
