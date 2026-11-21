@@ -1,0 +1,29 @@
+/* Route error page (RouteErrorPage.tsx). It replaces the whole /v2 layout,
+   navbar included, so it only needs its own column. */
+.route-error__content {
+  display: grid;
+  justify-items: start;
+  gap: 1rem;
+  width: min(100%, 40rem);
+  margin: 0 auto;
+}
+
+.route-error__text {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.route-error__action {
+  text-decoration: none;
+}
+
+/* Development only: the error and its stack. */
+.route-error__details {
+  max-width: 100%;
+  margin: 0;
+  overflow-x: auto;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
