@@ -7,10 +7,51 @@ Release versions follow the CalVer policy in [AGENTS.md](./AGENTS.md).
 
 ## [Unreleased]
 
+## [2026.11.2] - 2026-11-21
+
+### Added
+
+- Advanced search on the Search page, for both Scryfall and the personal
+  collection: name, oracle text, type, flavor text, set, colors and color
+  identity (exactly, includes or at most), mana cost built from symbols,
+  format legality, rarity and EUR price range. Filters are kept in `s_` URL
+  parameters and applied when Search is pressed.
+- Collection search covers favorites, owned Binder copies and all deck
+  entries, with name search and filters and sorting by place (Binder or deck)
+  and kind (owned, proxy, virtual, favorite).
+- Card-name autocomplete for simple search and the advanced name and set
+  fields, after four characters and up to 20 suggestions.
+- Colored binder covers: each binder gets a color from a 12-color palette,
+  chosen in one dialog for creating and modifying a binder.
+- Meld cards show the other two cards of their meld trio (partner and result,
+  or both pieces) with images; clicking one opens its details.
+
 ### Changed
 
+- The Search page holds the source (Scryfall or collection) and mode (simple or
+  advanced) controls; the navbar no longer has a search field, and the theme
+  toggle sits between Decks and Logout. `/v2/search/advanced` redirects to
+  `/v2/search?s_mode=advanced`.
 - The Scryfall card-name catalog is no longer persisted in localStorage because
   the combined query cache exceeded the 2-million-character safety threshold.
+- Streamlined CSS on shared design tokens, with one keyboard focus ring and
+  one reduced-motion rule across the app; controls that showed the browser's
+  default focus outline now show the app's ring.
+- In the card details, mana costs render inline, and Binder and Decks can open
+  cards that are not in their own list (for example a meld partner).
+
+### Fixed
+
+- Controls inside the card overlay, filters and dialogs on the Binder and
+  Decks pages no longer pick up those pages' button and field styles.
+- Login error messages use the error color and their own spacing.
+- A transform card without faces no longer breaks the card renderer.
+
+### Database
+
+- Apply the Supabase migration `20261115163138_binder_color` (adds
+  `binders.color`) before deploying this release. Its rollback is
+  `supabase/rollback/20261115163138_binder_color_reverse.sql`.
 
 ## [2026.11.0] - 2026-11-07
 

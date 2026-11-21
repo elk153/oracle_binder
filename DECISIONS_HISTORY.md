@@ -440,7 +440,7 @@ Implemented and superseded decisions are retained here with their original IDs. 
 ## D-044: Search page shell, toggles and naming rule
 
 - Status: Implemented
-- Release: pending (on dev)
+- Release: v2026.11.2
 - Date: 2026-11-07
 - Decision: On `/v2/search`, `CardBrowserPage` (mode `search`) renders a new `SearchControls` (`src/features/search/`) in place of the header hint. It holds two toggles: source (`scryfall` | `collection`, default `scryfall`, param `source` unchanged) and search type (`simple` | `advanced`, default `simple`, param `s_mode`). The existing `SearchSourceToggle` is moved there, not rewritten.
 - Why: All searching lives in one page; `q`/`source` links keep working; the `s_` prefix and the "Search" vs "Filter & sort" titles stop search inputs and local filters from being confused.
@@ -451,7 +451,7 @@ Implemented and superseded decisions are retained here with their original IDs. 
 ## D-045: Navbar cleanup
 
 - Status: Implemented
-- Release: pending (on dev)
+- Release: v2026.11.2
 - Date: 2026-11-07
 - Decision: After D-044, remove the search field and source toggle from `NavBarDesktop.tsx` and `NavBarMobile.tsx`. The existing "Search" item in `navItems.ts` points to `search` instead of `search/advanced`. `NavThemeToggle` moves between Decks and Logout. Signed-out users still get the login prompt from protected pages, as today.
 - Why: Done after D-044 so search is never unreachable; home stays the landing page.
@@ -462,7 +462,7 @@ Implemented and superseded decisions are retained here with their original IDs. 
 ## D-046: Collection scope and name search
 
 - Status: Implemented
-- Release: pending (on dev)
+- Release: v2026.11.2
 - Date: 2026-11-07
 - Decision: With `source=collection`, results are the union of favorites (`favoriteIdList`), owned binder copies (`status === "owned"`) and deck entries of any kind (owned/proxy/virtual from `useDeckManagement`), built in `personalCardIds` in `useCardBrowserResults.ts` and hydrated by the existing `useScryfallCardsForIds("personal", …)`. Simple search applies the same case-insensitive name `includes` on `q` that is already used for favorites in Scryfall mode.
 - Why: Collection name search is not implemented today: the personal branch of `displayCards` returns every personal card and ignores `q`.
@@ -473,7 +473,7 @@ Implemented and superseded decisions are retained here with their original IDs. 
 ## D-047: Filter and sort by place and kind
 
 - Status: Implemented
-- Release: pending (on dev)
+- Release: v2026.11.2
 - Date: 2026-11-07
 - Decision: Extend `useCardsTable(cards, cardPlaces?)` with an optional `Map<scryfallId, {favorite, binders[], decks[{id, kind}]}>` built from the D-046 sources. New `FilterCategory` values `place` (binder or deck, multi-select) and `kind` (owned/proxy/virtual/favorite, multi-select) are added to `columns.ts`, `filterParams.ts` (`place`, `kind`) and `filterCategories.ts`. They show only when `cardPlaces` is passed. A new sort key `place` is added to `SORT_KEYS`.
 - Why: Reuses the TanStack Table and nuqs filter pipeline, so no separate filtering code exists for collection results.
@@ -484,7 +484,7 @@ Implemented and superseded decisions are retained here with their original IDs. 
 ## D-048: Card-name catalog prefetch (stale at 04:00)
 
 - Status: Implemented
-- Release: pending (on dev)
+- Release: v2026.11.2
 - Date: 2026-11-07
 - Decision: Prefetch `https://api.scryfall.com/catalog/card-names` once with `usePreFetchUrl` (data purpose `cardNames`), reading it with `useFetchUrl`. Stale time = until the next 04:00 local time, computed from `query.state.dataUpdatedAt` by a small helper. `staleTimeInSeconds` in both hooks accepts `number | ((query) => number)`.
 - Why: Avoids repeated Scryfall requests; the catalog has no fixed refresh cycle, so a fixed daily boundary is simplest. `createApiClient` cannot be used because it rejects a `data` array of strings. Measured size: 703,493 bytes (about 687 KB), small enough to keep the app's default persistence.
@@ -495,7 +495,7 @@ Implemented and superseded decisions are retained here with their original IDs. 
 ## D-049: Name autocomplete (native datalist)
 
 - Status: Implemented
-- Release: pending (on dev)
+- Release: v2026.11.2
 - Date: 2026-11-07
 - Decision: One reusable `NameAutocomplete` (`src/features/search/`) built on a native `<datalist>`, fed with a name list and showing at most 20 matches once the input has 4 or more characters. Sources: Scryfall card names (D-048, Scryfall source), collection card names (D-046, collection source), set names (`scryfallSets`, already prefetched).
 - Why: Simplest approach, no dependency; limiting the options keeps the browser fast with tens of thousands of names.
@@ -506,7 +506,7 @@ Implemented and superseded decisions are retained here with their original IDs. 
 ## D-050: Advanced filter model and Scryfall query builder
 
 - Status: Implemented
-- Release: pending (on dev)
+- Release: v2026.11.2
 - Date: 2026-11-07
 - Decision: One typed `AdvancedSearchFilters` object with nuqs parsers (all `s_`-prefixed): `s_name`, `s_text`, `s_type`, `s_flavor`, `s_colors` + `s_colors_op`, `s_identity` + `s_identity_op` (operators `exactly` | `includes` | `atmost`), `s_mana` (symbol sequence), `s_formats` (format + `legal` | `restricted` | `banned`), `s_rarity` (multi), `s_price_min`/`s_price_max` (EUR). A `toScryfallQuery(filters)` function builds the `q` string, passed to the existing `useScryfallCardPages`.
 - Why: One model feeds the form, the URL and the collection matcher (D-052); the prefix avoids collisions with `colors`, `rarity` and `type`.
@@ -517,7 +517,7 @@ Implemented and superseded decisions are retained here with their original IDs. 
 ## D-051: Advanced search form
 
 - Status: Implemented
-- Release: pending (on dev)
+- Release: v2026.11.2
 - Date: 2026-11-07
 - Decision: `AdvancedSearchForm` (`src/features/search/`), shown when `s_mode=advanced`, for both sources. Name and set fields reuse D-049. Text-on-card and mana cost use symbol dropdowns from the prefetched `cardSymbols` (symbol + meaning). Mana cost is a symbol builder that appends symbols (e.g. `{2}{U}{U}`) with a clear button. Colors and identity are multi-selects with an operator select.
 - Why: Reuses cached data and existing components.
@@ -528,7 +528,7 @@ Implemented and superseded decisions are retained here with their original IDs. 
 ## D-052: Advanced search over the collection
 
 - Status: Implemented
-- Release: pending (on dev)
+- Release: v2026.11.2
 - Date: 2026-11-07
 - Decision: With `source=collection`, `matchesAdvancedFilters(card, filters)` in `src/features/search/` applies the D-050 filters to the hydrated cards from D-046, mirroring each field of `toScryfallQuery`.
 - Why: The hydrated cards are already full Scryfall objects, so no schema change or migration is needed.
@@ -539,7 +539,7 @@ Implemented and superseded decisions are retained here with their original IDs. 
 ## D-053: Audit and streamline the project CSS
 
 - Status: Implemented
-- Release: pending (on dev)
+- Release: v2026.11.2
 - Date: 2026-11-21
 - Decision: Refactor in 7 small phases, one commit or PR each, on `feature/css-review`. Component CSS stays beside its component (existing rule); only proven duplicates move to shared files. Every phase must leave the app looking exactly the same. After every phase run `npm run build`, `npm run lint` (6 errors already exist and are the baseline), `npm run typecheck` and `node --experimental-strip-types --test "tests/**/*.test.ts"` (2 binder palette tests already fail and are the baseline). Phases 1 and 2 are also checked by a token-resolution comparison: resolve every `var()` for both themes and compare each selector's final declarations with the baseline. That check cannot see cascade-order or specificity changes, so phases 3 to 6 additionally need the developer to check, in a browser, the 4 pages (Search, Favorites, Binder, Decks) plus the card overlay in both themes at 390 px and 1280 px.
   - **0. Baseline (no code change):** recorded in "Why" below (taken on `feature/css-review` @ `266cc9d`, with `wc -l $(find src style.css -name "*.css")` and the raw and gzip size of `dist/assets/*.css` after `npm run build`). These numbers are the acceptance reference. Screenshots are taken by the developer and are not stored in the repository.
@@ -568,7 +568,7 @@ Implemented and superseded decisions are retained here with their original IDs. 
 ## D-054: Set filter and form details for advanced search
 
 - Status: Implemented
-- Release: pending (on dev)
+- Release: v2026.11.2
 - Date: 2026-11-08
 - Decision: Add `s_set` (a set code) to `AdvancedSearchFilters`, with a nuqs parser and a `set:<code>` term in `toScryfallQuery`. `AdvancedSearchForm` (D-051) shows set names through `NameAutocomplete` and converts the chosen name (or a typed code) to its code on submit; an unknown set shows an inline error and does not submit. The form keeps a local draft and writes the `s_` parameters through `useQueryStates` only when Search is pressed; Reset clears them all. Colors, identity and rarity are checkbox groups; formats are a format + status pair added as removable chips. The mana select lists only symbols with `appears_in_mana_costs` that pass `isValidManaSequence` (now exported); the text select lists every non-funny symbol. A new `useCardSymbols` hook reads the existing `cardSymbols` query.
 - Why: D-051 reuses the set autocomplete, but the D-050 model had no set field, and Scryfall's `set:` operator takes a code, not a name. Checkboxes avoid Ctrl-click on `<select multiple>`, which is awkward on mobile. Draft state keeps one request per search, as D-050 requires.
@@ -579,7 +579,7 @@ Implemented and superseded decisions are retained here with their original IDs. 
 ## D-055: Collection matcher semantics and tests
 
 - Status: Implemented
-- Release: pending (on dev)
+- Release: v2026.11.2
 - Date: 2026-11-08
 - Decision: `matchesAdvancedFilters(card, filters)` (D-052) mirrors `toScryfallQuery` field by field and shares its validators (`isValidSetCode`, `isValidManaSequence`, `isValidPrice`), so invalid input is ignored by both. Rules: name, type, flavor and oracle text are case-insensitive substrings; text and mana cost are checked on the card and on every face, and `~` in the oracle text is replaced by the card or face name; `set` compares `card.set` to the code; colors and identity use set equality, superset and subset (colors fall back to the front face, colorless passes "at most"); mana cost passes when the cost contains every chosen symbol at least as many times; `legal` accepts `legal` and `restricted`, `restricted` and `banned` are exact, and every chosen format must match; rarity is any of the chosen values; a card without a EUR price never passes a price bound. With no filters, every collection card is kept, like simple collection search with an empty name. `q` is ignored in advanced mode. Tests are a dependency-free `node:test` table in `tests/search/matchesAdvancedFilters.test.ts` that checks the query string and the kept cards for the same filters.
 - Why: Hydrated collection cards are full Scryfall objects, so a pure function avoids a migration and Scryfall's query length limits. Face-level text matching copies Scryfall, which matches any face; D-052 only said "fallback", which would miss back-face text. One shared table is the cheapest way to keep two implementations in sync without a framework. Two rules were verified on scryfall.com on 2026-11-08: `m:R` returns Char ({2}{R}), so `m:` means "contains at least"; `f:vintage` returns Black Lotus (restricted), so `f:` accepts restricted cards.
@@ -590,7 +590,7 @@ Implemented and superseded decisions are retained here with their original IDs. 
 ## D-056: Colored binder covers
 
 - Status: Implemented
-- Release: pending (on dev)
+- Release: v2026.11.2
 - Date: 2026-11-15
 - Decision: A binder cover on the Binder page no longer shows a card print. It keeps the card shape (488:680, rounded corners), is filled with the binder's color and shows the vector app logo (`/logo.svg` in an `<img>` with `alt=""`) centered; deck covers do not change. The color is stored in a new `binders.color` column as lowercase `#rrggbb` (`text not null default '#1f2a6b'`, check `^#[0-9a-f]{6}$`, plus `grant update (color)`) and is chosen in one dialog: the page keeps only a "Create binder" button, which opens a dialog asking for a name and a color, and "Rename" becomes "Modify", which opens the same dialog to change both. The picker offers 10 colors, Navy `#1f2a6b` (default, first), Forest `#1f4526`, Olive `#3f3d14`, Violet `#4a3766`, Magenta `#6b1f5e`, Wine `#5a1a2e`, Oxblood `#7a2a2a`, Rust `#6e3312`, Umber `#523823` and Espresso `#2e1f1a`, and the "Loose" tile uses the same cover with a fixed Graphite `#33302d` that is not editable and not in the palette.
 - Why: A color is quicker to scan than a card print that changes when the best card changes, and it gives the person a way to tell binders apart. Each palette color had to pass three checks against the logo: at least 3:1 contrast with the darkest logo gold (`#cb9131`), at least 3:1 with the darker sparkle teal (`#09a19f`), and a CIEDE2000 distance of at least 20 from both lens teals (`#067c85`, `#04505c`), so the lens does not vanish. The first two checks force dark colors, which also suits the dark teal theme. Storing hex lets a custom picker be added later without another migration. The grant is needed because updates on `binders` are granted per column: on a scratch PostgreSQL, removing it made a color update fail with "permission denied".
@@ -602,7 +602,7 @@ Implemented and superseded decisions are retained here with their original IDs. 
 ## D-057: Binder cover and dialog implementation
 
 - Status: Implemented
-- Release: pending (on dev)
+- Release: v2026.11.2
 - Date: 2026-11-15
 - Decision: D-056 is implemented with `binderColors.ts` (palette, default, fixed Loose color and a hex guard), `BinderCover.tsx` (a card-shaped color button with `<img src={BASE_URL + "logo.svg"} alt="">` at 76% of the cover width), and `BinderFormDialog.tsx` (one dialog for create and modify: a name field and a radio-group of named swatches). `useBinders` now has `createBinder({ name, color })` and `updateBinder({ id, name, color })`, which replaces `renameBinder`. The Binder page keeps one "Create binder" button, "Rename" becomes "Modify", `window.prompt` and the inline name field are gone, and `coverCard` with its rarity ranking is removed.
 - Why: The dialog holds a local draft and only `onSave` talks to the database, so a failed save keeps the dialog open with the message inline. Real radio inputs, visually hidden behind card-shaped chips with a check mark, give keyboard arrows and screen-reader names without relying on color alone. A color that is not in today's palette is kept as an extra "Current" swatch, so Modify never silently changes it. At 76% the drawing, which fills two thirds of `logo.svg`, is about half the cover width.
@@ -613,7 +613,7 @@ Implemented and superseded decisions are retained here with their original IDs. 
 ## D-058: Finish the TypeScript migration
 
 - Status: Implemented
-- Release: pending (on dev)
+- Release: v2026.11.2
 - Date: 2026-11-21
 - Decision: The last JavaScript in the app, the 17 files of `src/features/scryfall-card-renderer/` and `vite.config.js`, is converted to TypeScript, and `tsconfig.json` sets `allowJs: false` (with `checkJs` removed) and includes `vite.config.ts`. The renderer owns its types in `types.ts`: `RawScryfallCard`/`RawScryfallFace` list only the fields `normalizeCard` reads, and `NormalizedCard`/`NormalizedFace` describe the shape every component consumes. `scryfallCardLayouts.ts` builds each `LayoutConfig` (description plus `shape` and `faceRotations`) as a new object instead of mutating the description tables, and `CARD_SHAPES` is `as const` with a derived `CardShape` union, so `CardRenderer`'s `Record<CardShape, ...>` requires a component per shape. Bugs found during the conversion are fixed in separate commits: mana costs now pass `container="span"` to `OracleText` (the old `Component` prop was never read, so each cost rendered in a `<p>`); `SplitFacesCard` gets its missing list `key`, drops a `<p>` wrapped around the OracleText block and no longer reads the nonexistent `card.rotation`; the battle check in `normalizeCard` no longer throws on a transform card without faces; and the renderer's four debug `console.log` calls are removed. `MeldCard` replaces the never-passed `fetchCardByUri` prop with `useScryfallCardsSearch("cards/<id>")`: a meld piece shows "Melds into <name>" from `all_parts` right away and the result's image once loaded, and the meld result itself lists its pieces ("Melded from A and B"). `eslint.config.js` stays JavaScript.
 - Why: With `checkJs: false`, the renderer, the code that draws every card in the details overlay, was not type-checked at all, and the conversion immediately surfaced the bugs above. `allowJs: false` keeps the guarantee: importing a `.js` file from `src/` now fails `npm run typecheck` with TS7016 (checked with a throwaway file). Renderer-owned raw types keep the pipeline separation (raw data in, normalized shape out) without a dependency on `card-browser` types; TypeScript compares object types by structure, so `CardBrowserCard` is accepted unchanged. Building configs instead of mutating them gives each object a complete type from the start. The meld fetch was wired rather than deleted because the meld result's image was wanted, not just its name, which `all_parts` already provides; it uses the same query key format as the overlay's `cards/<id>` request, so the cache is shared. A real Scryfall response for Bruna, the Fading Light confirmed the `meld_result`/`meld_part` components and their `id` fields.
@@ -624,7 +624,7 @@ Implemented and superseded decisions are retained here with their original IDs. 
 ## D-059: Meld trio in the details overlay
 
 - Status: Implemented
-- Release: pending (on dev)
+- Release: v2026.11.2
 - Date: 2026-11-21
 - Decision: Each card of a meld trio shows the other two in the details overlay, and each opens its own overlay when clicked. A meld piece (e.g. Bruna, the Fading Light) shows its partner ("Melds with Gisela, the Broken Blade") and the result ("Melds into Brisela, Voice of Nightmares"); the result shows both pieces ("Melded from"). The names come from `all_parts` right away, and both images load in one Scryfall collection request through `useScryfallCardsForIds` (24 h cache). Opening a card goes through a new optional `onOpenCard(cardId)` prop that the page passes to `CardDetailsOverlay`, which passes it through `CardRenderer` to `MeldCard`. Search and Favorites set `?card=<id>`; Binder and Decks set their local `cardId` and now show the overlay for any card id, letting it fetch cards that are not in their list. This replaces the D-058 meld display (result only, one card fetched with `useScryfallCardsSearch`).
 - Why: The developer asked for every card in the trio to point at the other two. A callback prop keeps the renderer independent of routing and of each page's way of opening the overlay (URL or local state); without it, the related cards are shown but not clickable. Using the URL on Search and Favorites gives a working Back button for free. One collection request is lighter than one card request per related card, and `useScryfallCardsForIds` lives in `src/hooks/`, so the renderer no longer imports from `card-browser` (the trade-off D-058 accepted). A real Scryfall response for Gisela confirmed it lists the same trio as Bruna, with its own id as a `meld_part`.
