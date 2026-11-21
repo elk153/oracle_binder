@@ -65,3 +65,13 @@
   margin-top: 0.5rem;
   text-decoration: none;
 }
+
+/* Phones: keep "Change mode" beside the title instead of under it, as the
+   shared .page__heading does at this width, to leave more height for the
+   camera. Same specificity as layout.css, which loads earlier, so this wins. */
+@media (max-width: 540px) {
+  .scan-page__heading {
+    flex-direction: row;
+    align-items: center;
+  }
+}

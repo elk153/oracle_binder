@@ -17,24 +17,33 @@ export type Rect = {
 // the same value.
 export const VIEW_RATIO = 3 / 4;
 
-// A Magic card is 63 × 88 mm. The outline is 88% of the view height and
-// centered, which leaves the same margin on all four sides of a 3:4 box.
+// A Magic card is 63 × 88 mm.
 export const CARD_RATIO = 63 / 88;
 
+// The outline nearly fills the view (96% of its height), so the user holds
+// the card close and the small collector text gets enough camera pixels for
+// the OCR. Its width follows from the card shape: as a fraction of the view
+// width it is height × CARD_RATIO / VIEW_RATIO. Centered in both directions.
+const CARD_HEIGHT = 0.96;
+const CARD_WIDTH = (CARD_HEIGHT * CARD_RATIO) / VIEW_RATIO;
+
 export const CARD_RECT: Rect = {
-  x: 0.08,
-  y: 0.06,
-  width: 0.84,
-  height: 0.88,
+  x: (1 - CARD_WIDTH) / 2,
+  y: (1 - CARD_HEIGHT) / 2,
+  width: CARD_WIDTH,
+  height: CARD_HEIGHT,
 };
 
 // The info line at the bottom left: collector number, rarity, set code and
-// language on cards since Magic 2015.
+// language on cards since Magic 2015. Its two rows sit in the thick bottom
+// border, at about 94–99% of the card height; the zone starts a little above
+// to allow for a card held slightly off. (It was at 90–97.5%, which caught the
+// last line of rules text once the card filled the outline, 2026-11-21.)
 export const COLLECTOR_ZONE: Rect = {
-  x: 0.04,
-  y: 0.9,
-  width: 0.42,
-  height: 0.075,
+  x: 0.03,
+  y: 0.925,
+  width: 0.45,
+  height: 0.065,
 };
 
 // The name at the top left, stopping before the mana cost on the right.
@@ -54,7 +63,7 @@ export type GuideStatus =
   | "found";
 
 export const GUIDE_INSTRUCTIONS: Record<GuideStatus, string> = {
-  aiming: "Fit the card in the frame. Set and number in the lower box.",
+  aiming: "Hold the card close so it fills the frame. Set and number in the lower box.",
   "reading-collector": "Reading the set and number. Hold still.",
   "reading-title":
     "Can't read the set and number. Reading the card name in the top box.",
