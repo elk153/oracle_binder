@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { useAuth } from "../../app/AppProviders/AuthContext.ts";
+import ScanCamera from "./ScanCamera.tsx";
 import "./ScanPage.css";
 
 // The two scanner modes (D-061). The mode lives in the URL (?mode=), so a
@@ -37,7 +38,7 @@ export default function ScanPage() {
           Change mode
         </button>
       </div>
-      {mode === "add" ? <AddModeGate /> : <CameraPlaceholder />}
+      {mode === "add" ? <AddModeGate /> : <ScanCamera />}
     </section>
   );
 }
@@ -109,10 +110,5 @@ function AddModeGate() {
     );
   }
 
-  return <CameraPlaceholder />;
-}
-
-// Stand-in until the camera view is built (D-061 step 2).
-function CameraPlaceholder() {
-  return <p className="page__message">The camera view comes here.</p>;
+  return <ScanCamera />;
 }
