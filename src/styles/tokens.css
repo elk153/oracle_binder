@@ -1,0 +1,129 @@
+/* ==========================================================================
+   tokens.css
+   Every design value shared by more than one place. The first :root block holds
+   what is the same in both themes (fonts, sizes, shape, motion, stacking order
+   and identity colors); the data-theme blocks hold what changes with the theme.
+   Component CSS uses these through var(); it does not hard-code colors,
+   global z-index values, corner radii or the two shared durations.
+   Only styles/splash.css (the splash screen, which loads before this file)
+   keeps its own literal values.
+
+   Breakpoints (CSS variables cannot be used in media queries, so they are
+   listed here; use only these values in new @media rules):
+     480px          base.css: body text 19px -> 16px at 480px and below
+     540px          phones: full-width cards and covers, stacked page heading,
+                    full-width notice (layout.css, BinderPage.css, DecksPage.css)
+     760px          card details overlay switches to one scrolling column
+     860px / 861px  mobile <-> desktop: bottom navbar, floating filters at the
+                    bottom, page padding, fixed popovers (max-width: 860px /
+                    min-width: 861px, so the two never overlap)
+     1040px         desktop navbar hides its labels between 861px and 1040px
+   480, 760 and 1040 are one-offs kept on purpose (D-053 Phase 5); fold one
+   into 540 or 860 only after checking the change in a browser.
+   ========================================================================== */
+
+:root {
+  --font-display: "Cinzel", "Iowan Old Style", "Palatino Linotype", serif;
+  --font-ui: "Manrope", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --card-image-width: 250px;
+  --card-image-gap: 1.5rem;
+
+  /* Shape */
+  --control-radius: 999px;
+  --radius-sm: 8px;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-card: 4.5%; /* corner of a card or card-shaped cover, relative to its size */
+
+  /* Motion: the two durations used more than once */
+  --duration-fast: 0.2s;
+  --duration-slow: 0.5s;
+
+  /* Focus: the keyboard focus ring drawn by base.css; components that repeat it use this token */
+  --focus-ring: 2px solid var(--text-accent);
+
+  /* Stacking: global layers, lowest to highest. Local 0-2 values stay in components. */
+  --z-filters: 90;
+  --z-notice: 95;
+  --z-nav: 100;
+  --z-nav-notice: 101;
+  --z-popover: 105;
+  --z-overlay: 110;
+  --z-dialog: 120;
+
+  /* Colors that do not change with the theme */
+  --gold-fixed: #c5a059;  /* the dark-theme gold, for surfaces that keep it in the light theme */
+  --gold-deep: #805e24;   /* separator between card metadata items */
+  --highlight: #ffffff;   /* base of faint white highlights */
+  --text-error: #d65b54;
+  --bone-white: #e2ebd5;  /* the dark-theme text color, for text on surfaces that stay dark in both themes */
+
+  /* Mana colors (the color dots on a card) */
+  --mana-w: #f0e6c7;
+  --mana-u: #0077c8;
+  --mana-b: #29252a;
+  --mana-r: #d3202a;
+  --mana-g: #00733e;
+
+  /* Rarity pills on a card */
+  --rarity-common-text: #f5f5f5;
+  --rarity-common-border: #72777c;
+  --rarity-common-bg: #45494d;
+  --rarity-uncommon-text: #20252a;
+  --rarity-uncommon-border: #c4cbd0;
+  --rarity-uncommon-bg: #c4cbd0;
+  --rarity-rare-text: #332300;
+  --rarity-rare-border: #d7ad36;
+  --rarity-rare-bg: #e6c45b;
+  --rarity-mythic-text: #391306;
+  --rarity-mythic-border: #ee6b2c;
+  --rarity-mythic-bg: #f18a3d;
+  --rarity-special-border: #9c79c7;
+  --rarity-special-bg: #62447f;
+
+  --surface-border: color-mix(in srgb, var(--btn-gold) 28%, transparent);
+}
+
+:root[data-theme="dark"] {
+  /* Backgrounds */
+  --bg-main: #162a2b;         /* Deep Spectral Aquamarine (Swampy Trench) */
+  /* Sublayer (base) color behind the theme overlay - defaults to black */
+  --sublayer-bg: #000000;
+  --bg-header: #11161a;       /* Abyssal Dark Slate */
+  --bg-card: #1b2426;         /* Crypt Gray-Teal (Slightly lighter for contrast) */
+
+  /* Interactive Elements */
+  --btn-gold: #c5a059;        /* Antique Tarnished Gold */
+  --btn-gold-hover: #e0bb70;  /* Flashing Gold Signet */
+  
+  /* Typography */
+  --text-primary: #e2ebd5;    /* Bone White (Slightly green-tinted for sickness) */
+  --text-secondary: #8da399;  /* Ghostly Mist Gray */
+  --text-accent: #4ef2d2;     /* Raw Eerie Aquamarine (Used sparingly for glowing text) */
+  
+  /* 🪄 The Magic Feature: White Light Shadow */
+  --eerie-glow: 0 8px 24px -4px rgba(255, 255, 255, 0.18), 
+                0 2px 12px -2px rgba(78, 242, 210, 0.25);
+}
+
+:root[data-theme="light"] {
+  /* Backgrounds */
+  --bg-main: #e8edea;         /* Ashen Fog White (Slightly cold, washed-out green) */
+  /* Sublayer (base) color behind the theme overlay - defaults to black */
+  --sublayer-bg: #000000;
+  --bg-header: #e3eae6;       /* Soft lichen surface */
+  --bg-card: #d5dfd9;         /* Muted moss surface */
+  
+  /* Interactive Elements */
+  --btn-gold: #a67c37;        /* Sunken Ochre Gold (Darker to read well on light backgrounds) */
+  --btn-gold-hover: #805e24;
+  
+  /* Typography */
+  --text-primary: #121a1d;    /* Dried Ink Slate */
+  --text-secondary: #34463e;  /* Deep lichen green for readable supporting text */
+  --text-accent: #006b56;     /* Deep aquamarine for readable highlights */
+  
+  /* 🪄 The Light Mode Dark Halo Shadow */
+--eerie-glow: 0 8px 24px -4px rgba(0, 0, 0, 0.36),
+              0 2px 12px -2px rgba(15, 23, 42, 0.44);
+}

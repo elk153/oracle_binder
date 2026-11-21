@@ -1,3 +1,5 @@
+> **Note (D-053):** this page records how the palette was designed. The live values are in `src/styles/tokens.css`, which is the source of truth; the CSS blocks below are the original proposal and may differ. The CSS rules (tokens only, class selectors, no `!important`) are in `docs/file-conventions.md` and checked by `npm run lint:css`.
+
 To achieve a genuinely eerie, dark magic, Magic: The Gathering (Innistrad/Phyrexia) atmosphere while starting from high-saturation colors like aquamarine and gold, we have to lean heavily into sickly, desaturated, or subterranean tones. Pure, bright aquamarine feels like a tropical beach; to make it eerie, we must push it toward a swampy, cold, or spectral "ghost-light" hue.
 
 The twist here is your requirement for a "white light" shadow (box-shadow with a bright white/cyan glow instead of dark black). To make white shadows look like a supernatural, eerie emission of light rather than a UI glitch, the surrounding backgrounds must be dark or severely muted so the glow actually "pops."

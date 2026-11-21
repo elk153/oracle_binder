@@ -13,11 +13,6 @@
   cursor: pointer;
 }
 
-.search-source-toggle:focus-visible {
-  outline: 2px solid var(--text-accent);
-  outline-offset: 2px;
-}
-
 .search-source-toggle__track {
   display: flex;
   align-items: center;
@@ -26,7 +21,7 @@
   padding: 0.1rem;
   border-radius: var(--control-radius);
   background: var(--text-secondary);
-  transition: background-color 0.2s ease;
+  transition: background-color var(--duration-fast) ease;
 }
 
 .search-source-toggle[aria-checked="true"] .search-source-toggle__track {
@@ -38,16 +33,9 @@
   height: 0.8rem;
   border-radius: 50%;
   background: var(--bg-header);
-  transition: transform 0.2s ease;
+  transition: transform var(--duration-fast) ease;
 }
 
 .search-source-toggle[aria-checked="true"] .search-source-toggle__thumb {
   transform: translateX(0.8rem);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .search-source-toggle__track,
-  .search-source-toggle__thumb {
-    transition: none;
-  }
 }

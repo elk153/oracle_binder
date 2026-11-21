@@ -144,14 +144,15 @@ export default function BinderCopyForm({
   }
 
   return (
-    <form className="binder-copy-form" onSubmit={submit}>
-      <label>
+    <form className="binder-fields binder-copy-form" onSubmit={submit}>
+      <label className="field field--soft">
         Card
-        <input value={cardName} readOnly />
+        <input className="field__input field__input--soft" value={cardName} readOnly />
       </label>
-      <label>
+      <label className="field field--soft">
         Storage location
         <select
+          className="field__input field__input--soft"
           value={storageLocation}
           onChange={(event) => setStorageLocation(event.currentTarget.value)}
         >
@@ -181,9 +182,10 @@ export default function BinderCopyForm({
         </select>
       </label>
       {initialCopy ? (
-        <label>
+        <label className="field field--soft">
           Status
           <select
+            className="field__input field__input--soft"
             value={status}
             onChange={(event) => setStatus(event.currentTarget.value)}
           >
@@ -195,14 +197,15 @@ export default function BinderCopyForm({
           </select>
         </label>
       ) : (
-        <label>
+        <label className="field field--soft">
           Status
-          <input value="Owned" readOnly />
+          <input className="field__input field__input--soft" value="Owned" readOnly />
         </label>
       )}
-      <label>
+      <label className="field field--soft">
         Acquisition type
         <select
+          className="field__input field__input--soft"
           value={acquisitionType}
           onChange={(event) => setAcquisitionType(event.currentTarget.value)}
         >
@@ -214,9 +217,10 @@ export default function BinderCopyForm({
           ))}
         </select>
       </label>
-      <label>
+      <label className="field field--soft">
         Acquisition format
         <select
+          className="field__input field__input--soft"
           value={acquisitionFormat}
           onChange={(event) => setAcquisitionFormat(event.currentTarget.value)}
         >
@@ -228,9 +232,10 @@ export default function BinderCopyForm({
           ))}
         </select>
       </label>
-      <label>
+      <label className="field field--soft">
         Condition
         <select
+          className="field__input field__input--soft"
           value={condition}
           onChange={(event) => setCondition(event.currentTarget.value)}
         >
@@ -242,9 +247,10 @@ export default function BinderCopyForm({
           ))}
         </select>
       </label>
-      <label>
+      <label className="field field--soft">
         Finish
         <select
+          className="field__input field__input--soft"
           value={finish}
           onChange={(event) => setFinish(event.currentTarget.value)}
         >
@@ -256,9 +262,10 @@ export default function BinderCopyForm({
           ))}
         </select>
       </label>
-      <label>
+      <label className="field field--soft">
         Language
         <select
+          className="field__input field__input--soft"
           value={language}
           onChange={(event) => setLanguage(event.currentTarget.value)}
         >
@@ -270,41 +277,42 @@ export default function BinderCopyForm({
           ))}
         </select>
       </label>
-      <label>
+      <label className="field field--soft">
         Purchase price (EUR)
         <span className="binder-copy-form__price">
           <input
-            className="binder-copy-form__price-input"
+            className="field__input field__input--soft binder-copy-form__price-input"
             type="number"
             min="0"
             step="0.01"
             value={purchasePrice}
             onChange={(event) => setPurchasePrice(event.currentTarget.value)}
           />
-          <span aria-hidden="true">EUR</span>
+          <span className="binder-copy-form__price-unit" aria-hidden="true">EUR</span>
         </span>
       </label>
-      <label>
+      <label className="field field--soft">
         Acquired
         <input
+          className="field__input field__input--soft binder-copy-form__date"
           type="date"
           value={acquiredAt}
           onChange={(e) => setAcquiredAt(e.currentTarget.value)}
         />
       </label>
-      <label>
+      <label className="field field--soft">
         Location
-        <input value={location} onChange={(e) => setLocation(e.currentTarget.value)} />
+        <input className="field__input field__input--soft" value={location} onChange={(e) => setLocation(e.currentTarget.value)} />
       </label>
-      <label>
+      <label className="field field--soft">
         Notes
-        <textarea value={notes} onChange={(e) => setNotes(e.currentTarget.value)} rows={2} />
+        <textarea className="field__input field__input--soft binder-copy-form__notes" value={notes} onChange={(e) => setNotes(e.currentTarget.value)} rows={2} />
       </label>
-      <div className="binder-copy-form__actions">
-        <button type="submit" disabled={isSaving}>
+      <div className="binder-actions">
+        <button type="submit" className="binder-button binder-button--primary" disabled={isSaving}>
           {isSaving ? "Saving…" : "Save copy"}
         </button>
-        <button type="button" onClick={onCancel} disabled={isSaving}>
+        <button type="button" className="binder-button" onClick={onCancel} disabled={isSaving}>
           Cancel
         </button>
       </div>

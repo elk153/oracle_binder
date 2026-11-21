@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
+    "lint:css": "stylelint \"src/**/*.css\"",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit"
   },
@@ -32,6 +33,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
+    "stylelint": "^18.1.0",
     "supabase": "^2.122.0",
     "typescript": "~6.0.0",
     "typescript-eslint": "^8.36.0",

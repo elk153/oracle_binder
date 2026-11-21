@@ -341,7 +341,7 @@ export default function CardTile({
         }`}
       >
         {image ? (
-          <img src={image} alt={imageAlt} loading="lazy" />
+          <img className="browser-card__image" src={image} alt={imageAlt} loading="lazy" />
         ) : (
           <span className="browser-card__placeholder" role="img" aria-label={card.name}>
             Card image unavailable

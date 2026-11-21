@@ -167,7 +167,7 @@ export default function CardDetailsOverlay({
       aria-label={`Details for ${title}`}
     >
       <header className="card-detail-overlay__toolbar">
-        <h2>{title}</h2>
+        <h2 className="card-detail-overlay__title">{title}</h2>
         <button
           ref={closeButtonRef}
           type="button"
@@ -218,6 +218,7 @@ export default function CardDetailsOverlay({
             {nextFace && (
               <div className="card-detail__flip-control">
                 <button
+                  className="card-detail__flip-button"
                   type="button"
                   aria-label={`Flip to ${nextFace.name}`}
                   onClick={() => setFaceIndex((index) => (index + 1) % faces.length)}
@@ -236,7 +237,7 @@ export default function CardDetailsOverlay({
             </div>
 
             <section className="card-detail__section">
-              <h3>Rulings</h3>
+              <h3 className="card-detail__section-title">Rulings</h3>
               {rulingsQuery.isLoading && <p role="status">Loading rulings…</p>}
               {rulingsQuery.error && (
                 <p className="card-detail__error" role="alert">
@@ -247,20 +248,20 @@ export default function CardDetailsOverlay({
                 <ul className="card-detail__rulings">
                   {(rulingsQuery.data ?? []).length > 0 ? (
                     rulingsQuery.data?.map(({ id, source, date, ruling }, index) => (
-                      <li key={`${id}-${date}-${index}`}>
+                      <li key={`${id}-${date}-${index}`} className="card-detail__ruling">
                         <OracleText text={ruling} container="span" />
                         <em>{` (${source}, ${date})`}</em>
                       </li>
                     ))
                   ) : (
-                    <li>None</li>
+                    <li className="card-detail__ruling">None</li>
                   )}
                 </ul>
               )}
             </section>
 
             <section className="card-detail__section">
-              <h3>Legalities</h3>
+              <h3 className="card-detail__section-title">Legalities</h3>
               <div className="card-detail__legalities">
                 {Object.entries(displayCard.legalities ?? {}).map(([format, legality]) => (
                   <span
@@ -291,8 +292,8 @@ export default function CardDetailsOverlay({
                 {prints.map((print) => (
                   <article className="card-detail__print" key={print.id}>
                     <div className="card-detail__print-info">
-                      <h3>{print.set_name ?? "Unknown set"}</h3>
-                      <p>
+                      <h3 className="card-detail__print-name">{print.set_name ?? "Unknown set"}</h3>
+                      <p className="card-detail__print-meta">
                         {print.set?.toUpperCase() ?? "—"} / {print.collector_number ?? "—"}
                         {print.released_at ? ` · ${print.released_at}` : ""}
                       </p>

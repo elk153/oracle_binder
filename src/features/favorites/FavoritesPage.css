@@ -1,127 +1,23 @@
-.favorites-page {
-  box-sizing: border-box;
-  width: 100%;
-  min-height: 100vh;
-  padding: 8.5rem 1rem 2rem;
-}
+/* Page shell, card grid, messages, pagination and notice: src/styles/layout.css. */
 
 .favorites-page__heading {
   width: min(100%, 75rem);
   margin: 0 auto 1.5rem;
 }
 
-.favorites-page__heading h1 {
-  margin: 0;
-  color: var(--text-accent);
-  font-size: clamp(1.25rem, 2.5vw, 1.8rem);
+/* For the commented-out h1 in FavoritesPage.tsx, used with .page__title. */
+.favorites-page__title {
   text-align: center;
 }
 
-.favorites-page__list {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--card-image-gap);
-  width: min(100%, 80rem);
-  margin: 0 auto;
-}
-
-.favorites-page__list .browser-card {
-  flex-basis: calc(var(--card-image-width) + 1.45rem);
-  width: calc(var(--card-image-width) + 1.45rem);
-}
-
+/* Narrower than .page__message, with a bottom margin of its own. */
 .favorites-page__message {
   width: min(100%, 75rem);
-  margin: 2rem auto;
-  color: var(--text-secondary);
-  text-align: center;
-}
-
-.favorites-page__message--error {
-  color: var(--text-accent);
-}
-
-.favorites-page__pagination {
-  display: flex;
-  justify-content: center;
-  width: min(100%, 80rem);
-  margin: 1.5rem auto;
-}
-
-.favorites-page__pagination button {
-  min-height: 2.75rem;
-  padding: 0.65rem 1.25rem;
-  border: 1px solid var(--surface-border);
-  border-radius: var(--control-radius);
-  color: var(--bg-main);
-  background: var(--btn-gold);
-  font: inherit;
-  cursor: pointer;
-}
-
-.favorites-page__pagination button:hover:not(:disabled) {
-  background: var(--btn-gold-hover);
-}
-
-.favorites-page__pagination button:focus-visible {
-  outline: 2px solid var(--text-accent);
-  outline-offset: 3px;
-}
-
-.favorites-page__pagination button:disabled {
-  cursor: wait;
-  opacity: 0.7;
-}
-
-.favorites-page__notice {
-  position: fixed;
-  z-index: 95;
-  right: 1rem;
-  bottom: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  max-width: calc(100vw - 2rem);
-  margin: 0;
-  padding: 0.7rem 1rem;
-  border: 1px solid var(--surface-border);
-  border-radius: var(--control-radius);
-  color: var(--text-primary);
-  background: var(--bg-card);
-  box-shadow: var(--eerie-glow);
-  font: 0.85rem var(--font-ui);
-}
-
-.favorites-page__notice button {
-  border: 0;
-  color: var(--text-accent);
-  background: transparent;
-  font: inherit;
-  text-decoration: underline;
-  cursor: pointer;
+  margin-bottom: 2rem;
 }
 
 @media (max-width: 860px) {
-  .favorites-page {
-    padding: 1rem 0.75rem 12rem;
-  }
-
   .favorites-page__list {
     gap: 1rem;
-  }
-}
-
-@media (max-width: 540px) {
-  .favorites-page__list .browser-card {
-    flex-basis: min(calc(var(--card-image-width) + 1.45rem), calc(100vw - 1.5rem));
-    width: min(calc(var(--card-image-width) + 1.45rem), calc(100vw - 1.5rem));
-  }
-
-  .favorites-page__notice {
-    right: 0.5rem;
-    bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
-    left: 0.5rem;
-    justify-content: space-between;
   }
 }

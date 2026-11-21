@@ -85,6 +85,7 @@ export default function CardFilters({
         <div className="card-filters__group" role="group" aria-label="Colors">
           {COLORS.map((color) => (
             <button
+              className="card-filters__control"
               key={color}
               type="button"
               aria-label={COLOR_LABELS[color]}
@@ -102,6 +103,7 @@ export default function CardFilters({
         <div className="card-filters__group" role="group" aria-label="Rarity">
           {RARITIES.map((rarity) => (
             <button
+              className="card-filters__control"
               key={rarity}
               type="button"
               aria-pressed={filters.rarity.includes(rarity)}
@@ -115,6 +117,7 @@ export default function CardFilters({
 
       {categories.includes("type") && (
         <input
+          className="card-filters__control"
           type="search"
           placeholder="Type (e.g. creature)"
           aria-label="Filter by card type"
@@ -127,6 +130,7 @@ export default function CardFilters({
         <div className="card-filters__group" role="group" aria-label="Place">
           {placeOptions.map(([value, label]) => (
             <button
+              className="card-filters__control"
               key={value}
               type="button"
               aria-pressed={filters.place.includes(value)}
@@ -144,6 +148,7 @@ export default function CardFilters({
         <div className="card-filters__group" role="group" aria-label="Kind">
           {CARD_KINDS.map((kind) => (
             <button
+              className="card-filters__control"
               key={kind}
               type="button"
               aria-pressed={filters.kind.includes(kind)}
@@ -160,6 +165,7 @@ export default function CardFilters({
       {categories.includes("sort") && (
         <div className="card-filters__group">
           <select
+            className="card-filters__control"
             aria-label="Sort by"
             value={activeSort ?? ""}
             onChange={(e) =>
@@ -174,6 +180,7 @@ export default function CardFilters({
             ))}
           </select>
           <button
+            className="card-filters__control"
             type="button"
             disabled={!activeSort}
             aria-label={`Sort ${filters.dir === "asc" ? "descending" : "ascending"}`}
@@ -186,7 +193,7 @@ export default function CardFilters({
 
       <p className="card-filters__count">
         {shown} of {total} cards
-        <button type="button" onClick={onReset}>
+        <button className="card-filters__control" type="button" onClick={onReset}>
           Clear
         </button>
       </p>

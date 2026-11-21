@@ -1,7 +1,7 @@
 # V2 Navigation — desktop header + mobile floating bar
 
 The V2 navbar renders a desktop header and a mobile floating bar, with one
-shared visual language driven by the tokens in `src/theme.css`.
+shared visual language driven by the tokens in `src/styles/tokens.css`.
 
 ## Files
 
@@ -81,12 +81,14 @@ system-safe if you don't.
   `/v2` layout, so its relative search destinations resolve under `/v2`.
 - **Search behavior:** searching is handled on `/v2/search`; the navbar only
   provides a route link.
-- **Breakpoint:** 861px is the desktop/mobile split (matches common
-  tablet-portrait cutoffs). Change the `min-width` in both CSS files if
-  your app uses a different one.
-- **`color-mix()`** is used for glow opacity blending — supported in all
-  current evergreen browsers. If you need older Safari support, swap
-  those for precomputed `rgba()` values.
+- **Breakpoints:** 861px is the desktop/mobile split, and the desktop bar
+  hides its labels between 861px and 1040px. The app's full breakpoint list
+  is in the `src/styles/tokens.css` header; keep the navbar files in line
+  with it.
+- **`color-mix()`** is used for glow opacity blending — supported by the
+  browsers the build targets. Do not swap it for `rgba()` values: colors
+  outside `tokens.css` are not allowed (`npm run lint:css`); add a token
+  instead.
 
 ## Usage
 
@@ -104,9 +106,6 @@ function AppV2() {
 }
 ```
 
-Since both bars are `position: fixed`, give your main content wrapper
-top/bottom padding so it doesn't sit underneath either bar, e.g.:
-
-```css
-main { padding-top: 5.5rem; padding-bottom: 5rem; }
-```
+Since both bars are `position: fixed`, the page content needs top and bottom
+padding so it doesn't sit underneath either bar. In this app `.app-v2__main`
+(`src/app/App.css`) and `.page` (`src/styles/layout.css`) provide it.

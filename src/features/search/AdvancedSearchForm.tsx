@@ -283,9 +283,10 @@ export default function AdvancedSearchForm({
           )}
         </div>
 
-        <label className="advanced-search__field">
+        <label className="field">
           <span>Type line</span>
           <input
+            className="field__input"
             type="text"
             placeholder="e.g. legendary creature"
             value={draft.type}
@@ -293,18 +294,20 @@ export default function AdvancedSearchForm({
           />
         </label>
 
-        <label className="advanced-search__field">
+        <label className="field">
           <span>Flavor text</span>
           <input
+            className="field__input"
             type="text"
             value={draft.flavor}
             onChange={(event) => update({ flavor: event.currentTarget.value })}
           />
         </label>
 
-        <label className="advanced-search__field">
+        <label className="field">
           <span>Text on card</span>
           <input
+            className="field__input"
             type="text"
             placeholder="e.g. draw a card"
             value={draft.text}
@@ -312,9 +315,10 @@ export default function AdvancedSearchForm({
           />
         </label>
 
-        <label className="advanced-search__field">
+        <label className="field">
           <span>Insert a symbol in the text</span>
           <select
+            className="field__input"
             value=""
             disabled={textSymbols.length === 0}
             onChange={(event) =>
@@ -330,7 +334,7 @@ export default function AdvancedSearchForm({
           </select>
         </label>
 
-        <div className="advanced-search__field">
+        <div className="field">
           <span id="advanced-mana-label">Mana cost</span>
           <div className="advanced-search__mana">
             <output
@@ -353,6 +357,7 @@ export default function AdvancedSearchForm({
             </button>
           </div>
           <select
+            className="field__input"
             aria-labelledby="advanced-mana-label"
             value=""
             disabled={manaSymbols.length === 0}
@@ -368,10 +373,10 @@ export default function AdvancedSearchForm({
         </div>
 
         <fieldset className="advanced-search__fieldset">
-          <legend>Colors</legend>
+          <legend className="advanced-search__legend">Colors</legend>
           <div className="advanced-search__options">
             {ADVANCED_COLORS.map((color) => (
-              <label key={color}>
+              <label key={color} className="advanced-search__option">
                 <input
                   type="checkbox"
                   checked={draft.colors.includes(color)}
@@ -383,9 +388,10 @@ export default function AdvancedSearchForm({
               </label>
             ))}
           </div>
-          <label className="advanced-search__field">
+          <label className="field">
             <span>Match</span>
             <select
+              className="field__input"
               value={draft.colorsOp}
               onChange={(event) => {
                 const colorsOp = findLiteral(
@@ -405,10 +411,10 @@ export default function AdvancedSearchForm({
         </fieldset>
 
         <fieldset className="advanced-search__fieldset">
-          <legend>Color identity</legend>
+          <legend className="advanced-search__legend">Color identity</legend>
           <div className="advanced-search__options">
             {ADVANCED_COLORS.map((color) => (
-              <label key={color}>
+              <label key={color} className="advanced-search__option">
                 <input
                   type="checkbox"
                   checked={draft.identity.includes(color)}
@@ -420,9 +426,10 @@ export default function AdvancedSearchForm({
               </label>
             ))}
           </div>
-          <label className="advanced-search__field">
+          <label className="field">
             <span>Match</span>
             <select
+              className="field__input"
               value={draft.identityOp}
               onChange={(event) => {
                 const identityOp = findLiteral(
@@ -442,10 +449,10 @@ export default function AdvancedSearchForm({
         </fieldset>
 
         <fieldset className="advanced-search__fieldset">
-          <legend>Rarity</legend>
+          <legend className="advanced-search__legend">Rarity</legend>
           <div className="advanced-search__options">
             {ADVANCED_RARITIES.map((rarity) => (
-              <label key={rarity} className="advanced-search__capitalize">
+              <label key={rarity} className="advanced-search__option advanced-search__capitalize">
                 <input
                   type="checkbox"
                   checked={draft.rarity.includes(rarity)}
@@ -460,11 +467,12 @@ export default function AdvancedSearchForm({
         </fieldset>
 
         <fieldset className="advanced-search__fieldset">
-          <legend>Price (EUR)</legend>
+          <legend className="advanced-search__legend">Price (EUR)</legend>
           <div className="advanced-search__prices">
-            <label className="advanced-search__field">
+            <label className="field advanced-search__grow">
               <span>Min</span>
               <input
+                className="field__input"
                 type="number"
                 min="0"
                 step="0.01"
@@ -475,9 +483,10 @@ export default function AdvancedSearchForm({
                 }
               />
             </label>
-            <label className="advanced-search__field">
+            <label className="field advanced-search__grow">
               <span>Max</span>
               <input
+                className="field__input"
                 type="number"
                 min="0"
                 step="0.01"
@@ -492,11 +501,12 @@ export default function AdvancedSearchForm({
         </fieldset>
 
         <fieldset className="advanced-search__fieldset advanced-search__fieldset--wide">
-          <legend>Format legality</legend>
+          <legend className="advanced-search__legend">Format legality</legend>
           <div className="advanced-search__formats">
-            <label className="advanced-search__field">
+            <label className="field advanced-search__grow">
               <span>Format</span>
               <select
+                className="field__input"
                 value={formatChoice}
                 onChange={(event) => setFormatChoice(event.currentTarget.value)}
               >
@@ -507,9 +517,10 @@ export default function AdvancedSearchForm({
                 ))}
               </select>
             </label>
-            <label className="advanced-search__field">
+            <label className="field advanced-search__grow">
               <span>Status</span>
               <select
+                className="field__input"
                 value={legalityChoice}
                 onChange={(event) =>
                   setLegalityChoice(event.currentTarget.value)
@@ -533,9 +544,10 @@ export default function AdvancedSearchForm({
           {draft.formats.length > 0 && (
             <ul className="advanced-search__chips" aria-label="Selected formats">
               {draft.formats.map((entry) => (
-                <li key={entry}>
+                <li key={entry} className="advanced-search__chip">
                   {entry.replace(":", " · ")}
                   <button
+                    className="advanced-search__chip-remove"
                     type="button"
                     aria-label={`Remove ${entry}`}
                     onClick={() =>

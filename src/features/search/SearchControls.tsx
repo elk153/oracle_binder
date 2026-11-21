@@ -59,7 +59,7 @@ export default function SearchControls({
 
   return (
     <section className="search-controls" aria-labelledby="search-controls-title">
-      <h1 id="search-controls-title">Search</h1>
+      <h1 id="search-controls-title" className="search-controls__title">Search</h1>
       <div className="search-controls__toggles">
         <div className="search-controls__source" role="group" aria-label="Search source">
           <SearchSourceToggle value={searchSource} onToggle={setSource} />
@@ -69,6 +69,7 @@ export default function SearchControls({
             <button
               key={mode}
               type="button"
+              className="search-controls__mode-button"
               aria-pressed={searchMode === mode}
               onClick={() => setMode(mode)}
             >
@@ -85,7 +86,7 @@ export default function SearchControls({
             value={query}
             onChange={setQuery}
           />
-          <button type="submit">Search</button>
+          <button type="submit" className="search-controls__submit">Search</button>
         </form>
       )}
       {searchMode === "simple" && nameSuggestionsError && (

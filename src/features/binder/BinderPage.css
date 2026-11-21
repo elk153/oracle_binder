@@ -1,122 +1,48 @@
-.binder-page {
-  box-sizing: border-box;
-  width: 100%;
-  min-height: 100vh;
-  padding: 8.5rem 1rem 2rem;
-}
+/* Page shell, heading, toolbar, controls, card and cover grids, messages and notice: src/styles/layout.css. */
 
-.binder-page__heading,
-.binder-page__toolbar,
-.binder-page__binders,
-.binder-page__list,
-.binder-page__message {
+.binder-page__binders {
+  display: grid;
+  gap: 1rem;
   width: min(100%, 80rem);
   margin-right: auto;
   margin-left: auto;
 }
 
-.binder-page__heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.25rem;
-}
-
-.binder-page__heading h1 {
-  margin: 0;
-  color: var(--text-accent);
-  font-size: clamp(1.25rem, 2.5vw, 1.8rem);
-}
-
 .binder-page__view-switch,
-.binder-page__toolbar,
-.binder-page__create,
-.binder-page__binder-actions {
+.binder-page__create {
   display: flex;
   flex-wrap: wrap;
   align-items: end;
   gap: 0.6rem;
 }
 
-.binder-page button,
-.binder-page select,
-.binder-page input {
-  min-height: 2.5rem;
-  padding: 0.45rem 0.7rem;
-  border: 1px solid var(--surface-border);
-  border-radius: var(--control-radius);
-  color: var(--text-primary);
-  background: var(--bg-card);
-  font: 0.9rem var(--font-ui);
-}
-
-.binder-page button {
-  cursor: pointer;
-}
-
-.binder-page button[aria-pressed="true"] {
-  border-color: var(--text-accent);
-  color: var(--text-accent);
-}
-
-.binder-page__toolbar label {
-  display: grid;
-  gap: 0.25rem;
-  color: var(--text-secondary);
-  font: 0.78rem var(--font-ui);
-}
-
-.binder-page__binders {
-  display: grid;
-  gap: 1rem;
-}
-
-.binder-page__create {
-  align-items: end;
-}
-
-.binder-page__binder-grid {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--card-image-gap);
-  width: min(100%, 80rem);
-  margin: 0 auto;
-}
-
-.binder-page__binder-card {
-  flex: 0 0 calc(var(--card-image-width) + 1.45rem);
-  width: calc(var(--card-image-width) + 1.45rem);
-}
-
 /* D-056: the fill color is set inline from the binder's `color`. */
-.binder-page .binder-page__binder-cover {
+.binder-page__binder-cover {
   display: grid;
   width: var(--card-image-width);
   aspect-ratio: 488 / 680;
   place-items: center;
   overflow: hidden;
-  min-height: 0;
   margin: 0 auto;
   padding: 0;
   border: 1px solid var(--surface-border);
-  border-radius: 4.5%;
-  box-shadow: 0 8px 20px -10px rgb(0 0 0 / 0.6);
+  border-radius: var(--radius-card);
+  box-shadow: 0 8px 20px -10px color-mix(in srgb, var(--sublayer-bg) 60%, transparent);
   cursor: pointer;
   transition: transform 0.15s ease;
 }
 
-.binder-page .binder-page__binder-cover:hover {
+.binder-page__binder-cover:hover {
   transform: translateY(-3px);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .binder-page .binder-page__binder-cover {
-    transition: none;
-  }
+.binder-page__binder-cover:focus-visible {
+  outline-offset: 3px;
+}
 
-  .binder-page .binder-page__binder-cover:hover {
+/* The global reduced-motion rule in base.css shortens the transition but does not cancel the hover lift. */
+@media (prefers-reduced-motion: reduce) {
+  .binder-page__binder-cover:hover {
     transform: none;
   }
 }
@@ -129,24 +55,7 @@
   user-select: none;
 }
 
-.binder-page .browser-card__media {
-  min-height: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 4.5%;
-  background: transparent;
-}
-
-.binder-page .browser-card__action {
-  min-height: 0;
-  padding: 0.4rem;
-  border: 1px solid color-mix(in srgb, var(--text-accent) 75%, transparent);
-  border-radius: 50%;
-  color: var(--text-accent);
-  background: color-mix(in srgb, var(--bg-main) 78%, transparent);
-}
-
-.binder-page__binder-card h2 {
+.binder-page__binder-name {
   overflow-wrap: anywhere;
   margin: 0.6rem 0 0.25rem;
   color: var(--text-primary);
@@ -154,57 +63,15 @@
   text-align: center;
 }
 
-.binder-page__binder-card p {
+.binder-page__binder-count {
   margin: 0 0 0.5rem;
   color: var(--text-secondary);
   font-size: 0.8rem;
   text-align: center;
 }
 
-.binder-page__binder-actions {
-  justify-content: center;
-}
-
-.binder-page__binder-actions button {
-  min-height: 2rem;
-  padding: 0.35rem 0.65rem;
-  border-radius: 999px;
-  color: var(--text-secondary);
-  background: transparent;
-  font-size: 0.78rem;
-}
-
-.binder-page__binder-actions button:hover {
-  border-color: var(--text-accent);
-  color: var(--text-accent);
-}
-
-.binder-page__binder-cover:focus-visible {
-  outline: 2px solid var(--text-accent);
-  outline-offset: 3px;
-}
-
-
-
-.binder-page__toolbar {
-  justify-content: center;
-  margin-bottom: 1rem;
-}
-
-.binder-page__list {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--card-image-gap);
-}
-
 .binder-page__card {
   position: relative;
-}
-
-.binder-page__list .browser-card {
-  flex-basis: calc(var(--card-image-width) + 1.45rem);
-  width: calc(var(--card-image-width) + 1.45rem);
 }
 
 .binder-page__select {
@@ -217,77 +84,12 @@
   font: 0.72rem var(--font-ui);
 }
 
-.binder-page__select input {
-  min-height: auto;
+.binder-page__select-input {
   accent-color: var(--text-accent);
 }
 
-.binder-page__message {
-  margin-top: 2rem;
-  color: var(--text-secondary);
-  text-align: center;
-}
-
-.binder-page__message--error {
-  color: var(--text-accent);
-}
-
-.binder-page__notice {
-  position: fixed;
-  z-index: 95;
-  right: 1rem;
-  bottom: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  max-width: calc(100vw - 2rem);
-  margin: 0;
-  padding: 0.7rem 1rem;
-  border: 1px solid var(--surface-border);
-  border-radius: var(--control-radius);
-  color: var(--text-primary);
-  background: var(--bg-card);
-  box-shadow: var(--eerie-glow);
-  font: 0.85rem var(--font-ui);
-}
-
-.binder-page__notice button {
-  border: 0;
-  color: var(--text-accent);
-  background: transparent;
-  text-decoration: underline;
-}
-
-@media (max-width: 860px) {
-  .binder-page {
-    padding: 1rem 0.75rem 12rem;
-  }
-}
-
 @media (max-width: 540px) {
-  .binder-page__heading {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .binder-page__list .browser-card {
-    flex-basis: min(calc(var(--card-image-width) + 1.45rem), calc(100vw - 1.5rem));
-    width: min(calc(var(--card-image-width) + 1.45rem), calc(100vw - 1.5rem));
-  }
-
-  .binder-page__binder-card {
-    flex-basis: min(calc(var(--card-image-width) + 1.45rem), calc(100vw - 1.5rem));
-    width: min(calc(var(--card-image-width) + 1.45rem), calc(100vw - 1.5rem));
-  }
-
-  .binder-page .binder-page__binder-cover {
+  .binder-page__binder-cover {
     width: min(var(--card-image-width), calc(100vw - 2.95rem));
-  }
-
-  .binder-page__notice {
-    right: 0.5rem;
-    bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
-    left: 0.5rem;
-    justify-content: space-between;
   }
 }

@@ -1,3 +1,11 @@
+/* ==========================================================================
+   splash.css
+   Linked directly from index.html, so it loads before the app bundle and
+   tokens.css. Holds the page reset, the #root fade-in and the splash screen
+   (the .visible and .ready class handshake with the app). It keeps its own
+   literal values and var() fallbacks because the tokens may not be loaded yet.
+   ========================================================================== */
+
 body {
   /* Reset default margins so the container doesn't create scrollbars */
   margin: 0;
@@ -70,6 +78,8 @@ body {
   box-shadow: 0 20px 35px -5px rgba(255, 255, 255, 0.25), /* Ambient Layer */
               0 10px 15px -8px rgba(255, 255, 255, 0.3); /* Core Edge Layer */
   
+  /* The faint glow of the pulse's resting state; the bright part is .splash-background::before. */
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.2));
   animation: pulse 3s ease-in-out infinite;
 
   cursor: not-allowed;
@@ -85,6 +95,7 @@ body {
   border-radius: 0;
   animation: none;
   box-shadow: none;
+  filter: none;
 }
 
 .splash-logo img {
@@ -117,17 +128,50 @@ body {
   display: block;
 }
 
+/* Pulsing glow behind the logo (D-053 Phase 6). Only its opacity and transform
+   animate, which the browser composites without repainting; the old pulse
+   animated filter: drop-shadow, which repaints every frame. z-index -1 keeps it
+   behind the logo inside the splash's stacking context. No transition here:
+   App.tsx listens for the background's opacity transitionend, and a transition
+   on this pseudo-element would fire it too. */
+.splash-background::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: 50%;
+  left: 50%;
+  width: 50vmin;
+  height: 50vmin;
+  border-radius: 24px;
+  box-shadow: 0 0 25px rgba(255, 255, 255, 0.6);
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  animation: pulse-glow 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.splash-background.ready::before {
+  animation: none;
+}
+
 @keyframes pulse {
-  0% {
-    transform: scale(1);
-    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.2));
-  }
-  50% {
-    transform: scale(1.04); /* Scales up slightly (6% larger) */
-    filter: drop-shadow(0 0 25px rgba(255, 255, 255, 0.6)); /* Glow intensifies */
-  }
+  0%,
   100% {
     transform: scale(1);
-    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.2));
+  }
+  50% {
+    transform: scale(1.04); /* Scales up slightly (4% larger) */
+  }
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    opacity: 1; /* Glow intensifies */
+    transform: translate(-50%, -50%) scale(1.04);
   }
 }

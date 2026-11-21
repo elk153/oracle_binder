@@ -117,56 +117,56 @@ export default function FavoritesPage() {
   }
 
   return (
-    <section className="favorites-page">
+    <section className="page favorites-page">
       <header className="favorites-page__heading">
-        {/*<h1>Favorites</h1>*/}
+        {/*<h1 className="page__title favorites-page__title">Favorites</h1>*/}
       </header>
 
       {favoriteSource.isLoading && (
-        <p className="favorites-page__message" role="status">
+        <p className="page__message favorites-page__message" role="status">
           Loading your favorites…
         </p>
       )}
 
       {favoriteSource.error && (
-        <p className="favorites-page__message favorites-page__message--error" role="alert">
+        <p className="page__message page__message--error favorites-page__message" role="alert">
           Could not load favorites: {favoriteSource.error.message}
         </p>
       )}
 
       {favoriteIdsError && (
-        <p className="favorites-page__message favorites-page__message--error" role="alert">
+        <p className="page__message page__message--error favorites-page__message" role="alert">
           Could not load favorite status: {favoriteIdsError.message}
         </p>
       )}
       {favoritesRealtimeError && (
-        <p className="favorites-page__message favorites-page__message--error" role="alert">
+        <p className="page__message page__message--error favorites-page__message" role="alert">
           Favorites updates from other devices may be delayed: {favoritesRealtimeError.message}
         </p>
       )}
       {binder.realtimeError && (
-        <p className="favorites-page__message favorites-page__message--error" role="alert">
+        <p className="page__message page__message--error favorites-page__message" role="alert">
           Updates from other devices may be delayed: {binder.realtimeError.message}
         </p>
       )}
       {binder.copies.error && (
-        <p className="favorites-page__message favorites-page__message--error" role="alert">
+        <p className="page__message page__message--error favorites-page__message" role="alert">
           Could not load Binder copies: {binder.copies.error.message}
         </p>
       )}
       {binder.bindersError && (
-        <p className="favorites-page__message favorites-page__message--error" role="alert">
+        <p className="page__message page__message--error favorites-page__message" role="alert">
           Could not load binders: {binder.bindersError.message}
         </p>
       )}
       {decks.error && (
-        <p className="favorites-page__message favorites-page__message--error" role="alert">
+        <p className="page__message page__message--error favorites-page__message" role="alert">
           Could not load decks: {decks.error.message}
         </p>
       )}
 
       {invalidCardData && (
-        <p className="favorites-page__message favorites-page__message--error" role="alert">
+        <p className="page__message page__message--error favorites-page__message" role="alert">
           Scryfall returned card data in an unexpected format.
         </p>
       )}
@@ -175,7 +175,7 @@ export default function FavoritesPage() {
         !favoriteSource.error &&
         !invalidCardData &&
         cards.length === 0 && (
-          <p className="favorites-page__message">
+          <p className="page__message favorites-page__message">
             No available cards were found in your favorites.
           </p>
         )}
@@ -191,7 +191,7 @@ export default function FavoritesPage() {
             feature="search"
             layout="floating"
           />
-          <div className="favorites-page__list" aria-label="Favorite cards">
+          <div className="card-grid favorites-page__list" aria-label="Favorite cards">
             {filteredCards.map((card) => (
               <CardTile
                 key={card.id}
@@ -223,7 +223,7 @@ export default function FavoritesPage() {
             ))}
           </div>
           {rows.length === 0 && (
-            <p className="favorites-page__message">
+            <p className="page__message favorites-page__message">
               No favorites match these filters.
             </p>
           )}
@@ -231,9 +231,10 @@ export default function FavoritesPage() {
       )}
 
       {(favoriteSource.hasNextPage || favoriteSource.error) && (
-        <div className="favorites-page__pagination">
+        <div className="pagination">
           <button
             type="button"
+            className="pagination__button"
             onClick={favoriteSource.error ? favoriteSource.retry : favoriteSource.fetchNextPage}
             disabled={favoriteSource.isFetchingNextPage}
           >
@@ -247,9 +248,9 @@ export default function FavoritesPage() {
       )}
 
       {notice && (
-        <div className="favorites-page__notice" role="status">
+        <div className="page__notice" role="status">
           <span>{notice}</span>
-          <button type="button" onClick={() => setNotice("")}>
+          <button type="button" className="page__notice-action" onClick={() => setNotice("")}>
             Dismiss
           </button>
         </div>

@@ -1,0 +1,224 @@
+/* ==========================================================================
+   layout.css
+   Page layout classes shared by the Search, Favorites, Binder and Decks pages
+   (D-053 Phase 3). Imported by main.tsx after base.css and before any
+   component CSS. It is not in a cascade layer: an unlayered rule such as
+   CardTile.css's `.browser-card` would beat every layered rule. Component CSS
+   adjusts these classes by being more specific or by coming later.
+   ========================================================================== */
+
+/* Page shell; the top padding clears the fixed desktop navbar. */
+.page {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 100vh;
+  padding: 8.5rem 1rem 2rem;
+}
+
+/* Heading bar with the page title on the left and controls on the right. */
+.page__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: min(100%, 80rem);
+  margin-right: auto;
+  margin-bottom: 1.25rem;
+  margin-left: auto;
+}
+
+.page__title {
+  margin: 0;
+  color: var(--text-accent);
+  font-size: clamp(1.25rem, 2.5vw, 1.8rem);
+}
+
+.page__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: center;
+  gap: 0.6rem;
+  width: min(100%, 80rem);
+  margin-right: auto;
+  margin-bottom: 1rem;
+  margin-left: auto;
+}
+
+/* Status and error text; it keeps the paragraph's own bottom margin. */
+.page__message {
+  width: min(100%, 80rem);
+  margin-top: 2rem;
+  margin-right: auto;
+  margin-left: auto;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.page__message--error {
+  color: var(--text-accent);
+}
+
+/* Toast in the bottom-right corner. */
+.page__notice {
+  position: fixed;
+  z-index: var(--z-notice);
+  right: 1rem;
+  bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: calc(100vw - 2rem);
+  margin: 0;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--control-radius);
+  color: var(--text-primary);
+  background: var(--bg-card);
+  box-shadow: var(--eerie-glow);
+  font: 0.85rem var(--font-ui);
+}
+
+/* Text-style link or button inside the notice. */
+.page__notice-action {
+  border: 0;
+  color: var(--text-accent);
+  background: transparent;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Buttons, selects and inputs of the Binder and Decks pages themselves.
+   Buttons add .page__button. Components rendered inside a page (filters,
+   dialogs, the card overlay) keep their own control styles. */
+.page__control {
+  min-height: 2.5rem;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--control-radius);
+  color: var(--text-primary);
+  background: var(--bg-card);
+  font: 0.9rem var(--font-ui);
+}
+
+.page__button {
+  cursor: pointer;
+}
+
+.page__button[aria-pressed="true"] {
+  border-color: var(--text-accent);
+  color: var(--text-accent);
+}
+
+/* Small caption above a toolbar or form control. */
+.page__label {
+  display: grid;
+  gap: 0.25rem;
+  color: var(--text-secondary);
+  font: 0.78rem var(--font-ui);
+}
+
+/* Modify / Rename / Delete row under a binder or deck cover. */
+.page__card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: center;
+  gap: 0.6rem;
+}
+
+/* Used together with .page__control and .page__button, so it comes after them. */
+.page__card-action {
+  min-height: 2rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--control-radius);
+  color: var(--text-secondary);
+  background: transparent;
+  font-size: 0.78rem;
+}
+
+.page__card-action:hover {
+  border-color: var(--text-accent);
+  color: var(--text-accent);
+}
+
+/* Wrapping list of card tiles, or of binder and deck covers. */
+.card-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--card-image-gap);
+  width: min(100%, 80rem);
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.card-grid .browser-card {
+  flex-basis: calc(var(--card-image-width) + 1.45rem);
+  width: calc(var(--card-image-width) + 1.45rem);
+}
+
+/* One binder or deck in a .card-grid of covers. */
+.page__cover-card {
+  flex: 0 0 calc(var(--card-image-width) + 1.45rem);
+  width: calc(var(--card-image-width) + 1.45rem);
+}
+
+/* "Load more" row below a card grid. */
+.pagination {
+  display: flex;
+  justify-content: center;
+  width: min(100%, 80rem);
+  margin: 1.5rem auto;
+}
+
+.pagination__button {
+  min-height: 2.75rem;
+  padding: 0.65rem 1.25rem;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--control-radius);
+  color: var(--bg-main);
+  background: var(--btn-gold);
+  font: inherit;
+  cursor: pointer;
+}
+
+.pagination__button:hover:not(:disabled) {
+  background: var(--btn-gold-hover);
+}
+
+.pagination__button:focus-visible {
+  outline-offset: 3px;
+}
+
+.pagination__button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+@media (max-width: 860px) {
+  .page {
+    padding: 1rem 0.75rem 12rem;
+  }
+}
+
+@media (max-width: 540px) {
+  .page__heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .card-grid .browser-card,
+  .page__cover-card {
+    flex-basis: min(calc(var(--card-image-width) + 1.45rem), calc(100vw - 1.5rem));
+    width: min(calc(var(--card-image-width) + 1.45rem), calc(100vw - 1.5rem));
+  }
+
+  .page__notice {
+    right: 0.5rem;
+    bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+    left: 0.5rem;
+    justify-content: space-between;
+  }
+}

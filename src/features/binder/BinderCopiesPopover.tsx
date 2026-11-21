@@ -63,17 +63,18 @@ export default function BinderCopiesPopover({
       onPointerDown={(event) => event.stopPropagation()}
     >
       <header className="binder-copy-popover__header">
-        <strong>{card.name}</strong>
-        <span>{ownedCopies.length} owned</span>
-        <button type="button" aria-label="Close binder copies" onClick={onClose}>
+        <strong className="binder-copy-popover__title">{card.name}</strong>
+        <span className="binder-copy-popover__meta">{ownedCopies.length} owned</span>
+        <button type="button" className="binder-copy-popover__close" aria-label="Close binder copies" onClick={onClose}>
           ×
         </button>
       </header>
-      <div className="binder-copy-popover__actions">
-        <button type="button" onClick={onAdd} disabled={isBusy}>
+      <div className="binder-actions">
+        <button type="button" className="binder-button binder-button--primary" onClick={onAdd} disabled={isBusy}>
           Add another copy
         </button>
         <button
+          className="binder-button"
           type="button"
           onClick={() => setShowHistory((visible) => !visible)}
           aria-expanded={showHistory}
@@ -104,9 +105,9 @@ export default function BinderCopiesPopover({
               <li key={copy.id} className="binder-copy-popover__copy">
                 <div className="binder-copy-popover__copy-heading">
                   <strong>Copy {index + 1}</strong>
-                  <span>{copy.status.replaceAll("_", " ")}</span>
+                  <span className="binder-copy-popover__meta">{copy.status.replaceAll("_", " ")}</span>
                   {deckEntry && (
-                    <span>In deck: {deckName ?? "Unknown deck"}</span>
+                    <span className="binder-copy-popover__meta">In deck: {deckName ?? "Unknown deck"}</span>
                   )}
                 </div>
                 {editingCopyId === copy.id ? (
@@ -126,13 +127,14 @@ export default function BinderCopiesPopover({
                   />
                 ) : (
                   <>
-                    <p>
+                    <p className="binder-copy-popover__text">
                       {describeCopy(copy, location).join(" · ") ||
                         "No additional details"}
                     </p>
-                    <div className="binder-copy-popover__actions">
+                    <div className="binder-actions">
                       <button
                         type="button"
+                        className="binder-button binder-button--primary"
                         onClick={() => setEditingCopyId(copy.id)}
                         disabled={isBusy}
                       >
@@ -141,6 +143,7 @@ export default function BinderCopiesPopover({
                       {copy.status === "owned" ? (
                         <>
                           <button
+                            className="binder-button"
                             type="button"
                             onClick={() => onDispose(copy, "sold")}
                             disabled={isBusy}
@@ -148,6 +151,7 @@ export default function BinderCopiesPopover({
                             Sold
                           </button>
                           <button
+                            className="binder-button"
                             type="button"
                             onClick={() => onDispose(copy, "lost")}
                             disabled={isBusy}
@@ -155,6 +159,7 @@ export default function BinderCopiesPopover({
                             Lost
                           </button>
                           <button
+                            className="binder-button"
                             type="button"
                             onClick={() => onDispose(copy, "given_away")}
                             disabled={isBusy}
@@ -164,6 +169,7 @@ export default function BinderCopiesPopover({
                         </>
                       ) : (
                         <button
+                          className="binder-button"
                           type="button"
                           onClick={() => onRestore(copy)}
                           disabled={isBusy}
@@ -172,6 +178,7 @@ export default function BinderCopiesPopover({
                         </button>
                       )}
                       <button
+                        className="binder-button"
                         type="button"
                         onClick={() => onDelete(copy)}
                         disabled={isBusy}

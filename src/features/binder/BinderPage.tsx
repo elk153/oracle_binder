@@ -257,12 +257,13 @@ export default function BinderPage() {
   };
   const selectedCard = cards.find((card) => card.id === cardId);
   return (
-    <section className="binder-page">
-      <header className="binder-page__heading">
-        <h1>Binder</h1>
+    <section className="page binder-page">
+      <header className="page__heading">
+        <h1 className="page__title">Binder</h1>
         <div className="binder-page__view-switch" role="group" aria-label="Binder view">
           <button
             type="button"
+            className="page__control page__button"
             aria-pressed={view === "all"}
             onClick={() => void setView("all")}
           >
@@ -270,6 +271,7 @@ export default function BinderPage() {
           </button>
           <button
             type="button"
+            className="page__control page__button"
             aria-pressed={view === "binders"}
             onClick={() => void setView("binders")}
           >
@@ -279,32 +281,32 @@ export default function BinderPage() {
       </header>
 
       {binder.copies.error && (
-        <p className="binder-page__message binder-page__message--error" role="alert">
+        <p className="page__message page__message--error" role="alert">
           Could not load Binder copies: {binder.copies.error.message}
         </p>
       )}
       {binder.bindersError && (
-        <p className="binder-page__message binder-page__message--error" role="alert">
+        <p className="page__message page__message--error" role="alert">
           Could not load binders: {binder.bindersError.message}
         </p>
       )}
       {binder.realtimeError && (
-        <p className="binder-page__message binder-page__message--error" role="alert">
+        <p className="page__message page__message--error" role="alert">
           Updates from other devices may be delayed: {binder.realtimeError.message}
         </p>
       )}
       {decks.error && (
-        <p className="binder-page__message" role="alert">
+        <p className="page__message" role="alert">
           Could not load decks: {decks.error.message}
         </p>
       )}
       {cardsQuery.error && (
-        <p className="binder-page__message binder-page__message--error" role="alert">
+        <p className="page__message page__message--error" role="alert">
           Could not load card printings: {cardsQuery.error.message}
         </p>
       )}
       {invalidCardData && (
-        <p className="binder-page__message binder-page__message--error" role="alert">
+        <p className="page__message page__message--error" role="alert">
           Scryfall returned card data in an unexpected format.
         </p>
       )}
@@ -314,6 +316,7 @@ export default function BinderPage() {
           <div className="binder-page__create">
             <button
               type="button"
+              className="page__control page__button"
               onClick={() => setBinderDialog({ mode: "create" })}
               disabled={binder.bindersLoading}
             >
@@ -321,44 +324,45 @@ export default function BinderPage() {
             </button>
           </div>
 
-          <div className="binder-page__binder-grid">
+          <div className="card-grid">
             {[...binder.binders].map((target) => {
               const count = unallocatedOwnedCopies.filter(
                 (copy) => copy.binder_id === target.id,
               ).length;
               return (
-                <article className="binder-page__binder-card" key={target.id}>
+                <article className="page__cover-card" key={target.id}>
                   <BinderCover
                     color={target.color}
                     onSelect={() => chooseBinder(target.id)}
                     label={`Open ${target.name}, ${count} ${count === 1 ? "copy" : "copies"}`}
                   />
-                  <h2>{target.name}</h2>
-                  <p>{count} {count === 1 ? "copy" : "copies"}</p>
-                  <div className="binder-page__binder-actions">
+                  <h2 className="binder-page__binder-name">{target.name}</h2>
+                  <p className="binder-page__binder-count">{count} {count === 1 ? "copy" : "copies"}</p>
+                  <div className="page__card-actions">
                     <button
                       type="button"
+                      className="page__control page__button page__card-action"
                       onClick={() =>
                         setBinderDialog({ mode: "modify", binder: target })
                       }
                     >
                       Modify
                     </button>
-                    <button type="button" onClick={() => void deleteBinder(target)}>
+                    <button type="button" className="page__control page__button page__card-action" onClick={() => void deleteBinder(target)}>
                       Delete
                     </button>
                   </div>
                 </article>
               );
             })}
-            <article className="binder-page__binder-card binder-page__binder-card--loose">
+            <article className="page__cover-card">
               <BinderCover
                 color={LOOSE_BINDER_COLOR}
                 onSelect={() => chooseBinder("loose")}
                 label={`Open Loose, ${looseCopies.length} ${looseCopies.length === 1 ? "copy" : "copies"}`}
               />
-              <h2>Loose</h2>
-              <p>{looseCopies.length} {looseCopies.length === 1 ? "copy" : "copies"}</p>
+              <h2 className="binder-page__binder-name">Loose</h2>
+              <p className="binder-page__binder-count">{looseCopies.length} {looseCopies.length === 1 ? "copy" : "copies"}</p>
             </article>
           </div>
         </section>
@@ -366,10 +370,11 @@ export default function BinderPage() {
 
       {view === "all" && (
         <>
-          <div className="binder-page__toolbar">
-            <label>
+          <div className="page__toolbar">
+            <label className="page__label">
               Show
               <select
+                className="page__control"
                 value={selectedBinderId ?? ""}
                 onChange={(event) => {
                   setSelectedCardIds(new Set());
@@ -388,9 +393,10 @@ export default function BinderPage() {
             </label>
             {selectedBinderId !== HISTORY_FILTER && (
               <>
-                <label>
+                <label className="page__label">
                   Move selected copies to
                   <select
+                    className="page__control"
                     value={moveDestination}
                     onChange={(event) => setMoveDestination(event.currentTarget.value)}
                   >
@@ -405,6 +411,7 @@ export default function BinderPage() {
                 </label>
                 <button
                   type="button"
+                  className="page__control page__button"
                   onClick={() => void moveSelectedCopies()}
                   disabled={!moveDestination || selectedCardIds.size === 0 || binder.isPending}
                 >
@@ -427,15 +434,16 @@ export default function BinderPage() {
           )}
 
           {binder.copies.isLoading || decks.isLoading || cardsQuery.isLoading ? (
-            <p className="binder-page__message" role="status">Loading Binder…</p>
+            <p className="page__message" role="status">Loading Binder…</p>
           ) : orderedCards.length > 0 ? (
-            <div className="binder-page__list" aria-label="Binder cards">
+            <div className="card-grid" aria-label="Binder cards">
               {orderedCards.map((card) => (
                 <article className="binder-page__card" key={card.id}>
                   {selectedBinderId !== HISTORY_FILTER && (
                     <label className="binder-page__select">
                       <input
                         type="checkbox"
+                        className="binder-page__select-input"
                         checked={selectedCardIds.has(card.id)}
                         onChange={() => toggleCardSelection(card.id)}
                         aria-label={`Select all owned copies of ${card.name}`}
@@ -457,7 +465,7 @@ export default function BinderPage() {
               ))}
             </div>
           ) : (
-            <p className="binder-page__message">
+            <p className="page__message">
               {selectedBinderId === HISTORY_FILTER
                 ? "Your Binder has no disposed copies."
                 : selectedBinderId
@@ -466,7 +474,7 @@ export default function BinderPage() {
             </p>
           )}
           {rows.length === 0 && viewCards.length > 0 && (
-            <p className="binder-page__message">
+            <p className="page__message">
               No cards match these filters.
             </p>
           )}
@@ -474,9 +482,9 @@ export default function BinderPage() {
       )}
 
       {notice && (
-        <p className="binder-page__notice" role="status">
+        <p className="page__notice" role="status">
           <span>{notice}</span>
-          <button type="button" onClick={() => setNotice("")}>Dismiss</button>
+          <button type="button" className="page__notice-action" onClick={() => setNotice("")}>Dismiss</button>
         </p>
       )}
 

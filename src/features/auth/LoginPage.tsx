@@ -85,7 +85,7 @@ export default function LoginPage() {
   if (isLoading || user) {
     return (
       <section className="app-v2__page auth-page" aria-live="polite">
-        <p>Checking your session…</p>
+        <p className="app-v2__page-text">Checking your session…</p>
       </section>
     );
   }
@@ -94,17 +94,18 @@ export default function LoginPage() {
 
   return (
     <section className="app-v2__page auth-page">
-      <h1>{isSigningIn ? "Sign in" : "Create account"}</h1>
-      <p className="auth-page__intro">
+      <h1 className="app-v2__page-title">{isSigningIn ? "Sign in" : "Create account"}</h1>
+      <p className="app-v2__page-text auth-page__intro">
         {isSigningIn
           ? "Sign in with your email address and password."
           : "Create an account with your email address and a password."}
       </p>
 
       <form className="auth-form" onSubmit={handleSubmit}>
-        <label htmlFor="auth-email">Email</label>
+        <label className="auth-form__label" htmlFor="auth-email">Email</label>
         <input
           id="auth-email"
+          className="field__input auth-form__input"
           name="email"
           type="email"
           autoComplete="email"
@@ -114,9 +115,10 @@ export default function LoginPage() {
           disabled={isSubmitting}
         />
 
-        <label htmlFor="auth-password">Password</label>
+        <label className="auth-form__label" htmlFor="auth-password">Password</label>
         <input
           id="auth-password"
+          className="field__input auth-form__input"
           name="password"
           type="password"
           autoComplete={isSigningIn ? "current-password" : "new-password"}

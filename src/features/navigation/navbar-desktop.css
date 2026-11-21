@@ -19,7 +19,7 @@
     width: min(94vw, 960px);
     height: 64px;
     transform: translate(-50%, 0);
-    z-index: 100;
+    z-index: var(--z-nav);
 
     /* Desktop header keeps its rounded floating-bar corners rather than
        spanning edge-to-edge — this is what lets it share nav-surface
@@ -74,7 +74,6 @@
   }
 }
 
-/* The bar is `position: fixed`, so it doesn't reserve layout space.
-   Add top padding/margin to your page's main content wrapper yourself,
-   e.g. `main { padding-top: 5.5rem; }` at the desktop breakpoint —
-   intentionally left out of this file since it depends on your layout. */
+/* The bar is `position: fixed`, so it doesn't reserve layout space. The page
+   content's top padding lives in .app-v2__main (App.css) and .page
+   (styles/layout.css), not in this file. */

@@ -1,4 +1,4 @@
-export default function DecksIcon() {
+export default function BinderIcon() {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -8,26 +8,31 @@ export default function DecksIcon() {
       aria-hidden="true"
       focusable="false"
     >
-      <path
+      <rect
         className="nc-trace"
-        d="M4.5 5.2c1.8-.9 4.3-1 6 0v14.6c-1.7-1-4.2-.9-6 0Z"
+        x="4.2"
+        y="5"
+        width="12"
+        height="16"
+        rx="1.6"
+        transform="rotate(-8 10.2 13)"
         fill="none"
         stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
+        strokeWidth="1.4"
       />
-      <path
+      <rect
         className="nc-trace"
-        d="M19.5 5.2c-1.8-.9-4.3-1-6 0v14.6c1.7-1 4.2-.9 6 0Z"
+        x="7.8"
+        y="4.2"
+        width="12"
+        height="16"
+        rx="1.6"
+        transform="rotate(6 13.8 12.2)"
         fill="none"
         stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
+        strokeWidth="1.4"
       />
-      <path
-        className="nc-core"
-        d="M12 6.4c.9-.3 1.9-.4 2.8-.3v11.4c-.9-.1-1.9 0-2.8.3Z"
-      />
+      <rect className="nc-core" x="8.4" y="9" width="7.2" height="9" rx="1" />
     </svg>
   );
 }

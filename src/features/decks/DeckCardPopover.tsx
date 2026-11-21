@@ -185,9 +185,9 @@ export default function DeckCardPopover({
       onPointerDown={(event) => event.stopPropagation()}
     >
       <header className="binder-copy-popover__header">
-        <strong>{card.name}</strong>
-        <span>{entries.length} in decks</span>
-        <button type="button" aria-label="Close deck entries" onClick={onClose}>
+        <strong className="binder-copy-popover__title">{card.name}</strong>
+        <span className="binder-copy-popover__meta">{entries.length} in decks</span>
+        <button type="button" className="binder-copy-popover__close" aria-label="Close deck entries" onClick={onClose}>
           ×
         </button>
       </header>
@@ -209,21 +209,22 @@ export default function DeckCardPopover({
           )}
 
           <form
-            className="binder-copy-form deck-card-popover__create"
+            className="binder-fields deck-card-popover__create"
             onSubmit={(event) => {
               event.preventDefault();
               void createDeck();
             }}
           >
-            <label>
+            <label className="field field--soft">
               New deck
               <input
+                className="field__input field__input--soft"
                 value={newDeckName}
                 onChange={(event) => setNewDeckName(event.currentTarget.value)}
                 maxLength={100}
               />
             </label>
-            <button type="submit" disabled={!newDeckName.trim() || isBusy}>
+            <button className="binder-button" type="submit" disabled={!newDeckName.trim() || isBusy}>
               Create deck
             </button>
           </form>
@@ -231,15 +232,16 @@ export default function DeckCardPopover({
           {actions.decks.length > 0 && (
             <>
               <form
-                className="binder-copy-form deck-card-popover__add"
+                className="binder-fields deck-card-popover__add"
                 onSubmit={(event) => {
                   event.preventDefault();
                   void addCard();
                 }}
               >
-                <label>
+                <label className="field field--soft">
                   Deck
                   <select
+                    className="field__input field__input--soft"
                     value={deckId}
                     onChange={(event) => setDeckId(event.currentTarget.value)}
                   >
@@ -251,9 +253,10 @@ export default function DeckCardPopover({
                     ))}
                   </select>
                 </label>
-                <label>
+                <label className="field field--soft">
                   Card kind
                   <select
+                    className="field__input field__input--soft"
                     value={kind}
                     onChange={(event) => {
                       const nextKind = event.currentTarget.value as DeckCard["kind"];
@@ -267,9 +270,10 @@ export default function DeckCardPopover({
                   </select>
                 </label>
                 {kind === "binder" && (
-                  <label>
+                  <label className="field field--soft">
                     Owned copy
                     <select
+                      className="field__input field__input--soft"
                       value={binderCardId}
                       onChange={(event) =>
                         setBinderCardId(event.currentTarget.value)
@@ -290,6 +294,7 @@ export default function DeckCardPopover({
                   </label>
                 )}
                 <button
+                  className="binder-button"
                   type="submit"
                   disabled={
                     isBusy ||
@@ -322,10 +327,11 @@ export default function DeckCardPopover({
                     <div className="binder-copy-popover__copy-heading">
                       <strong>{entryLabel(entry, actions.decks)}</strong>
                     </div>
-                    <div className="binder-copy-form">
-                      <label>
+                    <div className="binder-fields">
+                      <label className="field field--soft">
                         Deck
                         <select
+                          className="field__input field__input--soft"
                           value={draft.deck_id}
                           onChange={(event) =>
                             setDraft(entry, {
@@ -340,9 +346,10 @@ export default function DeckCardPopover({
                           ))}
                         </select>
                       </label>
-                      <label>
+                      <label className="field field--soft">
                         Card kind
                         <select
+                          className="field__input field__input--soft"
                           value={draft.kind}
                           onChange={(event) => {
                             const nextKind = event.currentTarget.value as DeckCard["kind"];
@@ -361,9 +368,10 @@ export default function DeckCardPopover({
                         </select>
                       </label>
                       {draft.kind === "binder" && (
-                        <label>
+                        <label className="field field--soft">
                           Owned copy
                           <select
+                            className="field__input field__input--soft"
                             value={draft.binder_card_id ?? ""}
                             onChange={(event) =>
                               setDraft(entry, {
@@ -383,9 +391,10 @@ export default function DeckCardPopover({
                           </select>
                         </label>
                       )}
-                      <div className="binder-copy-popover__actions">
+                      <div className="binder-actions">
                         <button
                           type="button"
+                          className="binder-button binder-button--primary"
                           disabled={!dirty || isBusy}
                           onClick={() => void saveEntry(entry)}
                         >

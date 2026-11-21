@@ -244,12 +244,13 @@ export default function DecksPage() {
   const isLoading = decks.isLoading || cardsQuery.isLoading;
 
   return (
-    <section className="deck-page">
-      <header className="deck-page__heading">
-        <h1>Decks</h1>
+    <section className="page deck-page">
+      <header className="page__heading">
+        <h1 className="page__title">Decks</h1>
         <div className="deck-page__view-switch" role="group" aria-label="Deck view">
           <button
             type="button"
+            className="page__control page__button"
             aria-pressed={view === "all"}
             onClick={() => void setView("all")}
           >
@@ -257,6 +258,7 @@ export default function DecksPage() {
           </button>
           <button
             type="button"
+            className="page__control page__button"
             aria-pressed={view === "decks"}
             onClick={() => void setView("decks")}
           >
@@ -266,42 +268,42 @@ export default function DecksPage() {
       </header>
 
       {decks.error && (
-        <p className="deck-page__message deck-page__message--error" role="alert">
+        <p className="page__message page__message--error" role="alert">
           Could not load decks: {decks.error.message}
         </p>
       )}
       {binder.copies.error && (
-        <p className="deck-page__message deck-page__message--error" role="alert">
+        <p className="page__message page__message--error" role="alert">
           Could not load Binder copies: {binder.copies.error.message}
         </p>
       )}
       {binder.bindersError && (
-        <p className="deck-page__message deck-page__message--error" role="alert">
+        <p className="page__message page__message--error" role="alert">
           Could not load binders: {binder.bindersError.message}
         </p>
       )}
       {cardsQuery.error && (
-        <p className="deck-page__message deck-page__message--error" role="alert">
+        <p className="page__message page__message--error" role="alert">
           Could not load card printings: {cardsQuery.error.message}
         </p>
       )}
       {invalidCardData && (
-        <p className="deck-page__message deck-page__message--error" role="alert">
+        <p className="page__message page__message--error" role="alert">
           Scryfall returned card data in an unexpected format.
         </p>
       )}
       {binder.realtimeError && (
-        <p className="deck-page__message" role="alert">
+        <p className="page__message" role="alert">
           Binder updates from other devices may be delayed: {binder.realtimeError.message}
         </p>
       )}
       {favoritesError && (
-        <p className="deck-page__message deck-page__message--error" role="alert">
+        <p className="page__message page__message--error" role="alert">
           Could not load favorite status: {favoritesError.message}
         </p>
       )}
       {cardsQuery.isLoading && (
-        <p className="deck-page__message" role="status">
+        <p className="page__message" role="status">
           Loading card printings…
         </p>
       )}
@@ -315,20 +317,21 @@ export default function DecksPage() {
               void createDeck();
             }}
           >
-            <label>
+            <label className="page__label">
               New deck
               <input
+                className="page__control"
                 value={newDeckName}
                 onChange={(event) => setNewDeckName(event.currentTarget.value)}
                 maxLength={100}
               />
             </label>
-            <button type="submit" disabled={!newDeckName.trim() || decks.isPending}>
+            <button type="submit" className="page__control page__button" disabled={!newDeckName.trim() || decks.isPending}>
               Create deck
             </button>
           </form>
 
-          <div className="deck-page__grid">
+          <div className="card-grid">
             {decks.decks.map((deck) => {
               const entries = decks.deckCards.filter(
                 (entry) => entry.deck_id === deck.id,
@@ -339,7 +342,7 @@ export default function DecksPage() {
                 entries.length === 1 ? "card" : "cards"
               }`;
               return (
-                <article className="deck-page__deck-card" key={deck.id}>
+                <article className="page__cover-card deck-page__deck-card" key={deck.id}>
                   {card && cover ? (
                     <CardTile
                       card={card}
@@ -359,12 +362,13 @@ export default function DecksPage() {
                     </button>
                   )}
                   <div className="deck-page__deck-meta">
-                    <h2>{deck.name}</h2>
+                    <h2 className="deck-page__deck-name">{deck.name}</h2>
                     <span className="deck-page__count">{countLabel}</span>
                   </div>
-                  <div className="deck-page__deck-actions">
+                  <div className="page__card-actions">
                     <button
                       type="button"
+                      className="page__control page__button page__card-action"
                       disabled={decks.isPending}
                       onClick={() => void renameDeck(deck)}
                     >
@@ -372,6 +376,7 @@ export default function DecksPage() {
                     </button>
                     <button
                       type="button"
+                      className="page__control page__button page__card-action"
                       disabled={decks.isPending}
                       onClick={() => void deleteDeck(deck)}
                     >
@@ -383,17 +388,18 @@ export default function DecksPage() {
             })}
           </div>
           {!decks.isLoading && !decks.error && decks.decks.length === 0 && (
-            <p className="deck-page__message">You have no decks yet.</p>
+            <p className="page__message">You have no decks yet.</p>
           )}
         </section>
       )}
 
       {view === "all" && (
         <>
-          <div className="deck-page__toolbar">
-            <label>
+          <div className="page__toolbar">
+            <label className="page__label">
               Show
               <select
+                className="page__control"
                 value={selectedDeckId ?? ""}
                 onChange={(event) =>
                   void setSelectedDeckId(event.currentTarget.value || null)
@@ -408,7 +414,7 @@ export default function DecksPage() {
               </select>
             </label>
             {selectedDeckId && (
-              <button type="button" onClick={() => void setView("decks")}>
+              <button type="button" className="page__control page__button" onClick={() => void setView("decks")}>
                 Back to decks
               </button>
             )}
@@ -427,9 +433,9 @@ export default function DecksPage() {
           )}
 
           {isLoading ? (
-            <p className="deck-page__message" role="status">Loading deck cards…</p>
+            <p className="page__message" role="status">Loading deck cards…</p>
           ) : filteredEntries.length > 0 ? (
-            <div className="deck-page__list" aria-label="Deck cards">
+            <div className="card-grid" aria-label="Deck cards">
               {filteredEntries.map(({ entry, card }) => {
                 const binderCopy =
                   entry.kind === "binder"
@@ -477,7 +483,7 @@ export default function DecksPage() {
             !decks.error &&
             !cardsQuery.error &&
             !invalidCardData && (
-              <p className="deck-page__message">
+              <p className="page__message">
                 {visibleEntries.length > 0
                   ? "No available card printings were found for these deck entries."
                   : selectedDeckId
@@ -487,13 +493,13 @@ export default function DecksPage() {
             )
           )}
           {rows.length === 0 && tableCards.length > 0 && (
-            <p className="deck-page__message">No cards match these filters.</p>
+            <p className="page__message">No cards match these filters.</p>
           )}
           {!cardsQuery.isLoading &&
             !cardsQuery.error &&
             !invalidCardData &&
             cardsMissingFromScryfall > 0 && (
-            <p className="deck-page__message">
+            <p className="page__message">
               {cardsMissingFromScryfall}{" "}
               {cardsMissingFromScryfall === 1 ? "entry was" : "entries were"} skipped
               because the printing is no longer available from Scryfall.
@@ -503,9 +509,9 @@ export default function DecksPage() {
       )}
 
       {notice && (
-        <p className="deck-page__notice" role="status">
+        <p className="page__notice" role="status">
           <span>{notice}</span>
-          <button type="button" onClick={() => setNotice("")}>Dismiss</button>
+          <button type="button" className="page__notice-action" onClick={() => setNotice("")}>Dismiss</button>
         </p>
       )}
 
