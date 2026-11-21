@@ -139,10 +139,22 @@ const COVERS = [
   { name: "Loose (fixed)", value: LOOSE_BINDER_COLOR },
 ];
 
-test("the palette has ten valid, unique, named colors", () => {
-  assert.equal(BINDER_COLORS.length, 10);
-  assert.equal(new Set(BINDER_COLORS.map((c) => c.value)).size, 10);
-  assert.equal(new Set(BINDER_COLORS.map((c) => c.name)).size, 10);
+const PALETTE_SIZE = 12;
+
+// Swatches deliberately kept although they fail the logo contrast rule
+// (D-056 amendment, 2026-11-21). The test is reported as skipped with this
+// reason instead of passing silently; every other check still applies.
+const CONTRAST_EXCEPTIONS: ReadonlyMap<string, string> = new Map([
+  [
+    "#8da399",
+    "Gray is a light cover (about 1:1 with the logo gold); kept by the developer's choice, see D-056",
+  ],
+]);
+
+test("the palette has twelve valid, unique, named colors", () => {
+  assert.equal(BINDER_COLORS.length, PALETTE_SIZE);
+  assert.equal(new Set(BINDER_COLORS.map((c) => c.value)).size, PALETTE_SIZE);
+  assert.equal(new Set(BINDER_COLORS.map((c) => c.name)).size, PALETTE_SIZE);
   for (const { name, value } of BINDER_COLORS) {
     assert.ok(name.length > 0, "every swatch has a name");
     assert.ok(isBinderColor(value), `${name} is lowercase #rrggbb`);
@@ -167,7 +179,9 @@ test("the Loose cover is fixed and not offered in the picker", () => {
 });
 
 for (const { name, value } of COVERS) {
-  test(`${name} ${value}: contrast with the logo gold and sparkle`, () => {
+  test(`${name} ${value}: contrast with the logo gold and sparkle`, {
+    skip: CONTRAST_EXCEPTIONS.get(value),
+  }, () => {
     for (const logo of [...GOLD, ...SPARKLE]) {
       const ratio = contrast(value, logo);
       assert.ok(

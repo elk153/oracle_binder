@@ -2,10 +2,12 @@
  * D-056: binder cover colors.
  *
  * The database stores any lowercase `#rrggbb` value (`binders.color`), but the
- * picker offers only these ten. Each one passes the logo checks in
+ * picker offers only these twelve. Each one passes the logo checks in
  * `tests/binder/binderColors.test.ts`: enough contrast with the logo's gold
  * and sparkle, and far enough from its dark teal lens that the lens does not
- * disappear. Check them again before changing a color or the logo.
+ * disappear. The one exception is Gray, which fails the gold contrast and is
+ * kept on purpose (D-056 amendment). Check them again before changing a color
+ * or the logo.
  */
 
 export type BinderColorOption = {
