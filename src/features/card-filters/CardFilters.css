@@ -51,9 +51,7 @@
   text-align: center;
 }
 
-.card-filters button,
-.card-filters select,
-.card-filters input {
+.card-filters__control {
   padding: 0.4rem 0.8rem;
   border-radius: var(--control-radius);
   border: 1px solid var(--surface-border);
@@ -61,12 +59,12 @@
   color: var(--text-primary);
 }
 
-.card-filters button[aria-pressed="true"] {
+.card-filters__control[aria-pressed="true"] {
   background: var(--btn-gold);
   color: var(--bg-header);
 }
 
-.card-filters button:disabled {
+.card-filters__control:disabled {
   opacity: 0.4;
   cursor: default;
 }
@@ -92,9 +90,7 @@
     flex-wrap: wrap;
   }
 
-  .card-filters--floating button,
-  .card-filters--floating select,
-  .card-filters--floating input {
+  .card-filters--floating .card-filters__control {
     padding: 0.3rem 0.55rem;
     font-size: 0.72rem;
   }

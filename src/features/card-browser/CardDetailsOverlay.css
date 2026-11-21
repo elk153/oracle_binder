@@ -52,7 +52,7 @@
   background: color-mix(in srgb, var(--bg-header) 94%, transparent);
 }
 
-.card-detail-overlay__toolbar h2 {
+.card-detail-overlay__title {
   margin: 0;
   font-size: 1rem;
 }
@@ -154,7 +154,7 @@
   margin: 0.75rem 0;
 }
 
-.card-detail__flip-control button {
+.card-detail__flip-button {
   padding: 0.4rem 0.75rem;
   border: 1px solid var(--surface-border);
   border-radius: var(--control-radius);
@@ -188,8 +188,7 @@
   background: var(--bg-card);
 }
 
-.card-detail__section h3,
-.card-detail-overlay__prints > h2 {
+.card-detail__section-title {
   margin-top: 0;
   color: var(--text-accent);
   font-size: 0.85rem;
@@ -348,7 +347,7 @@
   list-style: none;
 }
 
-.card-detail__rulings li {
+.card-detail__ruling {
   margin: 0.7rem 0;
   padding-left: 0.75rem;
   border-left: 2px solid var(--text-accent);
@@ -404,7 +403,7 @@
   overflow: hidden;
 }
 
-.card-detail__print-info h3 {
+.card-detail__print-name {
   display: -webkit-box;
   overflow: hidden;
   margin: 0 0 0.35rem;
@@ -414,7 +413,7 @@
   -webkit-line-clamp: 2;
 }
 
-.card-detail__print-info p {
+.card-detail__print-meta {
   margin: 0 0 0.4rem;
   color: var(--text-secondary);
   font-size: 0.62rem;
