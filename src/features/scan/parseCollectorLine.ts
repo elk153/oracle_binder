@@ -10,10 +10,22 @@
 export type CollectorLine = {
   setCode: string; // lowercase, as Scryfall uses it, e.g. "dmu"
   collectorNumber: string; // without leading zeros, e.g. "123"
+  // Only in scan-sample truths (D-066), when the tester typed them.
+  foilMark?: FoilMark;
+  language?: string;
 };
 
+// The sign between the set code and the language (D-066): a dot on nonfoil
+// cards, a star on foil and other premium cards.
+export type FoilMark = "star" | "dot";
+
+// The foil mark signs and their usual misreads (D-066): a star, often read
+// as "*", and a dot, often read as "·" or ".".
+const STAR_SIGNS = "★☆*";
+const DOT_SIGNS = "•·.";
+
 // The characters the OCR is limited to when reading the collector line.
-export const COLLECTOR_CHARACTERS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ/";
+export const COLLECTOR_CHARACTERS = `0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ/${STAR_SIGNS}${DOT_SIGNS}`;
 
 // When the two rows are read one at a time (prepareStrip's splitStripRows):
 // - the number row holds the number, "/set size" and a rarity letter. S is
@@ -22,7 +34,7 @@ export const COLLECTOR_CHARACTERS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ/";
 // - the set row holds the set code and language (and the artist, which the
 //   parser ignores).
 export const NUMBER_ROW_CHARACTERS = "0123456789/CURMTPLI";
-export const SET_ROW_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+export const SET_ROW_CHARACTERS = `ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789${STAR_SIGNS}${DOT_SIGNS}`;
 
 // Language codes printed after the set code; never a set code themselves.
 const LANGUAGE_CODES = new Set([
@@ -133,4 +145,54 @@ export function parseCollectorLine(text: string): CollectorLine | null {
     }
   }
   return null;
+}
+
+// Printed language codes (D-066) and the app's language names
+// (LANGUAGES in binder/copyOptions.ts) where the app has one.
+const LANGUAGE_NAMES: Record<string, string> = {
+  EN: "English",
+  FR: "French",
+  DE: "German",
+  IT: "Italian",
+  ES: "Spanish",
+  JA: "Japanese",
+  JP: "Japanese",
+};
+
+// The app language for a printed code, or null when the app has none
+// (Portuguese, Korean, Russian, Chinese, Phyrexian for now).
+export function languageNameOf(code: string | null): string | null {
+  return code ? (LANGUAGE_NAMES[code] ?? null) : null;
+}
+
+export type FinishAndLanguage = {
+  foilMark: FoilMark | null; // null when no sign was read
+  language: string | null; // printed code, e.g. "FR"; null when not read
+};
+
+// The foil mark and language that follow the set code on the set row
+// (D-066): "DMU • EN", "DMU ★ FR", or glued by the OCR, "DMU*FR", "DMUEN".
+// `setCode` is the one parseCollectorLine found in the same text.
+export function parseFinishAndLanguage(text: string, setCode: string): FinishAndLanguage {
+  const code = setCode.toUpperCase();
+  for (const line of text.toUpperCase().split(/\r?\n/)) {
+    const at = line.search(new RegExp(`(^|[^A-Z0-9])${code}`));
+    if (at < 0) {
+      continue;
+    }
+    const rest = line.slice(line.indexOf(code, at) + code.length).replace(/^\s+/, "");
+    const sign = rest[0] ?? "";
+    const foilMark: FoilMark | null = STAR_SIGNS.includes(sign)
+      ? "star"
+      : sign && DOT_SIGNS.includes(sign)
+        ? "dot"
+        : null;
+    const letters = /^[\s★☆*•·.]*([A-Z]{2,3})/.exec(rest)?.[1] ?? "";
+    // Three-letter codes (ZHS, ZHT) first, then the two-letter ones.
+    const language = [letters.slice(0, 3), letters.slice(0, 2)].find(
+      (candidate) => candidate.length >= 2 && LANGUAGE_CODES.has(candidate),
+    );
+    return { foilMark, language: language ?? null };
+  }
+  return { foilMark: null, language: null };
 }

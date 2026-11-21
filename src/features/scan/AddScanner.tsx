@@ -34,7 +34,7 @@ export default function AddScanner() {
   const [isEditing, setIsEditing] = useState(true);
   // The recognized card waiting for Confirm or Skip.
   // The card being confirmed, and whether it was found by its name only.
-  const [pending, setPending] = useState<{ card: CardBrowserCard; byName: boolean } | null>(null);
+  const [pending, setPending] = useState<{ card: CardBrowserCard; match: FoundMatch } | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const { addCards, undo } = useScanAdd();
 
@@ -48,8 +48,8 @@ export default function AddScanner() {
   }, [notice]);
 
   // A card found while another one is being confirmed is ignored.
-  function offerCard(card: CardBrowserCard, { byName }: FoundMatch) {
-    setPending((current) => current ?? { card, byName });
+  function offerCard(card: CardBrowserCard, match: FoundMatch) {
+    setPending((current) => current ?? { card, match });
   }
 
   async function confirm(confirmation: AddConfirmation) {
@@ -139,7 +139,10 @@ export default function AddScanner() {
               card={pending.card}
               // Found by name: Scryfall's default printing, so the printing
               // list opens at once for the user to pick theirs (D-065).
-              choosePrinting={pending.byName}
+              choosePrinting={pending.match.byName}
+              // Foil mark and language read on the card (D-066).
+              read={pending.match}
+              defaultLanguage={session.defaults.language}
               showFinish={session.type === "owned"}
               onConfirm={(confirmation) => void confirm(confirmation)}
               onSkip={() => setPending(null)}

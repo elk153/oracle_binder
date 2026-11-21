@@ -13,6 +13,7 @@ import type { ReadTarget, StripReading } from "./useStripReading.ts";
 import usePrintingLookup from "./usePrintingLookup.ts";
 import type { LookupRequest, PrintingLookup } from "./usePrintingLookup.ts";
 import { buildNameIndex } from "./matchCardName.ts";
+import type { FinishAndLanguage } from "./parseCollectorLine.ts";
 import useFetchUrl from "../../hooks/useFetchUrl.ts";
 import getSecondsUntilNextLocalFour from "../../hooks/getSecondsUntilNextLocalFour.ts";
 import type { CardBrowserCard } from "../card-browser/types.ts";
@@ -86,8 +87,9 @@ function toLookupRequest(reading: StripReading): LookupRequest {
 }
 
 // How a found card was recognized. A card found by name is Scryfall's
-// default printing, so the page lets the user pick the one they hold.
-export type FoundMatch = { byName: boolean };
+// default printing, so the page lets the user pick the one they hold. The
+// foil mark and printed language come with a set-and-number reading (D-066).
+export type FoundMatch = { byName: boolean } & FinishAndLanguage;
 
 type ScanCameraProps = {
   // Called once a printing has been found and shown as found for a moment.
@@ -185,7 +187,12 @@ export default function ScanCamera({ onFound, overlay, testMode = false }: ScanC
   // onFound from the page is a new function each time; as a dependency it
   // would restart the timer before it could ever fire.
   const reportFound = useEffectEvent((card: CardBrowserCard) => {
-    onFound?.(card, { byName: reading.status === "done" && reading.target === "title" });
+    const done = reading.status === "done" ? reading : null;
+    onFound?.(card, {
+      byName: done?.target === "title",
+      foilMark: done?.foilMark ?? null,
+      language: done?.language ?? null,
+    });
     // The next card starts with its set and number again.
     readCollector();
   });

@@ -6,9 +6,10 @@ import {
   COLLECTOR_CHARACTERS,
   NUMBER_ROW_CHARACTERS,
   parseCollectorLine,
+  parseFinishAndLanguage,
   SET_ROW_CHARACTERS,
 } from "./parseCollectorLine.ts";
-import type { CollectorLine } from "./parseCollectorLine.ts";
+import type { CollectorLine, FinishAndLanguage } from "./parseCollectorLine.ts";
 import { matchCardName, NAME_CHARACTERS } from "./matchCardName.ts";
 import type { NameIndex } from "./matchCardName.ts";
 import type { SteadyCapture } from "./useSteadyFrame.ts";
@@ -37,7 +38,7 @@ export type StripReading =
       totalMs: number; // including waiting for the engine to load
       parsed: CollectorLine | null; // "collector": set and number, if found
       name: string | null; // "title": the catalog name, if found
-    }
+    } & FinishAndLanguage // "collector" with a set code: mark and language (D-066)
   | { status: "error"; message: string };
 
 // A finished reading, remembered together with the capture it belongs to.
@@ -142,6 +143,9 @@ export default function useStripReading(
             target: "collector",
             strip,
             ...result,
+            ...(result.parsed
+              ? parseFinishAndLanguage(result.text, result.parsed.setCode)
+              : { foilMark: null, language: null }),
             totalMs: performance.now() - started,
             name: null,
           };
@@ -158,6 +162,8 @@ export default function useStripReading(
             totalMs: performance.now() - started,
             parsed: null,
             name: nameIn(ocr.text, settings.nameIndex),
+            foilMark: null,
+            language: null,
           };
         }
       } catch (error) {

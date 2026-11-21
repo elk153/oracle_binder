@@ -241,7 +241,7 @@ Research references for this section: npm registry entries for each package (202
 
 ## D-066: Read the finish mark and language from the collector line
 
-- Status: Evaluating (2026-11-21). Not implemented. The OCR part is checked first with scan samples (see Consequences).
+- Status: Implemented on the branch `feature/scan-finish-language` (2026-11-21), not yet merged into `dev`. Whether Tesseract reads the star and dot reliably is still to be measured with scan samples (see Consequences).
 - Date: 2026-11-21
 - Decision: Extend `parseCollectorLine` so that, besides the set code and collector number, it returns:
   - **`foilMark`**: `"star"`, `"dot"` or `null` (not read). On modern cards the sign between the set code and the language is a dot (•) on nonfoil cards and a star (★) on foil and other premium cards, for example "FRA • EN" and "FRA ★ EN".
@@ -249,7 +249,7 @@ Research references for this section: npm registry entries for each package (202
 
   How they are used:
   - **Finish in Add mode (D-064):** the confirm step pre-selects the finish instead of always starting at Non-foil. A dot gives Non-foil. A star gives Foil, or Etched foil when the printing (Scryfall `finishes`) has `etched` but not `foil`. A finish the printing doesn't have is never pre-selected. With no mark read, the confirm step starts at the first finish the printing has. The user still confirms and can change it.
-  - **Language in Add mode:** a read language that maps to an app language pre-fills the copy's language for that card, over the session default. Otherwise the session default stays.
+  - **Language in Add mode:** the confirm step has a Language choice for owned copies (the app's languages, or Not set). It starts at the read language when it maps to an app language, marked "(read on the card)", otherwise at the session default. The chosen value is saved on that card's copies.
   - **Lookup:** stays on the English printing (`/cards/:set/:number`). Binder copies already keep the language in their own `language` field, and the English card object always exists.
   - Identify mode (D-063) is unchanged: the card page shows every finish anyway.
 

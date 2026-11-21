@@ -37,9 +37,23 @@ export type ScanSample = {
 };
 
 // "ltc 277" or "LTC/277" → { setCode: "ltc", collectorNumber: "277" }.
+// Optionally followed by the foil mark and the language (D-066):
+// "ltc 277 star fr" → also { foilMark: "star", language: "FR" }.
 export function parseTruth(value: string): CollectorLine | null {
-  const match = /^\s*([a-z0-9]{2,6})[\s/#-]+0*([0-9]+[a-z]?)\s*$/i.exec(value);
-  return match ? { setCode: match[1].toLowerCase(), collectorNumber: match[2] } : null;
+  const match =
+    /^\s*([a-z0-9]{2,6})[\s/#-]+0*([0-9]+[a-z]?)(?:\s+(star|dot))?(?:\s+([a-z]{2,3}))?\s*$/i.exec(
+      value,
+    );
+  if (!match) {
+    return null;
+  }
+  const [, setCode, collectorNumber, mark, language] = match;
+  return {
+    setCode: setCode.toLowerCase(),
+    collectorNumber,
+    ...(mark ? { foilMark: mark.toLowerCase() === "star" ? "star" : "dot" } : {}),
+    ...(language ? { language: language.toUpperCase() } : {}),
+  };
 }
 
 export function sampleFileName(sample: ScanSample): string {
