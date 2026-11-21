@@ -515,10 +515,12 @@ export default function DecksPage() {
         </p>
       )}
 
-      {selectedCard && (
+      {/* Any card id can be shown: a card outside this page (e.g. a meld
+          partner) has no fallbackCard, so the overlay fetches it. */}
+      {cardId && (
         <CardDetailsOverlay
-          key={selectedCard.id}
-          cardId={selectedCard.id}
+          key={cardId}
+          cardId={cardId}
           fallbackCard={selectedCard}
           onAction={handleCardAction}
           favoriteIds={favoriteIds}
@@ -530,6 +532,7 @@ export default function DecksPage() {
           binderCopiesByScryfallId={binder.copies.copiesByScryfallId}
           {...binderCardProps}
           {...deckActionProps}
+          onOpenCard={setCardId}
           onClose={() => setCardId(null)}
         />
       )}

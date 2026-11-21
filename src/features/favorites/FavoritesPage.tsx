@@ -72,10 +72,15 @@ export default function FavoritesPage() {
     Boolean(decks.error) ||
     binder.isPending;
 
-  function openCard(card: CardBrowserCard) {
+  // Pushes a history entry, so Back returns to the previous card or page.
+  function openCardById(id: string) {
     const next = new URLSearchParams(searchParams);
-    next.set("card", card.id);
+    next.set("card", id);
     setSearchParams(next, { preventScrollReset: true });
+  }
+
+  function openCard(card: CardBrowserCard) {
+    openCardById(card.id);
   }
 
   const closeDetails = useCallback(() => {
@@ -279,6 +284,7 @@ export default function FavoritesPage() {
           onDeleteBinderCopy={(copy: BinderCopy) => binder.deleteCopy(copy.id)}
           deckActions={decks}
           canManageDeck={Boolean(user)}
+          onOpenCard={openCardById}
           onClose={closeDetails}
         />
       )}

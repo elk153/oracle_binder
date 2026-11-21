@@ -157,10 +157,15 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
   });
   const total = cards.length;
 
-  function openCard(card: CardBrowserCard) {
+  // Pushes a history entry, so Back returns to the previous card or page.
+  function openCardById(id: string) {
     const next = new URLSearchParams(searchParams);
-    next.set("card", card.id);
+    next.set("card", id);
     setSearchParams(next, { preventScrollReset: true });
+  }
+
+  function openCard(card: CardBrowserCard) {
+    openCardById(card.id);
   }
 
   const closeDetails = useCallback(() => {
@@ -441,6 +446,7 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
           binderCopiesByScryfallId={binder.copies.copiesByScryfallId}
           {...binderCopyProps}
           {...deckActionProps}
+          onOpenCard={openCardById}
           onClose={closeDetails}
         />
       )}

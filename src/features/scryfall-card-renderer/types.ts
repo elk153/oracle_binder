@@ -91,4 +91,10 @@ export type NormalizedCard = {
 export type ShapeComponentProps = {
   card: NormalizedCard;
   showDetailsMetadata?: boolean;
+  /**
+   * Opens another card by Scryfall id (e.g. a meld partner). Supplied by the
+   * page that owns the details overlay, so the renderer stays independent of
+   * routing. When absent, related cards are shown but not clickable.
+   */
+  onOpenCard?: (cardId: string) => void;
 };

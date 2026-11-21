@@ -35,6 +35,8 @@ type CardDetailsOverlayProps = {
   onDeleteBinderCopy: (copy: BinderCopy) => void;
   deckActions: DeckActions;
   canManageDeck: boolean;
+  /** Opens another card in this overlay (used by meld cards); optional. */
+  onOpenCard?: (cardId: string) => void;
   onClose: () => void;
 };
 
@@ -58,6 +60,7 @@ export default function CardDetailsOverlay({
   onDeleteBinderCopy,
   deckActions,
   canManageDeck,
+  onOpenCard,
   onClose,
 }: CardDetailsOverlayProps) {
   const dialogRef = useRef<HTMLElement>(null);
@@ -233,6 +236,7 @@ export default function CardDetailsOverlay({
                 key={`${displayCard.id}-${faceIndex}`}
                 card={contentCard}
                 showDetailsMetadata
+                onOpenCard={onOpenCard}
               />
             </div>
 
