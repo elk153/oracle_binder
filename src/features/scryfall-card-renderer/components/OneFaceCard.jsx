@@ -1,5 +1,5 @@
-import CardFrame from './CardFrame.jsx';
-import CardExtras from './extras/CardExtras.jsx';
+import CardFrame from './CardFrame.tsx';
+import CardExtras from './extras/CardExtras.tsx';
 
 /**
  * Covers: normal, leveler, class, case, saga, mutate, prototype, battle,

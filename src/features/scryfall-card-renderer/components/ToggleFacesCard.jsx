@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import CardFrame from './CardFrame.jsx';
+import CardFrame from './CardFrame.tsx';
 
 /**
  * Covers: transform, modal_dfc, double_faced_token, art_series,

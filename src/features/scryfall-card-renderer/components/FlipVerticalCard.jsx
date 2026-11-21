@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import CardFrame from './CardFrame.jsx';
+import CardFrame from './CardFrame.tsx';
 
 /**
  * Covers: flip. A single physical image with two text halves printed

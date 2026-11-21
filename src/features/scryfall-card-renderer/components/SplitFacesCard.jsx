@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import OracleText from "./OracleText";
-import { CardFaceMetadata } from './CardFrame.jsx';
+import OracleText from "./OracleText.tsx";
+import { CardFaceMetadata } from './CardFrame.tsx';
 
 /**
  * Covers: split, adventure. Both faces are legal casting options on the

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import CardRenderer from "../scryfall-card-renderer/CardRenderer";
-import OracleText from "../scryfall-card-renderer/components/OracleText.jsx";
+import OracleText from "../scryfall-card-renderer/components/OracleText.tsx";
 import IconClose from "../../assets/icons/IconClose.tsx";
 import useFetchUrl from "../../hooks/useFetchUrl.ts";
 import useScryfallCardsSearch from "./useScryfallCardsSearch.ts";

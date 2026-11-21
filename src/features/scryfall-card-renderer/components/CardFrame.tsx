@@ -1,6 +1,8 @@
-import OracleText from "./OracleText.jsx";
+import OracleText from "./OracleText.tsx";
+import type { FaceRotation, NormalizedFace } from "../types.ts";
 
-const COLOR_NAMES = {
+// Partial: unknown keys return undefined, so the `??` fallbacks below apply.
+const COLOR_NAMES: Partial<Record<string, string>> = {
   W: "White",
   U: "Blue",
   B: "Black",
@@ -8,7 +10,7 @@ const COLOR_NAMES = {
   G: "Green",
 };
 
-const RARITY_NAMES = {
+const RARITY_NAMES: Partial<Record<string, string>> = {
   common: "Common",
   uncommon: "Uncommon",
   rare: "Rare",
@@ -17,11 +19,18 @@ const RARITY_NAMES = {
   bonus: "Bonus",
 };
 
-export function CardFaceMetadata({ face }) {
+type CardFaceMetadataProps = {
+  face: NormalizedFace;
+};
+
+export function CardFaceMetadata({ face }: CardFaceMetadataProps) {
   const rarityClass = face.rarity?.replaceAll("_", "-");
-  const rarity =
-    RARITY_NAMES[face.rarity] ??
-    face.rarity?.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+  // A known rarity uses its display name; an unknown one is title-cased
+  // ("special_edition" -> "Special Edition"); no rarity renders no pill.
+  const rarity = face.rarity
+    ? (RARITY_NAMES[face.rarity] ??
+      face.rarity.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()))
+    : null;
 
   return (
     <>
@@ -93,7 +102,14 @@ export function CardFaceMetadata({ face }) {
  * pieces. Defaults to `face.rotation` (set by normalizeCard) but can be
  * overridden explicitly by a caller that manages rotation itself.
  */
-export default function CardFrame({ face, image, rotation, showDetailsMetadata = false }) {
+type CardFrameProps = {
+  face: NormalizedFace;
+  image?: string | null;
+  rotation?: FaceRotation;
+  showDetailsMetadata?: boolean;
+};
+
+export default function CardFrame({ face, image, rotation, showDetailsMetadata = false }: CardFrameProps) {
   const resolvedImage = image ?? face.image;
   const resolvedRotation = rotation ?? face.rotation ?? 0;
   console.log(resolvedRotation);
@@ -123,7 +139,7 @@ export default function CardFrame({ face, image, rotation, showDetailsMetadata =
         ) : (
           <>
             {face.manaCost && (
-              <span className="scryfall-card__mana-cost"><OracleText text={face.manaCost} Component="span" /></span>
+              <span className="scryfall-card__mana-cost"><OracleText text={face.manaCost} /></span>
             )}
             &nbsp;
             {face.power && (
@@ -139,7 +155,7 @@ export default function CardFrame({ face, image, rotation, showDetailsMetadata =
         {face.oracleText && (
           <>
             <hr style={{ border: "none", height: "1px", backgroundColor: "#805e24" }} />
-            <div className="scryfall-card__oracle-text"><OracleText text={face.oracleText} Component="p" /></div>
+            <div className="scryfall-card__oracle-text"><OracleText text={face.oracleText} /></div>
           </>
         )}
 

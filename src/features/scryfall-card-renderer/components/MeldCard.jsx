@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import CardFrame from './CardFrame.jsx';
+import CardFrame from './CardFrame.tsx';
 
 /**
  * Covers: meld. The rarest shape — lazy-loaded, and the only one that
