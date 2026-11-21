@@ -1,6 +1,6 @@
 # Agent Context
 
-Working map of the app for AI coding agents. Checked against the repository source on 21 Nov 2026; app version v2026.11.5. Where this file and the source disagree, the source wins; update this file when the architecture or behavior changes.
+Working map of the app for AI coding agents. Checked against the repository source on 21 Nov 2026; app version v2026.11.6. Where this file and the source disagree, the source wins; update this file when the architecture or behavior changes.
 
 ## How to work with me (read first)
 
@@ -111,7 +111,7 @@ Defined in `src/app/router.tsx`. `/` redirects to `/v2/home`. Both top-level rou
 
 ## Planned, not implemented
 
-The card scanner (`/v2/scan`) recognizes modern cards by their collector line (D-062 prototype, stages 1–2), opens them on the search page in Identify mode (D-063) and adds them to a binder, Loose or a deck with Undo in Add mode (D-064). The name fallback reads the card name in the same box (D-065 step 2); in Identify mode a card found by name opens on its default printing. Not implemented: the low-light help (D-065 step 3), reading the finish mark and language (D-066) and the optional cloud fallback. Full deck-building tools such as format validation, collection valuation and price history, sales and balance tracking, and true server-side/advanced search remain planned. The Decks page and basic per-card entry management are implemented features, but they do not yet provide a complete deck-construction workflow. V2 search is a name search with local result filters, not advanced Scryfall search. The advanced-search page remains a placeholder.
+The card scanner (`/v2/scan`) recognizes modern cards by their collector line (D-062 prototype, stages 1–2), opens them on the search page in Identify mode (D-063) and adds them to a binder, Loose or a deck with Undo in Add mode (D-064). The name fallback reads the card name in the same box (D-065 step 2); in Identify mode a card found by name opens on its default printing. Add mode pre-selects the finish and language read on the card (D-066). Not implemented: the low-light help (D-065 step 3, set aside) and the optional cloud fallback. Full deck-building tools such as format validation, collection valuation and price history, sales and balance tracking, and true server-side/advanced search remain planned. The Decks page and basic per-card entry management are implemented features, but they do not yet provide a complete deck-construction workflow. V2 search is a name search with local result filters, not advanced Scryfall search. The advanced-search page remains a placeholder.
 
 ## TypeScript
 
