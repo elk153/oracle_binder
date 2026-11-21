@@ -93,6 +93,31 @@ test("O, I and L misread in the number become digits", () => {
   });
 });
 
+test("S misread for 5 in the number becomes 5", () => {
+  for (const [line, number] of [
+    ["0S12 R", "512"],
+    ["012S R", "125"],
+    ["R012S", "125"],
+    ["01S5/280 C", "155"],
+  ]) {
+    assert.deepEqual(
+      parseCollectorLine(`${line}\nDMU EN`),
+      { setCode: "dmu", collectorNumber: number },
+      line,
+    );
+  }
+});
+
+test("a leading S, or an S after 4 digits, is the special rarity", () => {
+  assert.deepEqual(parseCollectorLine("S0125\nTSR EN"), { setCode: "tsr", collectorNumber: "125" });
+  assert.deepEqual(parseCollectorLine("0125S\nTSR EN"), { setCode: "tsr", collectorNumber: "125" });
+  assert.deepEqual(parseCollectorLine("0125 S\nTSR EN"), { setCode: "tsr", collectorNumber: "125" });
+});
+
+test("set codes with S stay letters", () => {
+  assert.deepEqual(parseCollectorLine("0045 R\nSNC EN"), { setCode: "snc", collectorNumber: "45" });
+});
+
 test("set codes made of O, I and L stay letters", () => {
   assert.deepEqual(parseCollectorLine("0201 U\nLCI EN"), {
     setCode: "lci",

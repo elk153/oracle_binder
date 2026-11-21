@@ -241,7 +241,7 @@ Research references for this section: npm registry entries for each package (202
 
 ## D-065: Scanner guide for the code only, with a name fallback in the same box
 
-- Status: Accepted (2026-11-21). Steps 1 (the guide box) and 2 (name fallback) are implemented on the hotfix branch `2026.11.3a`; step 3 (low-light help) is not yet built.
+- Status: Accepted (2026-11-21). Steps 1 (the guide box) and 2 (name fallback) are implemented on the hotfix branch `2026.11.3a`. Step 3 (low-light help) was tried on the phone and read cards worse than without it. It is kept on the branch `2026.11.3a-low-light` (flashlight button, sharpest of the still frames, automatic retry after a failed reading) and is not part of the hotfix. Seen in the test: the OCR found many characters that are not on the card. The likely cause is the sharpness measure (Laplacian variance), which also rises with sensor noise, so in poor light it picks the noisiest frame rather than the sharpest; the retries then add more misreadings. If this is tried again, measure sharpness after a light blur, or choose between frames by OCR confidence or by an agreeing reading.
 - Date: 2026-11-21
 - Decision: Replace D-061's card-shaped guide with one wide box (4:1) in the middle of a 4:3 landscape camera view, 90% of its width. The user fills the box with the card's info line (set code and collector number, bottom left), not the whole card. A small card sketch in the corner shows which part goes in the box. The steady-frame check and the OCR both use only this box.
   1. **Code in the box:** the strip is read as before (D-062 stage 2).

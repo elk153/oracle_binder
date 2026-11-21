@@ -21,21 +21,27 @@ const LANGUAGE_CODES = new Set([
 ]);
 
 // A number token: up to 4 digits, optionally "/set size". OCR often reads
-// 0 as O and 1 as I or L, so those letters are allowed but at least one real
-// digit is required (otherwise set codes like "ONE" would become numbers).
+// 0 as O, 1 as I or L, and 5 as S, so those letters are allowed but at least
+// one real digit is required (otherwise set codes like "ONE" would become
+// numbers).
 // OCR also often drops the space between the rarity letter and the number
 // ("R0277", "0277R"), so one rarity letter may be stuck to either side; group
 // 1 is the number without it. L (land) is left out of those letters because
 // a leading L is more often a misread 1.
+// S is both a rarity (special) and a misread 5. A leading S is taken as the
+// rarity ("S0125"); otherwise S counts as a digit while the number has room
+// (up to 4 digits): "0S12" and "012S" are 0512 and 0125, "0125S" is 0125
+// with rarity S. Special rarity is rare and S for 5 is a frequent misread
+// (2026-11-21), so a 3-digit number with S glued ("025S") is read as 0255.
 const NUMBER_TOKEN =
-  /^[CURMSTP]?((?=[^/]*\d)[0-9OIL]{1,4}(?:\/[0-9OIL]{1,4})?)[CURMSTP]?$/;
+  /^[CURMSTP]?((?=[^/]*\d)[0-9OILS]{1,4}(?:\/[0-9OILS]{1,4})?)[CURMSTP]?$/;
 
 // Lands have rarity L, which OCR also reads as I or 1. Newer cards pad the
 // number to exactly 4 digits, so in a 5-character token ("L0277", "10277",
 // "0277L") the extra character cannot be part of the number: it is the
 // rarity. Group 1 or 2 is the number.
 const LAND_NUMBER_TOKEN =
-  /^[LI1]((?=[0-9OIL]{0,3}\d)[0-9OIL]{4})$|^((?=[0-9OIL]{0,3}\d)[0-9OIL]{4})[LI1]$/;
+  /^[LI1]((?=[0-9OILS]{0,3}\d)[0-9OILS]{4})$|^((?=[0-9OILS]{0,3}\d)[0-9OILS]{4})[LI1]$/;
 
 // The collector number in a token, or null.
 function numberOf(token: string): string | null {
@@ -67,7 +73,7 @@ function setCodeOf(token: string): string | null {
 }
 
 function fixDigits(token: string): string {
-  return token.replace(/O/g, "0").replace(/[IL]/g, "1");
+  return token.replace(/O/g, "0").replace(/[IL]/g, "1").replace(/S/g, "5");
 }
 
 function stripLeadingZeros(number: string): string {
