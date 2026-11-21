@@ -344,13 +344,45 @@
   min-width: 0;
 }
 
-/* The card a meld piece melds into (MeldCard). The overlay hides the
-   renderer's own face images, so this is the only image in the panel. */
-.card-detail__renderer .scryfall-card__meld-result-image {
+/* The other two cards of a meld trio (MeldCard). The overlay hides the
+   renderer's own face images, so these are the only images in the panel.
+   auto-fit puts them side by side and stacks them when the panel is too
+   narrow for two columns, without a media query. */
+.card-detail__renderer .scryfall-card__meld-relations {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+  gap: 0.75rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card-detail__renderer .scryfall-card__meld-label {
+  display: block;
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.card-detail__renderer .scryfall-card__meld-relation img {
   display: block;
   width: min(100%, var(--card-image-width));
   height: auto;
-  margin-top: 0.5rem;
+  margin-top: 0.4rem;
+  border-radius: var(--radius-card);
+}
+
+/* Reset the button so a clickable related card looks like the plain one;
+   the global :focus-visible ring from base.css still applies. */
+.card-detail__renderer .scryfall-card__meld-link {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  background: none;
+  cursor: pointer;
 }
 
 .card-detail__rulings {
