@@ -55,13 +55,13 @@ export default function RouteErrorPage() {
         <h1 className="page__title">{title}</h1>
         <p className="route-error__text">{text}</p>
         {notFound ? (
-          <Link className="page__control page__button route-error__action" to="/v2/home">
+          <Link className="page__action route-error__action" to="/v2/home">
             Go to home
           </Link>
         ) : (
           <button
             type="button"
-            className="page__control page__button route-error__action"
+            className="page__action route-error__action"
             onClick={() => window.location.reload()}
           >
             Reload

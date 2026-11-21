@@ -173,7 +173,10 @@
   margin: 1.5rem auto;
 }
 
-.pagination__button {
+/* The gold primary action of a page: "Load more", and .page__action for a
+   page's single main button or link (the route error page's Reload). */
+.pagination__button,
+.page__action {
   min-height: 2.75rem;
   padding: 0.65rem 1.25rem;
   border: 1px solid var(--surface-border);
@@ -184,11 +187,13 @@
   cursor: pointer;
 }
 
-.pagination__button:hover:not(:disabled) {
+.pagination__button:hover:not(:disabled),
+.page__action:hover {
   background: var(--btn-gold-hover);
 }
 
-.pagination__button:focus-visible {
+.pagination__button:focus-visible,
+.page__action:focus-visible {
   outline-offset: 3px;
 }
 

@@ -13,7 +13,12 @@
   color: var(--text-secondary);
 }
 
+/* The look comes from .page__action (layout.css). "Go to home" is a link, so
+   it also needs a box and no underline to match the Reload button. */
 .route-error__action {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
   text-decoration: none;
 }
 
