@@ -23,3 +23,14 @@ test("anything else gives null", () => {
   assert.equal(parseTruth(""), null);
   assert.equal(parseTruth("ltc"), null);
 });
+
+test("an optional foil mark and language follow the number", () => {
+  assert.deepEqual(parseTruth("ltc 277 star fr"), {
+    setCode: "ltc",
+    collectorNumber: "277",
+    foilMark: "star",
+    language: "FR",
+  });
+  assert.deepEqual(parseTruth("ltc 277 en"), { setCode: "ltc", collectorNumber: "277", language: "EN" });
+  assert.deepEqual(parseTruth("ltc 277 dot"), { setCode: "ltc", collectorNumber: "277", foilMark: "dot" });
+});

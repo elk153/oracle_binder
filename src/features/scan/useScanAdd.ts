@@ -37,7 +37,7 @@ export default function useScanAdd() {
   // and the outcome says how many were added, so nothing fails silently.
   async function addCards(
     { target, type, defaults }: AddSession,
-    { card, finish, quantity }: AddConfirmation,
+    { card, finish, language, quantity }: AddConfirmation,
   ): Promise<AddOutcome> {
     if (type === "proxy") {
       const entryIds: string[] = [];
@@ -62,6 +62,9 @@ export default function useScanAdd() {
 
     const copy: NewBinderCopy = {
       ...defaults,
+      // Chosen per card in the confirm step, starting from the language read
+      // on the card or the session default (D-066).
+      language,
       scryfall_id: card.id,
       rarity: card.rarity,
       status: "owned",

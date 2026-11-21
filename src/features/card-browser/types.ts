@@ -34,6 +34,9 @@ export type CardBrowserFace = {
 
 export type CardBrowserCard = Omit<ScryfallCard, "card_faces" | "prices"> & {
   layout: string;
+  // Scryfall's finishes of this printing ("nonfoil", "foil", "etched").
+  // Not checked by isCardBrowserCard; read it with Array.isArray.
+  finishes?: unknown;
   image_uris?: CardImageUris;
   card_faces?: CardBrowserFace[];
   set?: string;
