@@ -1,0 +1,67 @@
+/* ==========================================================================
+   ScanPage.css
+   Card scanner page (/v2/scan, D-061). Phone first: one narrow column that
+   stays narrow on wide screens.
+   ========================================================================== */
+
+.scan-page__heading {
+  width: min(100%, 28rem);
+}
+
+.scan-page__intro {
+  width: min(100%, 28rem);
+  margin: 0 auto 1rem;
+  color: var(--text-secondary);
+}
+
+.scan-page__modes {
+  display: grid;
+  gap: 0.9rem;
+  width: min(100%, 28rem);
+  margin: 0 auto;
+}
+
+/* A large tap target per mode: a title and a one-line explanation. */
+.scan-page__mode {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  background: var(--bg-card);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--duration-fast);
+}
+
+.scan-page__mode:hover {
+  border-color: var(--btn-gold);
+}
+
+.scan-page__mode-title {
+  color: var(--text-accent);
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.scan-page__mode-text {
+  color: var(--text-secondary);
+}
+
+.scan-page__change {
+  flex: 0 0 auto;
+}
+
+.scan-page__signin {
+  display: grid;
+  justify-items: center;
+}
+
+.scan-page__signin-link {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.5rem;
+  text-decoration: none;
+}
