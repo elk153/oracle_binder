@@ -1,15 +1,19 @@
 /* ==========================================================================
    ScanCamera.css
-   Live camera view of the card scanner (D-061). A portrait box (3:4) that
-   the video fills; the guide frame will be drawn over it.
+   Live camera view of the card scanner (D-061). A portrait box (3:4, the
+   VIEW_RATIO in guideFrame.ts) that the video fills, with the guide frame
+   over it and the instruction text under it.
    ========================================================================== */
 
 .scan-camera {
+  width: min(100%, 28rem);
+  margin: 0 auto;
+}
+
+.scan-camera__view {
   position: relative;
   overflow: hidden;
-  width: min(100%, 28rem);
   aspect-ratio: 3 / 4;
-  margin: 0 auto;
   border: 1px solid var(--surface-border);
   border-radius: var(--radius-md);
   background: var(--sublayer-bg);
@@ -33,7 +37,7 @@
 }
 
 /* Error state: no video, just the message and an optional retry button. */
-.scan-camera--message {
+.scan-camera__view--message {
   display: grid;
   place-content: center;
   justify-items: center;
@@ -46,6 +50,13 @@
 
 .scan-camera__message {
   margin: 0;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.scan-camera__instruction {
+  min-height: 3em; /* room for two lines, so the page doesn't jump */
+  margin: 0.75rem 0 0;
   color: var(--text-primary);
   text-align: center;
 }

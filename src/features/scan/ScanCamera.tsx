@@ -1,6 +1,9 @@
 import { useEffect, useRef } from "react";
 import useCamera from "./useCamera.ts";
 import type { CameraErrorReason } from "./useCamera.ts";
+import GuideFrame from "./GuideFrame.tsx";
+import { GUIDE_INSTRUCTIONS } from "./guideFrame.ts";
+import type { GuideStatus } from "./guideFrame.ts";
 import "./ScanCamera.css";
 
 const ERROR_MESSAGES: Record<CameraErrorReason, string> = {
@@ -24,9 +27,14 @@ const CAN_RETRY: Record<CameraErrorReason, boolean> = {
   unknown: true,
 };
 
-// The live rear-camera view of the scanner (D-061). The guide frame is drawn
-// over it in the next step.
-export default function ScanCamera() {
+type ScanCameraProps = {
+  // What the scanner is doing; recognition (D-062) will change it.
+  guideStatus?: GuideStatus;
+};
+
+// The live rear-camera view of the scanner (D-061), with the guide frame over
+// it and the same guidance as text under it.
+export default function ScanCamera({ guideStatus = "aiming" }: ScanCameraProps) {
   const { state, retry } = useCamera();
   const videoRef = useRef<HTMLVideoElement>(null);
   const stream = state.status === "live" ? state.stream : null;
@@ -42,34 +50,43 @@ export default function ScanCamera() {
 
   if (state.status === "error") {
     return (
-      <div className="scan-camera scan-camera--message" role="alert">
-        <p className="scan-camera__message">{ERROR_MESSAGES[state.reason]}</p>
-        {CAN_RETRY[state.reason] && (
-          <button type="button" className="page__action" onClick={retry}>
-            Try again
-          </button>
-        )}
+      <div className="scan-camera">
+        <div className="scan-camera__view scan-camera__view--message" role="alert">
+          <p className="scan-camera__message">{ERROR_MESSAGES[state.reason]}</p>
+          {CAN_RETRY[state.reason] && (
+            <button type="button" className="page__action" onClick={retry}>
+              Try again
+            </button>
+          )}
+        </div>
       </div>
     );
   }
 
   return (
     <div className="scan-camera">
-      {/* playsInline and muted keep iOS Safari from opening the video full
-          screen or refusing to autoplay it. */}
-      <video
-        ref={videoRef}
-        className="scan-camera__video"
-        autoPlay
-        playsInline
-        muted
-        aria-label="Camera view"
-      />
-      {state.status === "starting" && (
-        <p className="scan-camera__status" aria-live="polite">
-          Starting the camera…
-        </p>
-      )}
+      <div className="scan-camera__view">
+        {/* playsInline and muted keep iOS Safari from opening the video full
+            screen or refusing to autoplay it. */}
+        <video
+          ref={videoRef}
+          className="scan-camera__video"
+          autoPlay
+          playsInline
+          muted
+          aria-label="Camera view"
+        />
+        {state.status === "live" && <GuideFrame status={guideStatus} />}
+        {state.status === "starting" && (
+          <p className="scan-camera__status" aria-live="polite">
+            Starting the camera…
+          </p>
+        )}
+      </div>
+      {/* Read out by screen readers whenever the guidance changes. */}
+      <p className="scan-camera__instruction" aria-live="polite">
+        {state.status === "live" ? GUIDE_INSTRUCTIONS[guideStatus] : ""}
+      </p>
     </div>
   );
 }
