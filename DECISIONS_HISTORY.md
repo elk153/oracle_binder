@@ -708,7 +708,7 @@ Implemented and superseded decisions are retained here with their original IDs. 
 ## D-066: Read the finish mark and language from the collector line
 
 - Status: Implemented (2026-11-21). Checked on the phone: the mark and the language are read and pre-select the finish and the language in Add mode.
-- Release: pending (on dev)
+- Release: v2026.11.6
 - Date: 2026-11-21
 - Decision: Extend `parseCollectorLine` so that, besides the set code and collector number, it returns:
   - **`foilMark`**: `"star"`, `"dot"` or `null` (not read). On modern cards the sign between the set code and the language is a dot (•) on nonfoil cards and a star (★) on foil and other premium cards, for example "FRA • EN" and "FRA ★ EN".

@@ -7,6 +7,21 @@ Release versions follow the CalVer policy in [AGENTS.md](./AGENTS.md).
 
 ## [Unreleased]
 
+## [2026.11.6] - 2026-11-21
+
+### Added
+
+- Scanner Add mode reads the foil mark and the language printed next to the
+  set code. A star selects Foil (or Etched foil when the printing only
+  exists etched), a dot selects Non-foil, and a new Language choice on the
+  confirm step starts at the card's language (English, French, German,
+  Italian, Spanish, Japanese) or the session's default. Both can still be
+  changed before adding.
+
+### Database
+
+- No migration in this release.
+
 ## [2026.11.5] - 2026-11-21
 
 ### Fixed
