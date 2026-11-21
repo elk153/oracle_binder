@@ -40,6 +40,7 @@ static brand assets and are not React components.
 | [`src/assets/icons/navigation/LogoutIcon.tsx`](../../src/assets/icons/navigation/LogoutIcon.tsx) | Default sign-out icon for desktop/mobile navigation. |
 | [`src/assets/icons/navigation/NavMoonIcon.tsx`](../../src/assets/icons/navigation/NavMoonIcon.tsx) | Default moon SVG for the theme toggle. |
 | [`src/assets/icons/navigation/NavSunIcon.tsx`](../../src/assets/icons/navigation/NavSunIcon.tsx) | Default sun SVG for the theme toggle. |
+| [`src/assets/icons/navigation/ScanIcon.tsx`](../../src/assets/icons/navigation/ScanIcon.tsx) | Default navigation icon for Scan. |
 
 ## Authentication
 
@@ -113,6 +114,17 @@ static brand assets and are not React components.
 | [`src/features/decks/DeckCardPopover.tsx`](../../src/features/decks/DeckCardPopover.tsx) | Default deck-entry action popover for adding/removing/changing card entry kinds. |
 | [`src/features/decks/DecksPage.css`](../../src/features/decks/DecksPage.css) | Deck list, deck covers, entry-kind labels, and page states. |
 | [`src/features/queryKeys.ts`](../../src/features/queryKeys.ts) | Shared query-key factories for Binder copies and deck cards, avoiding hook import cycles. |
+
+## Scan
+
+| File | Purpose and public contract |
+| --- | --- |
+| [`src/features/scan/ScanPage.tsx`](../../src/features/scan/ScanPage.tsx) | Default public scanner page (D-061); URL-backed `?mode=identify\|add` mode choice; Add mode shows a sign-in link when signed out. |
+| [`src/features/scan/useCamera.ts`](../../src/features/scan/useCamera.ts) | Default `useCamera`; exports `CameraState` and `CameraErrorReason`. Opens the rear camera while mounted, stops it on unmount, maps `getUserMedia` errors to reasons, and returns `{ state, retry }`. |
+| [`src/features/scan/ScanCamera.tsx`](../../src/features/scan/ScanCamera.tsx) | Default camera view; shows the video or an error message with optional Try again, the guide frame, and `aria-live` instructions. Optional `guideStatus` prop (default `aiming`). |
+| [`src/features/scan/GuideFrame.tsx`](../../src/features/scan/GuideFrame.tsx) | Default decorative SVG guide: dimmed outside, card outline, title and collector zones; highlights the zone being read and turns to the success color when found. |
+| [`src/features/scan/guideFrame.ts`](../../src/features/scan/guideFrame.ts) | Exports the guide geometry as fractions (`VIEW_RATIO`, `CARD_RATIO`, `CARD_RECT`, `COLLECTOR_ZONE`, `TITLE_ZONE`, `Rect`), `GuideStatus`, and `GUIDE_INSTRUCTIONS`. The OCR (D-062) reads exactly these zones. |
+| [`src/features/scan/ScanPage.css`](../../src/features/scan/ScanPage.css), [`ScanCamera.css`](../../src/features/scan/ScanCamera.css), [`GuideFrame.css`](../../src/features/scan/GuideFrame.css) | Mode choice, 3:4 camera box, and guide-frame styles; the guide uses fixed tokens (`--bone-white`, `--sublayer-bg`, `--gold-fixed`, `--accent-fixed`). |
 
 ## Navigation
 
