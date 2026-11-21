@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import CardFrame from './CardFrame.tsx';
+import type { ShapeComponentProps } from '../types.ts';
 
 /**
  * Covers: flip. A single physical image with two text halves printed
@@ -14,7 +15,7 @@ import CardFrame from './CardFrame.tsx';
  * cards print the *entire* second face (art + text) upside-down, not just
  * the art.
  */
-export default function FlipVerticalCard({ card, showDetailsMetadata = false }) {
+export default function FlipVerticalCard({ card, showDetailsMetadata = false }: ShapeComponentProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const face = card.faces[activeIndex];
   const image = face.image ?? card.rootImage;

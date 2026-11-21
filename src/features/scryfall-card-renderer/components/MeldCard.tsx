@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react';
 import CardFrame from './CardFrame.tsx';
+import type { ShapeComponentProps } from '../types.ts';
+
+type MeldResult = { name?: string };
+
+type MeldCardProps = ShapeComponentProps & {
+  fetchCardByUri?: (uri: string) => Promise<MeldResult>;
+};
 
 /**
  * Covers: meld. The rarest shape — lazy-loaded, and the only one that
@@ -9,10 +16,10 @@ import CardFrame from './CardFrame.tsx';
  * doesn't hard-code a data-fetching strategy (SWR, React Query, plain
  * fetch, a cached client, etc.) — pass whatever the app already uses.
  */
-export default function MeldCard({ card, fetchCardByUri, showDetailsMetadata = false }) {
+export default function MeldCard({ card, fetchCardByUri, showDetailsMetadata = false }: MeldCardProps) {
   const face = card.faces[0];
   const meldPart = card.allParts?.find((part) => part.component === 'meld_result');
-  const [meldResult, setMeldResult] = useState(null);
+  const [meldResult, setMeldResult] = useState<MeldResult | null>(null);
 
   useEffect(() => {
     if (!meldPart || !fetchCardByUri) return undefined;

@@ -1,20 +1,25 @@
-import React, { Suspense, useMemo } from 'react';
+import { lazy, memo, Suspense, useMemo } from 'react';
+import type { ComponentType } from 'react';
 import { CARD_SHAPES } from './scryfallCardLayouts.ts';
+import type { CardShape } from './scryfallCardLayouts.ts';
 import { normalizeCard } from './normalizeCard.ts';
+import type { RawScryfallCard, ShapeComponentProps } from './types.ts';
 
 // Eager: ONE_FACE covers 15 of the 24 layouts and is the overwhelming
 // majority of any real card pool — no reason to pay a lazy-load waterfall
 // for the common case.
-import OneFaceCard from './components/OneFaceCard.jsx';
+import OneFaceCard from './components/OneFaceCard.tsx';
 
 // Lazy: each of these is rare in a typical card pool, so their code (and
 // any extras they pull in) is only downloaded when actually needed.
-const ToggleFacesCard = React.lazy(() => import('./components/ToggleFacesCard.jsx'));
-const SplitFacesCard = React.lazy(() => import('./components/SplitFacesCard.jsx'));
-const FlipVerticalCard = React.lazy(() => import('./components/FlipVerticalCard.jsx'));
-const MeldCard = React.lazy(() => import('./components/MeldCard.jsx')); // rarest of all
+const ToggleFacesCard = lazy(() => import('./components/ToggleFacesCard.tsx'));
+const SplitFacesCard = lazy(() => import('./components/SplitFacesCard.tsx'));
+const FlipVerticalCard = lazy(() => import('./components/FlipVerticalCard.tsx'));
+const MeldCard = lazy(() => import('./components/MeldCard.tsx')); // rarest of all
 
-const SHAPE_COMPONENTS = {
+// Record<CardShape, ...> makes TypeScript require one component per shape:
+// adding a shape to CARD_SHAPES without a component here is a type error.
+const SHAPE_COMPONENTS: Record<CardShape, ComponentType<ShapeComponentProps>> = {
   [CARD_SHAPES.ONE_FACE]: OneFaceCard,
   [CARD_SHAPES.TOGGLE_FACES]: ToggleFacesCard,
   [CARD_SHAPES.SPLIT_FACES]: SplitFacesCard,
@@ -26,18 +31,20 @@ function CardFallback() {
   return <div className="scryfall-card scryfall-card--loading" aria-busy="true" />;
 }
 
+type CardRendererProps = Omit<ShapeComponentProps, 'card'> & {
+  /** A raw Scryfall card; it is normalized here before rendering. */
+  card: RawScryfallCard;
+};
+
 /**
  * Renders any Scryfall card object, regardless of layout.
  *
  * Usage: <CardRenderer card={scryfallCard} />
  * Meld cards accept an extra `fetchCardByUri` prop for resolving all_parts.
- *
  */
-/** @param {{ card: object, [key: string]: unknown }} props */
-function CardRenderer(props) {
-  const { card, ...rest } = props;
+function CardRenderer({ card, ...rest }: CardRendererProps) {
   const normalized = useMemo(() => normalizeCard(card), [card]);
-  const Component = SHAPE_COMPONENTS[normalized.shape] ?? OneFaceCard;
+  const Component = SHAPE_COMPONENTS[normalized.shape];
 
   console.log(`Card Layout: ${normalized.layout}, Normalized Shape: ${normalized.shape}, Name: ${normalized.name}`);
 
@@ -48,4 +55,4 @@ function CardRenderer(props) {
   );
 }
 
-export default React.memo(CardRenderer);
+export default memo(CardRenderer);

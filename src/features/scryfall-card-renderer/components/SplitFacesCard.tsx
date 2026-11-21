@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import OracleText from "./OracleText.tsx";
 import { CardFaceMetadata } from './CardFrame.tsx';
+import type { ShapeComponentProps } from '../types.ts';
 
 /**
  * Covers: split, adventure. Both faces are legal casting options on the
  * same piece of card stock, shown at once rather than toggled.
  */
-export default function SplitFacesCard({ card, showDetailsMetadata = false }) {
+export default function SplitFacesCard({ card, showDetailsMetadata = false }: ShapeComponentProps) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const resolvedRotation = card.rotation ?? card.faces[activeIndex].rotation ?? 0;
+  const resolvedRotation = card.faces[activeIndex].rotation;
   const differentFaceOrientation = card.faces[0].rotation !== card.faces[1].rotation
   const activeFace = card.faces[activeIndex];
   const nextFace = activeIndex === 0 ? 1 : 0;
@@ -20,7 +21,7 @@ export default function SplitFacesCard({ card, showDetailsMetadata = false }) {
       <div className={`card-frame-${resolvedRotation}`}>
         <img
           className={"card"}
-          src={card.faces[activeIndex].image ?? card.rootImage}
+          src={card.faces[activeIndex].image ?? card.rootImage ?? undefined}
           alt={card.faces[activeIndex].name}
         />
       </div>
@@ -40,7 +41,7 @@ export default function SplitFacesCard({ card, showDetailsMetadata = false }) {
             ) : (
               <>
                 {face.manaCost && (
-                  <span className="scryfall-card__mana-cost"><OracleText text={face.manaCost} Component="span" /></span>
+                  <span className="scryfall-card__mana-cost"><OracleText text={face.manaCost} /></span>
                 )}
                 {face.power && <span className="color-pill color__M">{face.power}/{face.toughness ?? "—"}</span>}
                 {face.loyalty && <span className="color-pill color__M">{face.loyalty}</span>}
@@ -51,7 +52,7 @@ export default function SplitFacesCard({ card, showDetailsMetadata = false }) {
             {face.oracleText && (
               <>
                 <hr style={{ border: "none", height: "1px", backgroundColor: "#805e24" }} />
-                <div className="scryfall-card__oracle-text"><OracleText text={face.oracleText} Component="p" /></div>
+                <div className="scryfall-card__oracle-text"><OracleText text={face.oracleText} /></div>
               </>
             )}
     
@@ -75,7 +76,7 @@ export default function SplitFacesCard({ card, showDetailsMetadata = false }) {
           <div className={`card-frame-${resolvedRotation}`}>
             <img
               className={"card"}
-              src={card.faces[activeIndex].image ?? card.rootImage}
+              src={card.faces[activeIndex].image ?? card.rootImage ?? undefined}
               alt={card.faces[activeIndex].name}
             />
           </div>
@@ -94,7 +95,7 @@ export default function SplitFacesCard({ card, showDetailsMetadata = false }) {
               ) : (
                 <>
                   {activeFace.manaCost && (
-                    <span className="scryfall-card__mana-cost"><OracleText text={activeFace.manaCost} Component="span" /></span>
+                    <span className="scryfall-card__mana-cost"><OracleText text={activeFace.manaCost} /></span>
                   )}
                   {activeFace.power && <span className="color-pill color__M">{activeFace.power}/{activeFace.toughness ?? "—"}</span>}
                   {activeFace.loyalty && <span className="color-pill color__M">{activeFace.loyalty}</span>}
@@ -105,7 +106,7 @@ export default function SplitFacesCard({ card, showDetailsMetadata = false }) {
               {activeFace.oracleText && (
                 <>
                   <hr style={{ border: "none", height: "1px", backgroundColor: "#805e24" }} />
-                  <p className="scryfall-card__oracle-text"><OracleText text={activeFace.oracleText} Component="p" /></p>
+                  <p className="scryfall-card__oracle-text"><OracleText text={activeFace.oracleText} /></p>
                 </>
               )}
       
