@@ -33,3 +33,27 @@
   font-size: 0.85rem;
   white-space: pre-wrap;
 }
+
+.scan-debug__heading {
+  margin: 0.5rem 0 0;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.scan-debug__control {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.scan-debug__check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.scan-debug__saver {
+  display: grid;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--surface-border);
+}

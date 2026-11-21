@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { RefObject } from "react";
 import { getScanRects } from "./frameGeometry.ts";
 import type { PixelRect } from "./frameGeometry.ts";
+import { toGray } from "./imageMath.ts";
 
 // Stage 1 of the recognition pipeline (D-062): notice when the card is held
 // still, then cut the title and collector zones out of that one frame.
@@ -24,17 +25,14 @@ export type SteadyCapture = {
   title: HTMLCanvasElement;
   collector: HTMLCanvasElement;
   capturedAt: number;
+  videoWidth: number;
+  videoHeight: number;
+  // Video pixels per millimetre of card, if the card fills the outline
+  // (its 63 mm width spans the outline's width).
+  pixelsPerMm: number;
 };
 
-function toGray(rgba: Uint8ClampedArray): Uint8Array {
-  const gray = new Uint8Array(rgba.length / 4);
-  for (let i = 0; i < gray.length; i += 1) {
-    const p = i * 4;
-    // Standard luma weights: green looks brightest to the eye.
-    gray[i] = (rgba[p] * 299 + rgba[p + 1] * 587 + rgba[p + 2] * 114) / 1000;
-  }
-  return gray;
-}
+const CARD_WIDTH_MM = 63;
 
 function meanDifference(a: Uint8Array, b: Uint8Array): number {
   let total = 0;
@@ -115,6 +113,9 @@ export default function useSteadyFrame(
               title: cropToCanvas(video, rects.title),
               collector: cropToCanvas(video, rects.collector),
               capturedAt: Date.now(),
+              videoWidth: video.videoWidth,
+              videoHeight: video.videoHeight,
+              pixelsPerMm: card.width / CARD_WIDTH_MM,
             });
             setStatus("steady");
           }

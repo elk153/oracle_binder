@@ -30,6 +30,23 @@ const LANGUAGE_CODES = new Set([
 const NUMBER_TOKEN =
   /^[CURMSTP]?((?=[^/]*\d)[0-9OIL]{1,4}(?:\/[0-9OIL]{1,4})?)[CURMSTP]?$/;
 
+// Lands have rarity L, which OCR also reads as I or 1. Newer cards pad the
+// number to exactly 4 digits, so in a 5-character token ("L0277", "10277",
+// "0277L") the extra character cannot be part of the number: it is the
+// rarity. Group 1 or 2 is the number.
+const LAND_NUMBER_TOKEN =
+  /^[LI1]((?=[0-9OIL]{0,3}\d)[0-9OIL]{4})$|^((?=[0-9OIL]{0,3}\d)[0-9OIL]{4})[LI1]$/;
+
+// The collector number in a token, or null.
+function numberOf(token: string): string | null {
+  const match = NUMBER_TOKEN.exec(token);
+  if (match) {
+    return match[1];
+  }
+  const land = LAND_NUMBER_TOKEN.exec(token);
+  return land ? (land[1] ?? land[2]) : null;
+}
+
 // A set code: 3 to 5 letters or digits, with at least one letter ("2X2").
 const SET_TOKEN = /^(?=.*[A-Z])[A-Z0-9]{3,5}$/;
 
@@ -73,10 +90,10 @@ export function parseCollectorLine(text: string): CollectorLine | null {
   let collectorNumber = "";
   for (let i = 0; i < lines.length && numberLine < 0; i += 1) {
     for (const candidate of lines[i]) {
-      const match = NUMBER_TOKEN.exec(candidate);
-      if (match) {
+      const number = numberOf(candidate);
+      if (number) {
         numberLine = i;
-        collectorNumber = stripLeadingZeros(fixDigits(match[1]).split("/")[0]);
+        collectorNumber = stripLeadingZeros(fixDigits(number).split("/")[0]);
         break;
       }
     }

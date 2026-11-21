@@ -1,10 +1,19 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { SteadyCapture, SteadyStatus } from "./useSteadyFrame.ts";
 import type { CollectorReading } from "./useCollectorReading.ts";
 import type { PrintingLookup } from "./usePrintingLookup.ts";
+import type { CameraOptions } from "./useCamera.ts";
+import { describeCamera, listCameras } from "./cameraInfo.ts";
+import type { CameraInfo } from "./cameraInfo.ts";
+import { laplacianVariance, toGray } from "./imageMath.ts";
+import { downloadSample, parseTruth } from "./scanSample.ts";
+import type { ScanSample, StripImage } from "./scanSample.ts";
 import "./ScanDebug.css";
 
 type ScanDebugProps = {
+  stream: MediaStream | null;
+  cameraOptions: CameraOptions;
+  onCameraOptionsChange: (options: CameraOptions) => void;
   status: SteadyStatus;
   difference: number | null;
   capture: SteadyCapture | null;
@@ -12,27 +21,86 @@ type ScanDebugProps = {
   lookup: PrintingLookup;
 };
 
-// Development-only panel for the recognition prototype (D-062): shows the
-// change value used for steady detection, the last two cut-out zones, and the
-// OCR result for the collector strip (cleaned-up image, raw text, parsed set
-// and number, confidence, timings) and the Scryfall lookup, to tune the
-// pipeline on a real phone.
-// ScanCamera loads it only when import.meta.env.DEV is true, so it never
-// reaches production.
+// The info line text is roughly 1 mm tall on the card.
+const TEXT_HEIGHT_MM = 1;
+
+// The strip is measured at this height, whatever the camera resolution:
+// the Laplacian compares neighbouring pixels, so the same edge spread over
+// more pixels (4K) would otherwise score lower although it looks sharper.
+const SHARPNESS_HEIGHT = 48;
+
+function sharpnessOf(source: HTMLCanvasElement): number {
+  if (source.width === 0 || source.height === 0) {
+    return 0;
+  }
+  const height = SHARPNESS_HEIGHT;
+  const width = Math.max(3, Math.round((source.width * height) / source.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  if (!context) {
+    return 0;
+  }
+  context.imageSmoothingQuality = "high";
+  context.drawImage(source, 0, 0, width, height);
+  const { data } = context.getImageData(0, 0, width, height);
+  return laplacianVariance(toGray(data), width, height);
+}
+
+function toStripImage(canvas: HTMLCanvasElement): StripImage {
+  return { width: canvas.width, height: canvas.height, dataUrl: canvas.toDataURL("image/png") };
+}
+
+function rangeText(range: { min: number; max: number } | null): string {
+  return range ? `${range.min}–${range.max}` : "not reported";
+}
+
+// Development-only panel for the recognition prototype (D-062) and the OCR
+// reliability study: camera facts and choice, steady detection, the cut-out
+// zones with their size and sharpness, the OCR and Scryfall results, and a
+// "Save sample" form that downloads the raw strips with what the card really
+// says. ScanCamera loads it only when import.meta.env.DEV is true, so it
+// never reaches production.
 export default function ScanDebug({
+  stream,
+  cameraOptions,
+  onCameraOptionsChange,
   status,
   difference,
   capture,
   reading,
   lookup,
 }: ScanDebugProps) {
-  // Canvas → image URL once per capture, not on every render.
-  const images = useMemo(
+  const camera = useMemo(() => (stream ? describeCamera(stream) : null), [stream]);
+  const [cameras, setCameras] = useState<Array<{ deviceId: string; label: string }>>([]);
+
+  // Camera labels are only known once permission was granted, so the list is
+  // read again for each new stream.
+  useEffect(() => {
+    if (!stream) {
+      return;
+    }
+    let cancelled = false;
+    listCameras()
+      .then((list) => {
+        if (!cancelled) {
+          setCameras(list);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [stream]);
+
+  // Canvas → image URL and sharpness once per capture, not on every render.
+  const captured = useMemo(
     () =>
       capture && {
         title: capture.title.toDataURL(),
         collector: capture.collector.toDataURL(),
-        size: `${capture.collector.width}×${capture.collector.height}`,
+        sharpness: sharpnessOf(capture.collector),
         time: new Date(capture.capturedAt).toLocaleTimeString(),
       },
     [capture],
@@ -44,18 +112,64 @@ export default function ScanDebug({
 
   return (
     <section className="scan-debug" aria-label="Scanner debug (development only)">
+      <h2 className="scan-debug__heading">Camera</h2>
+      <CameraFacts camera={camera} />
+      <label className="scan-debug__control">
+        Camera
+        <select
+          className="field__input"
+          value={cameraOptions.deviceId ?? ""}
+          onChange={(event) =>
+            onCameraOptionsChange({
+              ...cameraOptions,
+              deviceId: event.currentTarget.value || undefined,
+            })
+          }
+        >
+          <option value="">Default rear camera</option>
+          {cameras.map((item) => (
+            <option key={item.deviceId} value={item.deviceId}>
+              {item.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="scan-debug__check">
+        <input
+          type="checkbox"
+          checked={cameraOptions.highResolution ?? true}
+          onChange={(event) =>
+            onCameraOptionsChange({ ...cameraOptions, highResolution: event.currentTarget.checked })
+          }
+        />
+        Ask for 4K (3840×2160)
+      </label>
+
+      <h2 className="scan-debug__heading">Capture</h2>
       <p className="scan-debug__line">
         {status} · change {difference === null ? "–" : difference.toFixed(1)}
       </p>
-      {images && (
+      {capture && captured && (
         <>
-          <p className="scan-debug__line">Captured {images.time}</p>
-          <img className="scan-debug__image" src={images.title} alt="Title zone" />
-          <img className="scan-debug__image" src={images.collector} alt="Collector zone" />
-          <p className="scan-debug__line">Collector strip {images.size} px</p>
+          <p className="scan-debug__line">
+            Captured {captured.time} · video {capture.videoWidth}×{capture.videoHeight}
+          </p>
+          <p className="scan-debug__line">
+            {capture.pixelsPerMm.toFixed(1)} px/mm at the guide size · info text ≈{" "}
+            {Math.round(capture.pixelsPerMm * TEXT_HEIGHT_MM)} px tall (OCR likes 20–30)
+          </p>
+          <p className="scan-debug__line">
+            Collector strip {capture.collector.width}×{capture.collector.height} px · sharpness{" "}
+            {Math.round(captured.sharpness)} (at {SHARPNESS_HEIGHT} px height, comparable across
+            resolutions)
+          </p>
+          <img className="scan-debug__image" src={captured.title} alt="Title zone" />
+          <img className="scan-debug__image" src={captured.collector} alt="Collector zone" />
         </>
       )}
-      <p className="scan-debug__line">OCR: {reading.status}</p>
+
+      <h2 className="scan-debug__heading">OCR</h2>
+      <p className="scan-debug__line">{reading.status}</p>
       {reading.status === "error" && <p className="scan-debug__line">{reading.message}</p>}
       {reading.status === "done" && (
         <>
@@ -72,13 +186,123 @@ export default function ScanDebug({
           </p>
         </>
       )}
-      <p className="scan-debug__line">Scryfall: {lookup.status}</p>
+
+      <h2 className="scan-debug__heading">Scryfall</h2>
+      <p className="scan-debug__line">{lookup.status}</p>
       {lookup.status === "found" && (
         <p className="scan-debug__line">
           {lookup.card.name} · {lookup.card.set_name ?? lookup.card.set} #{lookup.card.collector_number}
         </p>
       )}
       {lookup.status === "error" && <p className="scan-debug__line">{lookup.message}</p>}
+
+      {capture && captured && (
+        <SampleSaver
+          // A new capture starts with an empty form.
+          key={capture.capturedAt}
+          capture={capture}
+          sharpness={captured.sharpness}
+          camera={camera}
+          reading={reading}
+        />
+      )}
     </section>
+  );
+}
+
+function CameraFacts({ camera }: { camera: CameraInfo | null }) {
+  if (!camera) {
+    return <p className="scan-debug__line">No camera stream.</p>;
+  }
+  return (
+    <>
+      <p className="scan-debug__line">
+        {camera.label || "Unnamed camera"} · {camera.width}×{camera.height}
+        {camera.frameRate ? ` · ${Math.round(camera.frameRate)} fps` : ""}
+      </p>
+      <p className="scan-debug__line">
+        Zoom {rangeText(camera.zoom)} · torch{" "}
+        {camera.torch === null ? "not reported" : camera.torch ? "yes" : "no"}
+      </p>
+      <p className="scan-debug__line">
+        Focus modes {camera.focusModes?.join(", ") ?? "not reported"} · focus distance{" "}
+        {rangeText(camera.focusDistance)}
+      </p>
+    </>
+  );
+}
+
+type SampleSaverProps = {
+  capture: SteadyCapture;
+  sharpness: number;
+  camera: CameraInfo | null;
+  reading: CollectorReading;
+};
+
+// Saves the current capture as a sample file for the benchmark.
+function SampleSaver({ capture, sharpness, camera, reading }: SampleSaverProps) {
+  const [truthText, setTruthText] = useState("");
+  const [note, setNote] = useState("");
+  const [saved, setSaved] = useState(false);
+  const parsed = reading.status === "done" ? reading.parsed : null;
+  const parsedText = parsed ? `${parsed.setCode} ${parsed.collectorNumber}` : "";
+  // An empty field means "the reading above is right".
+  const truth = parseTruth(truthText || parsedText);
+
+  function save() {
+    const sample: ScanSample = {
+      format: "oracle-binder-scan-sample",
+      version: 1,
+      savedAt: new Date().toISOString(),
+      truth,
+      note: note.trim(),
+      camera,
+      videoWidth: capture.videoWidth,
+      videoHeight: capture.videoHeight,
+      pixelsPerMm: capture.pixelsPerMm,
+      sharpness,
+      collector: toStripImage(capture.collector),
+      title: toStripImage(capture.title),
+      ocr:
+        reading.status === "done"
+          ? {
+              text: reading.text,
+              confidence: reading.confidence,
+              readMs: reading.readMs,
+              parsed: reading.parsed,
+            }
+          : null,
+    };
+    downloadSample(sample);
+    setSaved(true);
+  }
+
+  return (
+    <div className="scan-debug__saver">
+      <h2 className="scan-debug__heading">Save sample</h2>
+      <label className="scan-debug__control">
+        What the card says (set and number)
+        <input
+          className="field__input"
+          value={truthText}
+          placeholder={parsedText || "e.g. ltc 277"}
+          onChange={(event) => setTruthText(event.currentTarget.value)}
+          autoCapitalize="none"
+          autoCorrect="off"
+        />
+      </label>
+      <label className="scan-debug__control">
+        Note (light, foil, …)
+        <input
+          className="field__input"
+          value={note}
+          onChange={(event) => setNote(event.currentTarget.value)}
+        />
+      </label>
+      <button type="button" className="page__control page__button" onClick={save} disabled={!truth}>
+        {saved ? "Saved — save again" : "Save sample"}
+      </button>
+      {!truth && <p className="scan-debug__line">Type the set and number to save.</p>}
+    </div>
   );
 }

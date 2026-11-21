@@ -1,6 +1,7 @@
-import { lazy, Suspense, useEffect, useEffectEvent, useRef } from "react";
+import { lazy, Suspense, useEffect, useEffectEvent, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import useCamera from "./useCamera.ts";
+import type { CameraOptions } from "./useCamera.ts";
 import type { CameraErrorReason } from "./useCamera.ts";
 import GuideFrame from "./GuideFrame.tsx";
 import { GUIDE_INSTRUCTIONS } from "./guideFrame.ts";
@@ -77,7 +78,10 @@ type ScanCameraProps = {
 // The live rear-camera view of the scanner (D-061), with the guide frame over
 // it and the same guidance as text under it.
 export default function ScanCamera({ onFound, overlay }: ScanCameraProps) {
-  const { state, retry } = useCamera();
+  // Camera choice, set from the development-only debug panel; production
+  // always uses the default rear camera at 4K.
+  const [cameraOptions, setCameraOptions] = useState<CameraOptions>({});
+  const { state, retry } = useCamera(cameraOptions);
   const videoRef = useRef<HTMLVideoElement>(null);
   const stream = state.status === "live" ? state.stream : null;
 
@@ -163,6 +167,9 @@ export default function ScanCamera({ onFound, overlay }: ScanCameraProps) {
       {ScanDebug && state.status === "live" && (
         <Suspense fallback={null}>
           <ScanDebug
+            stream={stream}
+            cameraOptions={cameraOptions}
+            onCameraOptionsChange={setCameraOptions}
             status={steady.status}
             difference={steady.difference}
             capture={steady.capture}

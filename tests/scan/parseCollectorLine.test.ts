@@ -69,6 +69,23 @@ test("a word of the artist name is not taken for the set", () => {
   });
 });
 
+test("land rarity L stuck to a 4-digit number, also read as I or 1", () => {
+  for (const line of ["L0277", "I0277", "10277", "0277L", "0277I", "02771"]) {
+    assert.deepEqual(
+      parseCollectorLine(`${line}\nLTC EN`),
+      { setCode: "ltc", collectorNumber: "277" },
+      line,
+    );
+  }
+});
+
+test("a real 4-digit number starting with 1 is kept", () => {
+  assert.deepEqual(parseCollectorLine("1234 R\nSLD EN"), {
+    setCode: "sld",
+    collectorNumber: "1234",
+  });
+});
+
 test("O, I and L misread in the number become digits", () => {
   assert.deepEqual(parseCollectorLine("O1I/280 C\nDMU EN"), {
     setCode: "dmu",
