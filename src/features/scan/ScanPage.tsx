@@ -6,14 +6,21 @@ import AddScanner from "./AddScanner.tsx";
 import type { CardBrowserCard } from "../card-browser/types.ts";
 import "./ScanPage.css";
 
-// The two scanner modes (D-061). The mode lives in the URL (?mode=), so a
-// reload keeps it and Back returns to the mode choice.
-const SCAN_MODES = ["identify", "add"] as const;
-type ScanMode = (typeof SCAN_MODES)[number];
+// The scanner modes (D-061). The mode lives in the URL (?mode=), so a reload
+// keeps it and Back returns to the mode choice. "test" is the development-
+// only Test mode (camera facts, readings and sample saving, no action); in a
+// production build the parser does not accept it, so ?mode=test shows the
+// mode choice.
+const ALL_SCAN_MODES = ["identify", "add", "test"] as const;
+type ScanMode = (typeof ALL_SCAN_MODES)[number];
+const SCAN_MODES: readonly ScanMode[] = import.meta.env.DEV
+  ? ALL_SCAN_MODES
+  : ALL_SCAN_MODES.filter((mode) => mode !== "test");
 
 const MODE_TITLES: Record<ScanMode, string> = {
   identify: "Identify a card",
   add: "Add cards",
+  test: "Test the scanner",
 };
 
 export default function ScanPage() {
@@ -51,7 +58,13 @@ export default function ScanPage() {
           Change mode
         </button>
       </div>
-      {mode === "add" ? <AddModeGate /> : <ScanCamera onFound={openCard} />}
+      {mode === "add" ? (
+        <AddModeGate />
+      ) : mode === "test" ? (
+        <ScanCamera testMode />
+      ) : (
+        <ScanCamera onFound={openCard} />
+      )}
     </section>
   );
 }
@@ -88,6 +101,19 @@ function ModeChoice({ onChoose }: ModeChoiceProps) {
             Add cards one after another to a binder or a deck. Requires sign-in.
           </span>
         </button>
+        {import.meta.env.DEV && (
+          <button
+            type="button"
+            className="scan-page__mode scan-page__mode--dev"
+            onClick={() => onChoose("test")}
+          >
+            <span className="scan-page__mode-title">Test (development)</span>
+            <span className="scan-page__mode-text">
+              Camera facts, readings and sample saving. Nothing is opened or added; each
+              capture is kept until you reset it.
+            </span>
+          </button>
+        )}
       </div>
     </section>
   );

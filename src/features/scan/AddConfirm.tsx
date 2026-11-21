@@ -16,6 +16,7 @@ export type AddConfirmation = {
 type AddConfirmProps = {
   card: CardBrowserCard; // the recognized printing
   showFinish: boolean; // owned copies only
+  choosePrinting?: boolean; // open the printing list at once (card found by name)
   onConfirm: (confirmation: AddConfirmation) => void;
   onSkip: () => void;
 };
@@ -34,9 +35,15 @@ function printingLabel(card: CardBrowserCard): string {
 // Confirm step of the scanner's Add mode (D-064), shown over the camera for
 // each recognized card: check the printing (and change it), pick the finish
 // and the quantity, then confirm or skip.
-export default function AddConfirm({ card, showFinish, onConfirm, onSkip }: AddConfirmProps) {
+export default function AddConfirm({
+  card,
+  showFinish,
+  choosePrinting = false,
+  onConfirm,
+  onSkip,
+}: AddConfirmProps) {
   const [printing, setPrinting] = useState(card);
-  const [isChoosingPrinting, setIsChoosingPrinting] = useState(false);
+  const [isChoosingPrinting, setIsChoosingPrinting] = useState(choosePrinting);
   const [finishIndex, setFinishIndex] = useState(0); // Non-foil for each card
   const [quantity, setQuantity] = useState(1);
   const finishId = useId();

@@ -59,6 +59,22 @@ const router = createBrowserRouter([ // be aware of the capitals
         path: "scan",
         element: <ScanPage />,
       },
+      // Development-only OCR benchmark for the scanner (D-062 follow-up). In a
+      // production build import.meta.env.DEV is false, so the route and its
+      // code are left out.
+      ...(import.meta.env.DEV
+        ? [
+            {
+              path: "scan-bench",
+              lazy: async () => {
+                const { default: Component } = await import(
+                  "../features/scan/bench/ScanBenchPage.tsx"
+                );
+                return { Component };
+              },
+            },
+          ]
+        : []),
       {
         path: "collection",
         element: <Navigate to="/v2/binder" replace />,

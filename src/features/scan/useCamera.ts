@@ -15,17 +15,28 @@ export type CameraState =
   | { status: "live"; stream: MediaStream }
   | { status: "error"; reason: CameraErrorReason };
 
-// Rear camera, at a high resolution so the small collector text stays
-// readable for the OCR later (D-062). "ideal" means "if possible": the
-// browser picks the closest camera and size instead of failing.
-const CONSTRAINTS: MediaStreamConstraints = {
-  audio: false,
-  video: {
-    facingMode: { ideal: "environment" },
-    width: { ideal: 1920 },
-    height: { ideal: 1080 },
-  },
+export type CameraOptions = {
+  // A specific camera (from enumerateDevices) instead of "the rear camera".
+  deviceId?: string;
+  // 4K (the default) instead of 1080p. At 1080p the collector text is only
+  // about 16 px tall on an iPhone 13 Pro, below what Tesseract reads well;
+  // 4K doubles it (measured 2026-11-21, OCR reliability study).
+  highResolution?: boolean;
 };
+
+// Rear camera (or the chosen one), at a high resolution so the small
+// collector text stays readable for the OCR (D-062). "ideal" means "if
+// possible": the browser picks the closest camera and size instead of failing.
+function toConstraints({ deviceId, highResolution }: CameraOptions): MediaStreamConstraints {
+  return {
+    audio: false,
+    video: {
+      ...(deviceId ? { deviceId: { exact: deviceId } } : { facingMode: { ideal: "environment" } }),
+      width: { ideal: highResolution ? 3840 : 1920 },
+      height: { ideal: highResolution ? 2160 : 1080 },
+    },
+  };
+}
 
 // Errors that are known before asking for the camera.
 function getInitialState(): CameraState {
@@ -63,14 +74,14 @@ function stopStream(stream: MediaStream) {
 // Opens the rear camera while the calling component is mounted and stops it
 // when the component unmounts. `retry` asks again after an error, for example
 // after the user allowed the camera in the browser settings.
-export default function useCamera() {
+export default function useCamera({ deviceId, highResolution = true }: CameraOptions = {}) {
   const [state, setState] = useState<CameraState>(getInitialState);
   // Changing this number re-runs the effect below: that is how retry works.
   const [attempt, setAttempt] = useState(0);
 
-  // Runs on mount and on each retry. It must not depend on `state`: when the
-  // state turns "live", a re-run would call the cleanup and stop the camera
-  // it just opened.
+  // Runs on mount, on each retry and when the camera options change (the
+  // cleanup stops the old stream first). It must not depend on `state`: when
+  // the state turns "live", a re-run would stop the camera it just opened.
   useEffect(() => {
     if (getInitialState().status !== "starting") {
       return;
@@ -83,7 +94,7 @@ export default function useCamera() {
     let stream: MediaStream | null = null;
 
     navigator.mediaDevices
-      .getUserMedia(CONSTRAINTS)
+      .getUserMedia(toConstraints({ deviceId, highResolution }))
       .then((newStream) => {
         if (cancelled) {
           stopStream(newStream);
@@ -104,7 +115,7 @@ export default function useCamera() {
         stopStream(stream);
       }
     };
-  }, [attempt]);
+  }, [attempt, deviceId, highResolution]);
 
   function retry() {
     setState(getInitialState());

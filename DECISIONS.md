@@ -137,7 +137,7 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
 
   Input is the live rear camera with automatic detection: a card is recognized as soon as it is held steady in the frame, with no capture button. Recognition must find the exact printing (set and collector number), because binder copies and deck entries store a Scryfall card id. When the printing can't be read, the app falls back to the recognized name and lets the user pick from that card's printings. The design targets phones first (portrait layout, one-handed controls) and must work in both iOS Safari and Chrome on Android. How recognition works is decided in D-062.
 
-  **Guide frame (visual cue in the camera view):** a card-shaped outline (the 63 × 88 mm card ratio) is drawn over the camera picture, and the area outside it is dimmed. Two zones are marked inside the outline:
+  **Guide frame (visual cue in the camera view):** *changed by D-065: one wide box for the code only, with the name fallback read in the same box.* Originally: a card-shaped outline (the 63 × 88 mm card ratio) is drawn over the camera picture, and the area outside it is dimmed. Two zones are marked inside the outline:
   - the **collector zone**, a box at the bottom left where the set code and collector number must sit;
   - the **title zone**, a box along the top where the card name must sit.
 
@@ -166,6 +166,8 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
   2. **Collector line by in-browser OCR:** cut the small info line at the bottom left of the card (collector number and set code, printed on cards since Magic 2015 in 2014) out of the frame and read only that strip with tesseract.js (see "OCR library evaluation" below). The strip is cut out at the position of the guide frame's collector zone (D-061). tesseract.js runs in a Web Worker and is loaded only on `/v2/scan`. Look the printing up with Scryfall's `/cards/:code/:number`, which returns exactly one printing.
   3. **Name fallback:** if the line can't be read (older cards, glare, foreign language), OCR the title (cut out at the guide frame's title zone) and match it, allowing small errors, against the Scryfall card-name catalog the app already prefetches. Then show that card's printings to pick from (D-061).
   4. **Optional cloud fallback:** only if steps 2 and 3 fail, send that one still frame to a cloud vision service through a Supabase Edge Function, which keeps the API key secret. Never send video frames continuously.
+
+  Since D-065, steps 2 and 3 read one guide box that the user fills with the info line, or with the name for the fallback, instead of zones of a card outline.
 
   Before this decision is accepted, a prototype on one iPhone (Safari) and one Android phone (Chrome) measures how often steps 2 and 3 succeed and how long they take. Based on that, the cloud step is either kept, with a chosen service and budget, or dropped. The prototype also settles the OCR library (see "OCR library evaluation" below).
 - Why:
@@ -236,3 +238,31 @@ Research references for this section: npm registry entries for each package (202
   - Works signed out. The overlay's favorite, binder and deck actions behave as on search, so they need sign-in.
   - Going back to `/v2/scan` restarts the camera, which asks for permission again only if the browser forgot it.
 - Source: "[Scan] Visual card recognition plan"
+
+## D-066: Read the finish mark and language from the collector line
+
+- Status: Evaluating (2026-11-21). Not implemented. The OCR part is checked first with scan samples (see Consequences).
+- Date: 2026-11-21
+- Decision: Extend `parseCollectorLine` so that, besides the set code and collector number, it returns:
+  - **`foilMark`**: `"star"`, `"dot"` or `null` (not read). On modern cards the sign between the set code and the language is a dot (•) on nonfoil cards and a star (★) on foil and other premium cards, for example "FRA • EN" and "FRA ★ EN".
+  - **`language`**: the printed two-letter code after that sign (EN, FR, DE, IT, ES, PT, JP or JA, KO, RU, CS, CT, PH), mapped to the app's language names where they exist (`LANGUAGES` in `binder/copyOptions.ts`), otherwise `null`.
+
+  How they are used:
+  - **Finish in Add mode (D-064):** the confirm step pre-selects the finish instead of always starting at Non-foil. A dot gives Non-foil. A star gives Foil, or Etched foil when the printing (Scryfall `finishes`) has `etched` but not `foil`. A finish the printing doesn't have is never pre-selected. With no mark read, the confirm step starts at the first finish the printing has. The user still confirms and can change it.
+  - **Language in Add mode:** a read language that maps to an app language pre-fills the copy's language for that card, over the session default. Otherwise the session default stays.
+  - **Lookup:** stays on the English printing (`/cards/:set/:number`). Binder copies already keep the language in their own `language` field, and the English card object always exists.
+  - Identify mode (D-063) is unchanged: the card page shows every finish anyway.
+
+  **Etched foil:** no source found shows a separate sign for etched foils in this line. Etched foils are told apart through the printing instead: Scryfall lists the finishes of each printing, and etched versions often have their own collector number. So a star together with the printing's finishes decides between Foil and Etched foil, as above. If samples show a distinct sign, this decision is amended.
+- Why:
+  - The scanner already reads this line, so the finish and language cost no extra step. They are the two copy fields a user otherwise sets by hand for almost every foreign or foil card.
+  - A wrong guess costs little: it is only a pre-selection on a confirm screen.
+- Alternatives considered:
+  - Detecting foil from the picture (glare, rainbow sheen): unreliable under phone light and needs image analysis.
+  - Looking up the localized printing (`/cards/:set/:number/:lang`): gives a different Scryfall id per language, which would split one card into several entries across binders and decks, and not every language has a Scryfall object. Rejected for now.
+- Consequences:
+  - The OCR character list (`COLLECTOR_CHARACTERS`) gains the dot and star signs and their likely misreads (`*`, `·`), checked with the benchmark so the set code and number don't get worse. If Tesseract can't tell the two apart reliably, `foilMark` stays `null` and only the language is used.
+  - The scan-sample truth field accepts an optional finish mark and language ("ltc 277 star en"), so the benchmark can count both.
+  - `CardBrowserCard` gains the Scryfall `finishes` list, used by the confirm step.
+  - The app's language list has only six languages. Printed codes without a match are ignored until that list grows (a separate change).
+- Sources: "How to Identify an Exact MTG Printing" (scanmtg.com/guides/how-to-identify-mtg-printing, star vs dot example), mtg.wiki "Parts of a card" and "Information below the text box" (seen in search results only; the pages refused automated reading), 2026-11-21.

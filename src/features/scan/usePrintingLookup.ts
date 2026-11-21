@@ -5,9 +5,13 @@ import { isCardBrowserCard } from "../card-browser/types.ts";
 import type { CardBrowserCard } from "../card-browser/types.ts";
 import type { CollectorLine } from "./parseCollectorLine.ts";
 
-// Stage 2b of the recognition pipeline (D-062): look the read set code and
-// collector number up on Scryfall. /cards/:code/:number returns exactly one
-// printing, or 404 when the reading was wrong.
+// Stage 2b of the recognition pipeline (D-062): look the reading up on
+// Scryfall.
+// - A set code and collector number: /cards/:code/:number returns exactly
+//   one printing, or 404 when the reading was wrong.
+// - A card name (name fallback, D-065 step 2): /cards/named?exact= returns
+//   one printing of that card (Scryfall's default, usually the newest); the
+//   user then picks the printing they hold.
 
 const scryfallClient = createApiClient("https://api.scryfall.com");
 
@@ -23,16 +27,21 @@ function isNotFound(error: Error): boolean {
   return error.message.includes("] 404");
 }
 
-export default function usePrintingLookup(line: CollectorLine | null): PrintingLookup {
-  const route = line
-    ? `cards/${encodeURIComponent(line.setCode)}/${encodeURIComponent(line.collectorNumber)}`
-    : null;
+export type LookupRequest = { line: CollectorLine } | { name: string } | null;
+
+export default function usePrintingLookup(request: LookupRequest): PrintingLookup {
+  const route = !request
+    ? null
+    : "line" in request
+      ? `cards/${encodeURIComponent(request.line.setCode)}/${encodeURIComponent(request.line.collectorNumber)}`
+      : "cards/named";
+  const params = request && "name" in request ? { exact: request.name } : {};
 
   const query = useQuery<ApiRecord[], Error>({
     // Same key shape as useScryfallCardsSearch, so the printing is cached
     // and shared: scanning the same card again needs no new request.
-    queryKey: ["scryfallCards", route, {}, 0],
-    queryFn: () => scryfallClient.fetchData(route ?? ""),
+    queryKey: ["scryfallCards", route, params, 0],
+    queryFn: () => scryfallClient.fetchData(route ?? "", params),
     enabled: route !== null,
     staleTime: 1000 * 86400,
     // A misread gives a 404; retrying it (3 times by default) would only add
