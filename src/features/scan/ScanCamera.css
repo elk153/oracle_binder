@@ -1,7 +1,7 @@
 /* ==========================================================================
    ScanCamera.css
-   Live camera view of the card scanner (D-061). A portrait box (3:4, the
-   VIEW_RATIO in guideFrame.ts) that the video fills, with the guide frame
+   Live camera view of the card scanner (D-061, D-065). A landscape box (4:3,
+   the VIEW_RATIO in guideFrame.ts) that the video fills, with the guide box
    over it and the instruction text under it.
    ========================================================================== */
 
@@ -13,7 +13,7 @@
 .scan-camera__view {
   position: relative;
   overflow: hidden;
-  aspect-ratio: 3 / 4;
+  aspect-ratio: 4 / 3;
   border: 1px solid var(--surface-border);
   border-radius: var(--radius-md);
   background: var(--sublayer-bg);

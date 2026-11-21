@@ -1,9 +1,9 @@
 /* ==========================================================================
    GuideFrame.css
-   Card-shaped guide over the scanner's camera view (D-061). It sits on the
+   Guide box over the scanner's camera view (D-061, D-065). It sits on the
    camera picture, which looks the same in both themes, so it uses the fixed
-   colors: a light line on a dark edge, gold for the zone being read and the
-   fixed accent for a found card.
+   colors: a light line on a dark edge, gold while the box is being read and
+   the fixed accent for a found card.
    ========================================================================== */
 
 .guide-frame {
@@ -43,19 +43,21 @@
   stroke-width: 2;
 }
 
-/* The zones are thinner than the card outline. */
-.guide-frame__zone .guide-frame__edge {
-  stroke-width: 3;
-}
-
-.guide-frame__zone .guide-frame__line {
-  stroke-width: 1.25;
-}
-
-/* The zone being read. */
-.guide-frame__zone--active .guide-frame__line {
+/* The box while its text is being read. */
+.guide-frame__box--active .guide-frame__line {
   fill: color-mix(in srgb, var(--gold-fixed) 22%, transparent);
   stroke: var(--gold-fixed);
+}
+
+/* The card sketch that shows which part goes in the box. */
+.guide-frame__hint-card {
+  fill: color-mix(in srgb, var(--sublayer-bg) 60%, transparent);
+  stroke: var(--bone-white);
+  stroke-width: 1;
+}
+
+.guide-frame__hint-zone {
+  fill: var(--gold-fixed);
 }
 
 /* A card was found: the whole frame turns to the success color. */

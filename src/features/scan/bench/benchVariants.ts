@@ -16,19 +16,29 @@ import type { TextReader } from "../ocr.ts";
 export type BenchVariant = {
   id: string;
   description: string;
-  read: (raw: HTMLCanvasElement, reader: TextReader) => Promise<{ text: string; ms: number }>;
+  // `height`: the strip height the resizing variants scale to (stripHeight).
+  read: (
+    raw: HTMLCanvasElement,
+    reader: TextReader,
+    height: number,
+  ) => Promise<{ text: string; ms: number }>;
 };
 
-// The info text is about 1 mm tall in a zone about 5.7 mm tall, so a strip
-// of 170 px gives text of about 30 px, the size Tesseract reads best.
-const TARGET_HEIGHT = 170;
+// The strip height that makes the info text (about 1 mm tall) about 30 px,
+// the size Tesseract reads best:
+// - "card" guide (D-061): the zone is about 5.7 mm tall → 170 px;
+// - "code" guide (D-065): a 4:1 box with the 28 mm info line across it is
+//   about 7.8 mm tall → 230 px.
+export function stripHeight(guide: "card" | "code" | undefined): number {
+  return guide === "code" ? 230 : 170;
+}
 const PADDING = 12;
 const NUMBER_LINE_CHARACTERS = "0123456789/CURMSTPLI";
 const SET_LINE_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 type GrayImage = { gray: Uint8Array; width: number; height: number };
 
-function scaledGray(raw: HTMLCanvasElement, height = TARGET_HEIGHT): GrayImage {
+function scaledGray(raw: HTMLCanvasElement, height: number): GrayImage {
   const width = Math.max(1, Math.round((raw.width * height) / raw.height));
   const canvas = document.createElement("canvas");
   canvas.width = width;
@@ -68,8 +78,8 @@ function rows({ gray, width }: GrayImage, from: number, to: number): GrayImage {
   return { gray: gray.slice(from * width, to * width), width, height: to - from };
 }
 
-function stretched(raw: HTMLCanvasElement): GrayImage {
-  const image = scaledGray(raw);
+function stretched(raw: HTMLCanvasElement, height: number): GrayImage {
+  const image = scaledGray(raw, height);
   return { ...image, gray: contrastStretch(invertIfDarkBackground(image.gray)) };
 }
 
@@ -107,35 +117,35 @@ export const BENCH_VARIANTS: BenchVariant[] = [
   },
   {
     id: "gray",
-    description: "Resize to 170 px, gray, light text inverted, no black and white, block",
-    read: (raw, reader) => {
-      const image = scaledGray(raw);
+    description: "Resize (text ≈30 px), gray, light text inverted, no black and white, block",
+    read: (raw, reader, height) => {
+      const image = scaledGray(raw, height);
       return readBlock(reader, toCanvas({ ...image, gray: invertIfDarkBackground(image.gray) }));
     },
   },
   {
     id: "stretch",
     description: "gray + contrast stretch (2nd–98th percentile), block",
-    read: (raw, reader) => readBlock(reader, toCanvas(stretched(raw))),
+    read: (raw, reader, height) => readBlock(reader, toCanvas(stretched(raw, height))),
   },
   {
     id: "sauvola",
     description: "stretch + Sauvola local threshold, block",
-    read: (raw, reader) => readBlock(reader, toCanvas(sauvola(stretched(raw)))),
+    read: (raw, reader, height) => readBlock(reader, toCanvas(sauvola(stretched(raw, height)))),
   },
   {
     id: "sauvola-lines",
     description: "sauvola, split into two lines, each read as one line with its own characters",
-    read: (raw, reader) => {
-      const binary = sauvola(stretched(raw));
+    read: (raw, reader, height) => {
+      const binary = sauvola(stretched(raw, height));
       return readLines(reader, binary, binary);
     },
   },
   {
     id: "stretch-lines",
     description: "stretch, split into two lines (cut found on the Sauvola image), no black and white",
-    read: (raw, reader) => {
-      const image = stretched(raw);
+    read: (raw, reader, height) => {
+      const image = stretched(raw, height);
       return readLines(reader, image, sauvola(image));
     },
   },

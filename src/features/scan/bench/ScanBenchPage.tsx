@@ -4,7 +4,7 @@ import { createTextReader } from "../ocr.ts";
 import { parseCollectorLine } from "../parseCollectorLine.ts";
 import type { CollectorLine } from "../parseCollectorLine.ts";
 import type { ScanSample } from "../scanSample.ts";
-import { BENCH_VARIANTS } from "./benchVariants.ts";
+import { BENCH_VARIANTS, stripHeight } from "./benchVariants.ts";
 import "./ScanBenchPage.css";
 
 // Development-only benchmark for the scanner's OCR (D-062 follow-up, phase
@@ -63,7 +63,8 @@ function toOutcome(parsed: CollectorLine | null, truth: CollectorLine | null): O
 }
 
 function groupOf(sample: ScanSample): string {
-  return `${sample.camera?.label ?? "unknown camera"} ${sample.videoWidth}×${sample.videoHeight}`;
+  const guide = sample.guide ?? "card";
+  return `${guide} guide, ${sample.camera?.label ?? "unknown camera"} ${sample.videoWidth}×${sample.videoHeight}`;
 }
 
 type SummaryRow = {
@@ -157,7 +158,7 @@ export default function ScanBenchPage() {
         const raw = await loadCanvas(sample.collector.dataUrl);
         for (const variant of BENCH_VARIANTS) {
           setProgress(`Reading ${collected.length + 1} of ${total}…`);
-          const { text, ms } = await variant.read(raw, reader);
+          const { text, ms } = await variant.read(raw, reader, stripHeight(sample.guide));
           const parsed = parseCollectorLine(text);
           collected.push({
             sampleIndex,

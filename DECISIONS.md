@@ -137,7 +137,7 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
 
   Input is the live rear camera with automatic detection: a card is recognized as soon as it is held steady in the frame, with no capture button. Recognition must find the exact printing (set and collector number), because binder copies and deck entries store a Scryfall card id. When the printing can't be read, the app falls back to the recognized name and lets the user pick from that card's printings. The design targets phones first (portrait layout, one-handed controls) and must work in both iOS Safari and Chrome on Android. How recognition works is decided in D-062.
 
-  **Guide frame (visual cue in the camera view):** a card-shaped outline (the 63 × 88 mm card ratio) is drawn over the camera picture, and the area outside it is dimmed. Two zones are marked inside the outline:
+  **Guide frame (visual cue in the camera view):** *changed by D-065: one wide box for the code only, with the name fallback read in the same box.* Originally: a card-shaped outline (the 63 × 88 mm card ratio) is drawn over the camera picture, and the area outside it is dimmed. Two zones are marked inside the outline:
   - the **collector zone**, a box at the bottom left where the set code and collector number must sit;
   - the **title zone**, a box along the top where the card name must sit.
 
@@ -166,6 +166,8 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
   2. **Collector line by in-browser OCR:** cut the small info line at the bottom left of the card (collector number and set code, printed on cards since Magic 2015 in 2014) out of the frame and read only that strip with tesseract.js (see "OCR library evaluation" below). The strip is cut out at the position of the guide frame's collector zone (D-061). tesseract.js runs in a Web Worker and is loaded only on `/v2/scan`. Look the printing up with Scryfall's `/cards/:code/:number`, which returns exactly one printing.
   3. **Name fallback:** if the line can't be read (older cards, glare, foreign language), OCR the title (cut out at the guide frame's title zone) and match it, allowing small errors, against the Scryfall card-name catalog the app already prefetches. Then show that card's printings to pick from (D-061).
   4. **Optional cloud fallback:** only if steps 2 and 3 fail, send that one still frame to a cloud vision service through a Supabase Edge Function, which keeps the API key secret. Never send video frames continuously.
+
+  Since D-065, steps 2 and 3 read one guide box that the user fills with the info line, or with the name for the fallback, instead of zones of a card outline.
 
   Before this decision is accepted, a prototype on one iPhone (Safari) and one Android phone (Chrome) measures how often steps 2 and 3 succeed and how long they take. Based on that, the cloud step is either kept, with a chosen service and budget, or dropped. The prototype also settles the OCR library (see "OCR library evaluation" below).
 - Why:
@@ -236,3 +238,27 @@ Research references for this section: npm registry entries for each package (202
   - Works signed out. The overlay's favorite, binder and deck actions behave as on search, so they need sign-in.
   - Going back to `/v2/scan` restarts the camera, which asks for permission again only if the browser forgot it.
 - Source: "[Scan] Visual card recognition plan"
+
+## D-065: Scanner guide for the code only, with a name fallback in the same box
+
+- Status: Accepted (2026-11-21). Step 1 (the guide box) is implemented on the hotfix branch `2026.11.3a`; steps 2 (name fallback) and 3 (low-light help) are not yet built.
+- Date: 2026-11-21
+- Decision: Replace D-061's card-shaped guide with one wide box (4:1) in the middle of a 4:3 landscape camera view, 90% of its width. The user fills the box with the card's info line (set code and collector number, bottom left), not the whole card. A small card sketch in the corner shows which part goes in the box. The steady-frame check and the OCR both use only this box.
+  1. **Code in the box:** the strip is read as before (D-062 stage 2).
+  2. **Name fallback in the same box:** when the code can't be read, the text asks the user to put the card name in the box. The name is matched against the card-name catalog, and the user picks the printing (D-061, D-062 stage 3).
+  3. **Low-light help:** a flashlight button only where the camera reports torch support, and the sharpest of the last few frames before giving up.
+- Why:
+  - Measured on an iPhone 13 Pro (Test mode, 2026-11-21): with the whole card in a 3:4 view at 4K, the info text gets about 31 px/mm, and the reading succeeds only about half the time in poor light. That is below the target of 75% in low light (90% in normal light, no wrong printings).
+  - With only the 28 mm info line across the box, the same 4K video gives about 65–70 px/mm, more than twice the pixels per character.
+  - Held this close, the iPhone switches to its macro lens by itself, which looked clearly sharper in the test. A whole card can't fit the frame at that distance.
+  - A shorter camera view leaves more of the screen for the instruction and the Add-mode controls.
+- Alternatives considered:
+  - Keep the card guide and improve the clean-up filters (Sauvola, contrast stretch; benchmark at `/v2/scan-bench`): filters can't recover detail the camera didn't capture. They stay in the benchmark to tune the new strips.
+  - Another OCR library (ppu-paddle-ocr, D-062): a new dependency and a larger download. Kept for later if the box isn't enough.
+  - A cloud OCR step: cost and a backend. Kept as D-062's optional last fallback.
+- Consequences:
+  - Changes D-061's guide frame (card outline with title and collector zones) and the D-062 stages that cut strips "at the guide frame's zones": they now cut the box.
+  - The user aims at a small part of the card instead of fitting the whole card, and moves the card once more for the name fallback.
+  - Saved scan samples get a `guide` field (`"code"`; older files count as `"card"`). The benchmark groups by guide and scales each strip so the text is about 30 px tall.
+  - Identify and Add both use `ScanCamera`, so both modes change.
+- Source: hotfix "OCR reading is not consistent enough" (branch `2026.11.3a`, 2026-11-21).

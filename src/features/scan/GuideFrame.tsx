@@ -1,69 +1,47 @@
 import { useId } from "react";
-import {
-  CARD_RECT,
-  COLLECTOR_ZONE,
-  TITLE_ZONE,
-  VIEW_RATIO,
-} from "./guideFrame.ts";
-import type { GuideStatus, Rect } from "./guideFrame.ts";
+import { GUIDE_RECT, VIEW_RATIO } from "./guideFrame.ts";
+import type { GuideStatus } from "./guideFrame.ts";
 import "./GuideFrame.css";
 
-// SVG drawing units: a 3:4 box, the same shape as the camera view, so one
-// unit is the same size horizontally and vertically.
-const VIEW_HEIGHT = 400;
-const VIEW_WIDTH = VIEW_HEIGHT * VIEW_RATIO;
+// SVG drawing units: a box the same shape as the camera view, so one unit is
+// the same size horizontally and vertically.
+const VIEW_WIDTH = 400;
+const VIEW_HEIGHT = VIEW_WIDTH / VIEW_RATIO;
 
-// The card in drawing units.
-const card = {
-  x: CARD_RECT.x * VIEW_WIDTH,
-  y: CARD_RECT.y * VIEW_HEIGHT,
-  width: CARD_RECT.width * VIEW_WIDTH,
-  height: CARD_RECT.height * VIEW_HEIGHT,
+// The guide box in drawing units.
+const box = {
+  x: GUIDE_RECT.x * VIEW_WIDTH,
+  y: GUIDE_RECT.y * VIEW_HEIGHT,
+  width: GUIDE_RECT.width * VIEW_WIDTH,
+  height: GUIDE_RECT.height * VIEW_HEIGHT,
 };
+const BOX_CORNER = 6;
 
-// A card corner is about 3 mm of its 63 mm width.
-const CARD_CORNER = card.width * (3 / 63);
-
-// Converts a zone (fractions of the card) to drawing units.
-function toViewRect(zone: Rect): Rect {
-  return {
-    x: card.x + zone.x * card.width,
-    y: card.y + zone.y * card.height,
-    width: zone.width * card.width,
-    height: zone.height * card.height,
-  };
-}
-
-const collector = toViewRect(COLLECTOR_ZONE);
-const title = toViewRect(TITLE_ZONE);
-
-type OutlineProps = Rect & {
-  corner: number;
+// A small card sketch in the top-left corner (63:88), with the part that goes
+// in the box (the info line, bottom left) filled in, so the user sees what to
+// aim at.
+const HINT_HEIGHT = Math.min(56, box.y - 16);
+const hint = { x: 12, y: 8, width: (HINT_HEIGHT * 63) / 88, height: HINT_HEIGHT };
+const hintZone = {
+  x: hint.x + hint.width * 0.06,
+  y: hint.y + hint.height * 0.9,
+  width: hint.width * 0.45,
+  height: hint.height * 0.06,
 };
-
-// Every line is drawn twice: a wide dark edge, then a narrow light line on
-// top, so it stays visible on both light and dark cards.
-function Outline({ corner, ...rect }: OutlineProps) {
-  return (
-    <>
-      <rect className="guide-frame__edge" rx={corner} {...rect} />
-      <rect className="guide-frame__line" rx={corner} {...rect} />
-    </>
-  );
-}
 
 type GuideFrameProps = {
   status: GuideStatus;
 };
 
-// The card-shaped guide drawn over the camera view (D-061): the outside is
-// dimmed, and the collector and title zones show where the app reads.
-// Decorative only: ScanCamera gives the same guidance as text.
+// The guide drawn over the camera view (D-065): the outside is dimmed and the
+// box shows where the app reads. Decorative only: ScanCamera gives the same
+// guidance as text. Every line is drawn twice, a wide dark edge under a
+// narrow light line, so it stays visible on both light and dark cards.
 export default function GuideFrame({ status }: GuideFrameProps) {
   // A unique id, because an SVG mask is referenced by id within the page.
   const maskId = useId();
-  const zoneClass = (isActive: boolean) =>
-    `guide-frame__zone${isActive ? " guide-frame__zone--active" : ""}`;
+  const isReading = status === "reading-collector" || status === "reading-title";
+  const boxClass = `guide-frame__box${isReading ? " guide-frame__box--active" : ""}`;
 
   return (
     <svg
@@ -73,10 +51,10 @@ export default function GuideFrame({ status }: GuideFrameProps) {
       focusable="false"
     >
       <defs>
-        {/* White shows the dim layer, black cuts the card-shaped hole. */}
+        {/* White shows the dim layer, black cuts the hole for the box. */}
         <mask id={maskId}>
           <rect className="guide-frame__mask-show" width={VIEW_WIDTH} height={VIEW_HEIGHT} />
-          <rect className="guide-frame__mask-hide" rx={CARD_CORNER} {...card} />
+          <rect className="guide-frame__mask-hide" rx={BOX_CORNER} {...box} />
         </mask>
       </defs>
       <rect
@@ -85,14 +63,13 @@ export default function GuideFrame({ status }: GuideFrameProps) {
         height={VIEW_HEIGHT}
         mask={`url(#${maskId})`}
       />
-      <g className="guide-frame__card">
-        <Outline corner={CARD_CORNER} {...card} />
+      <g className={boxClass}>
+        <rect className="guide-frame__edge" rx={BOX_CORNER} {...box} />
+        <rect className="guide-frame__line" rx={BOX_CORNER} {...box} />
       </g>
-      <g className={zoneClass(status === "reading-title")}>
-        <Outline corner={2} {...title} />
-      </g>
-      <g className={zoneClass(status === "reading-collector")}>
-        <Outline corner={2} {...collector} />
+      <g className="guide-frame__hint">
+        <rect className="guide-frame__hint-card" rx={2} {...hint} />
+        <rect className="guide-frame__hint-zone" {...hintZone} />
       </g>
     </svg>
   );

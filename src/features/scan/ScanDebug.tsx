@@ -98,7 +98,6 @@ export default function ScanDebug({
   const captured = useMemo(
     () =>
       capture && {
-        title: capture.title.toDataURL(),
         collector: capture.collector.toDataURL(),
         sharpness: sharpnessOf(capture.collector),
         time: new Date(capture.capturedAt).toLocaleTimeString(),
@@ -155,16 +154,15 @@ export default function ScanDebug({
             Captured {captured.time} · video {capture.videoWidth}×{capture.videoHeight}
           </p>
           <p className="scan-debug__line">
-            {capture.pixelsPerMm.toFixed(1)} px/mm at the guide size · info text ≈{" "}
+            ≈{capture.pixelsPerMm.toFixed(1)} px/mm if the info line fills the box · info text ≈{" "}
             {Math.round(capture.pixelsPerMm * TEXT_HEIGHT_MM)} px tall (OCR likes 20–30)
           </p>
           <p className="scan-debug__line">
-            Collector strip {capture.collector.width}×{capture.collector.height} px · sharpness{" "}
+            Box strip {capture.collector.width}×{capture.collector.height} px · sharpness{" "}
             {Math.round(captured.sharpness)} (at {SHARPNESS_HEIGHT} px height, comparable across
             resolutions)
           </p>
-          <img className="scan-debug__image" src={captured.title} alt="Title zone" />
-          <img className="scan-debug__image" src={captured.collector} alt="Collector zone" />
+          <img className="scan-debug__image" src={captured.collector} alt="Guide box" />
         </>
       )}
 
@@ -262,7 +260,7 @@ function SampleSaver({ capture, sharpness, camera, reading }: SampleSaverProps) 
       pixelsPerMm: capture.pixelsPerMm,
       sharpness,
       collector: toStripImage(capture.collector),
-      title: toStripImage(capture.title),
+      guide: "code",
       ocr:
         reading.status === "done"
           ? {

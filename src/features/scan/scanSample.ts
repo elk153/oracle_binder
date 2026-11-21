@@ -23,8 +23,11 @@ export type ScanSample = {
   videoHeight: number;
   pixelsPerMm: number;
   sharpness: number; // Laplacian variance of the raw collector strip, scaled to 48 px height
-  collector: StripImage;
-  title: StripImage;
+  // Which guide took the sample: "card" (whole card in a 3:4 view, D-061;
+  // older files have no field) or "code" (info line in the box, D-065).
+  guide?: "card" | "code";
+  collector: StripImage; // the strip the OCR reads (the box, for "code")
+  title?: StripImage; // the title zone; "card" samples only
   ocr: {
     text: string;
     confidence: number;
