@@ -363,7 +363,7 @@
   line-height: 1.35;
 }
 
-.card-detail__renderer .scryfall-card__meld-relation img {
+.card-detail__renderer .scryfall-card__meld-image {
   display: block;
   width: min(100%, var(--card-image-width));
   height: auto;

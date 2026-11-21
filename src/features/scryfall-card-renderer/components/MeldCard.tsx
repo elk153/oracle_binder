@@ -87,7 +87,7 @@ export default function MeldCard({ card, showDetailsMetadata = false, onOpenCard
                   {label} <strong>{part.name}</strong>
                 </span>
                 {/* alt="" because the label above already names the card. */}
-                {image && <img src={image} alt="" loading="lazy" />}
+                {image && <img className="scryfall-card__meld-image" src={image} alt="" loading="lazy" />}
               </>
             );
 
