@@ -262,3 +262,31 @@ Research references for this section: npm registry entries for each package (202
   - Saved scan samples get a `guide` field (`"code"`; older files count as `"card"`). The benchmark groups by guide and scales each strip so the text is about 30 px tall.
   - Identify and Add both use `ScanCamera`, so both modes change.
 - Source: hotfix "OCR reading is not consistent enough" (branch `2026.11.3a`, 2026-11-21).
+
+## D-066: Read the finish mark and language from the collector line
+
+- Status: Evaluating (2026-11-21). Not implemented. The OCR part is checked first with scan samples (see Consequences).
+- Date: 2026-11-21
+- Decision: Extend `parseCollectorLine` so that, besides the set code and collector number, it returns:
+  - **`foilMark`**: `"star"`, `"dot"` or `null` (not read). On modern cards the sign between the set code and the language is a dot (•) on nonfoil cards and a star (★) on foil and other premium cards, for example "FRA • EN" and "FRA ★ EN".
+  - **`language`**: the printed two-letter code after that sign (EN, FR, DE, IT, ES, PT, JP or JA, KO, RU, CS, CT, PH), mapped to the app's language names where they exist (`LANGUAGES` in `binder/copyOptions.ts`), otherwise `null`.
+
+  How they are used:
+  - **Finish in Add mode (D-064):** the confirm step pre-selects the finish instead of always starting at Non-foil. A dot gives Non-foil. A star gives Foil, or Etched foil when the printing (Scryfall `finishes`) has `etched` but not `foil`. A finish the printing doesn't have is never pre-selected. With no mark read, the confirm step starts at the first finish the printing has. The user still confirms and can change it.
+  - **Language in Add mode:** a read language that maps to an app language pre-fills the copy's language for that card, over the session default. Otherwise the session default stays.
+  - **Lookup:** stays on the English printing (`/cards/:set/:number`). Binder copies already keep the language in their own `language` field, and the English card object always exists.
+  - Identify mode (D-063) is unchanged: the card page shows every finish anyway.
+
+  **Etched foil:** no source found shows a separate sign for etched foils in this line. Etched foils are told apart through the printing instead: Scryfall lists the finishes of each printing, and etched versions often have their own collector number. So a star together with the printing's finishes decides between Foil and Etched foil, as above. If samples show a distinct sign, this decision is amended.
+- Why:
+  - The scanner already reads this line, so the finish and language cost no extra step. They are the two copy fields a user otherwise sets by hand for almost every foreign or foil card.
+  - A wrong guess costs little: it is only a pre-selection on a confirm screen.
+- Alternatives considered:
+  - Detecting foil from the picture (glare, rainbow sheen): unreliable under phone light and needs image analysis.
+  - Looking up the localized printing (`/cards/:set/:number/:lang`): gives a different Scryfall id per language, which would split one card into several entries across binders and decks, and not every language has a Scryfall object. Rejected for now.
+- Consequences:
+  - The OCR character list (`COLLECTOR_CHARACTERS`) gains the dot and star signs and their likely misreads (`*`, `·`), checked with the benchmark so the set code and number don't get worse. If Tesseract can't tell the two apart reliably, `foilMark` stays `null` and only the language is used.
+  - The scan-sample truth field accepts an optional finish mark and language ("ltc 277 star en"), so the benchmark can count both.
+  - `CardBrowserCard` gains the Scryfall `finishes` list, used by the confirm step.
+  - The app's language list has only six languages. Printed codes without a match are ignored until that list grows (a separate change).
+- Sources: "How to Identify an Exact MTG Printing" (scanmtg.com/guides/how-to-identify-mtg-printing, star vs dot example), mtg.wiki "Parts of a card" and "Information below the text box" (seen in search results only; the pages refused automated reading), 2026-11-21.
