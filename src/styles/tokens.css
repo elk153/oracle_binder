@@ -53,6 +53,7 @@
 
   /* Colors that do not change with the theme */
   --gold-fixed: #c5a059;  /* the dark-theme gold, for surfaces that keep it in the light theme */
+  --accent-fixed: #4ef2d2; /* the dark-theme accent, for surfaces that keep it in the light theme (scan success) */
   --gold-deep: #805e24;   /* separator between card metadata items */
   --highlight: #ffffff;   /* base of faint white highlights */
   --text-error: #d65b54;

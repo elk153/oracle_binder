@@ -5,6 +5,7 @@ import CardBrowserPage from "../features/card-browser/CardBrowserPage.tsx";
 import LoginPage from "../features/auth/LoginPage.tsx";
 import AuthCallbackPage from "../features/auth/AuthCallbackPage.tsx";
 import RequireAuth from "../features/auth/RequireAuth.tsx";
+import ScanPage from "../features/scan/ScanPage.tsx";
 import { Home, Favorites, Binder, Decks } from "./App.tsx";
 import RouteErrorPage from "./RouteErrorPage.tsx";
 
@@ -52,6 +53,11 @@ const router = createBrowserRouter([ // be aware of the capitals
       {
         path: "search/random",
         element: <CardBrowserPage />,
+      },
+      {
+        // Public: Identify works signed out; Add checks the session itself (D-061).
+        path: "scan",
+        element: <ScanPage />,
       },
       {
         path: "collection",

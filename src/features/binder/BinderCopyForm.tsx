@@ -5,6 +5,14 @@ import type {
   BinderCopyUpdate,
 } from "./useBinderCopies.ts";
 import type { Deck } from "../decks/useDeckManagement.ts";
+import {
+  ACQUISITION_FORMATS,
+  ACQUISITION_TYPES,
+  CONDITIONS,
+  FINISHES,
+  LANGUAGES,
+  optionalText,
+} from "./copyOptions.ts";
 
 type Binder = Tables<"binders">;
 export type CopyFormValues = Omit<
@@ -31,38 +39,6 @@ type BinderCopyFormProps = {
 };
 
 const COPY_STATUSES = ["owned", "sold", "lost", "given_away"] as const;
-const ACQUISITION_TYPES = [
-  "Purchase",
-  "Trade",
-  "Gift",
-  "Prize / Reward",
-  "Found",
-  "Other",
-] as const;
-const ACQUISITION_FORMATS = [
-  "Single",
-  "Booster pack",
-  "Booster box",
-  "Preconstructed deck",
-  "Collection / lot",
-  "Other",
-] as const;
-const CONDITIONS = [
-  "Near Mint",
-  "Lightly Played",
-  "Moderately Played",
-  "Heavily Played",
-  "Damaged",
-] as const;
-const FINISHES = ["Non-foil", "Foil", "Etched foil"] as const;
-const LANGUAGES = [
-  "French",
-  "English",
-  "German",
-  "Italian",
-  "Japanese",
-  "Spanish",
-] as const;
 
 function dateInputValue(value: string | null | undefined): string {
   return value ? value.slice(0, 10) : "";
@@ -77,11 +53,6 @@ function optionsWithCurrent(options: readonly string[], current: string): string
 function statusLabel(status: string): string {
   if (status === "given_away") return "Given away";
   return status.charAt(0).toUpperCase() + status.slice(1);
-}
-
-function optionalText(value: string): string | null {
-  const trimmed = value.trim();
-  return trimmed ? trimmed : null;
 }
 
 export default function BinderCopyForm({

@@ -1,0 +1,118 @@
+// D-062: parsing the OCR text of a card's collector info line.
+//
+// Run from the repository root (Node 22, no dependency):
+//
+//   node --experimental-strip-types --test "tests/**/*.test.ts"
+
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { parseCollectorLine } from "../../src/features/scan/parseCollectorLine.ts";
+
+test("number with set size, then set and language", () => {
+  assert.deepEqual(parseCollectorLine("0123/280 R\nDMU EN"), {
+    setCode: "dmu",
+    collectorNumber: "123",
+  });
+});
+
+test("number without set size (newer cards)", () => {
+  assert.deepEqual(parseCollectorLine("0045 R\nMKM EN"), {
+    setCode: "mkm",
+    collectorNumber: "45",
+  });
+});
+
+test("rarity before the number", () => {
+  assert.deepEqual(parseCollectorLine("R 0123\nMOM EN"), {
+    setCode: "mom",
+    collectorNumber: "123",
+  });
+});
+
+test("rarity letter stuck to the number (no space read)", () => {
+  // Seen on a phone: Door of Destinies read as "R0277".
+  assert.deepEqual(parseCollectorLine("R0277\nCMM EN"), {
+    setCode: "cmm",
+    collectorNumber: "277",
+  });
+  assert.deepEqual(parseCollectorLine("0277R\nCMM EN"), {
+    setCode: "cmm",
+    collectorNumber: "277",
+  });
+  assert.deepEqual(parseCollectorLine("0123/280R\nDMU EN"), {
+    setCode: "dmu",
+    collectorNumber: "123",
+  });
+});
+
+test("set code, language and artist glued together", () => {
+  // Seen on a phone: Door of Destinies, second line "LTCEN" + artist name.
+  assert.deepEqual(parseCollectorLine("R0277\nLTCENJOHNAVO"), {
+    setCode: "ltc",
+    collectorNumber: "277",
+  });
+  assert.deepEqual(parseCollectorLine("0123 R\nDMUEN"), {
+    setCode: "dmu",
+    collectorNumber: "123",
+  });
+  // Four-letter set code.
+  assert.deepEqual(parseCollectorLine("0010 C\nPLSTEN"), {
+    setCode: "plst",
+    collectorNumber: "10",
+  });
+});
+
+test("a word of the artist name is not taken for the set", () => {
+  assert.deepEqual(parseCollectorLine("0277 R\nLTC EN JOHN AVON"), {
+    setCode: "ltc",
+    collectorNumber: "277",
+  });
+});
+
+test("O, I and L misread in the number become digits", () => {
+  assert.deepEqual(parseCollectorLine("O1I/280 C\nDMU EN"), {
+    setCode: "dmu",
+    collectorNumber: "11",
+  });
+});
+
+test("set codes made of O, I and L stay letters", () => {
+  assert.deepEqual(parseCollectorLine("0201 U\nLCI EN"), {
+    setCode: "lci",
+    collectorNumber: "201",
+  });
+  assert.deepEqual(parseCollectorLine("0010 C\nONE EN"), {
+    setCode: "one",
+    collectorNumber: "10",
+  });
+});
+
+test("set codes with a digit", () => {
+  assert.deepEqual(parseCollectorLine("0123 R\n2X2 EN"), {
+    setCode: "2x2",
+    collectorNumber: "123",
+  });
+});
+
+test("noise lines and stray characters are skipped", () => {
+  assert.deepEqual(parseCollectorLine("\n  /  \n0123/280 R\nDMU  EN\nXX"), {
+    setCode: "dmu",
+    collectorNumber: "123",
+  });
+});
+
+test("a language code alone is not a set code", () => {
+  assert.equal(parseCollectorLine("0123 R\nEN"), null);
+});
+
+test("no number gives no result", () => {
+  assert.equal(parseCollectorLine("DMU EN"), null);
+  assert.equal(parseCollectorLine(""), null);
+});
+
+test("collector number zero keeps one digit", () => {
+  assert.deepEqual(parseCollectorLine("000 R\nSLD EN"), {
+    setCode: "sld",
+    collectorNumber: "0",
+  });
+});

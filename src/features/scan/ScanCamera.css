@@ -1,0 +1,72 @@
+/* ==========================================================================
+   ScanCamera.css
+   Live camera view of the card scanner (D-061). A portrait box (3:4, the
+   VIEW_RATIO in guideFrame.ts) that the video fills, with the guide frame
+   over it and the instruction text under it.
+   ========================================================================== */
+
+.scan-camera {
+  width: min(100%, 28rem);
+  margin: 0 auto;
+}
+
+.scan-camera__view {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 3 / 4;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+  background: var(--sublayer-bg);
+}
+
+/* Fill the box and crop the sides, so the picture is never letterboxed. */
+.scan-camera__video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.scan-camera__status {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: var(--bone-white);
+}
+
+/* Error state: no video, just the message and an optional retry button. */
+.scan-camera__view--message {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  aspect-ratio: auto;
+  min-height: 12rem;
+  background: var(--bg-card);
+}
+
+.scan-camera__message {
+  margin: 0;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.scan-camera__instruction {
+  min-height: 3em; /* room for two lines, so the page doesn't jump */
+  margin: 0.75rem 0 0;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+/* Content drawn over the camera, such as the Add mode's confirm step. It
+   scrolls when it is taller than the camera box. */
+.scan-camera__overlay {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  padding: 1rem;
+  background: color-mix(in srgb, var(--bg-main) 94%, transparent);
+}

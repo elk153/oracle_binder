@@ -30,7 +30,7 @@ flowchart LR
 
 | State kind | Examples | Owner / source of truth |
 |---|---|---|
-| URL state | Search term `q`, search scope `source`, selected card `card`, Binder/Deck view and selection, card filters | React Router search params and `nuqs` parsers. It is shareable and survives reloads. Binder and Decks default to their folder/deck lists when `view` is absent; explicit view parameters are preserved. |
+| URL state | Search term `q`, search scope `source`, selected card `card`, Binder/Deck view and selection, scanner mode `mode`, card filters | React Router search params and `nuqs` parsers. It is shareable and survives reloads. Binder and Decks default to their folder/deck lists when `view` is absent; explicit view parameters are preserved. |
 | Local component state | Notice text, unsaved form values, selected cards for a bulk move, current overlay presentation | The page or component that owns the interaction. It is not persisted unless represented in the URL. |
 | Authentication | Supabase session and current user | `AuthProvider`; user-specific queries are enabled/scoped by the authenticated user. |
 | Remote/cache state | Scryfall search pages, card details, Binder/favorites/decks query results | TanStack Query, with query keys including relevant identifiers and request parameters. |

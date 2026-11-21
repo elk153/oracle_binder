@@ -126,3 +126,113 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
 
 9. Add a `ProtectedRoute` layout: render `<Outlet />` with a session, nothing while `isLoading`, otherwise `<Navigate to="/v2/home" replace />`. Wrap `/v2/favorites`, `/v2/collection` and `/v2/decks` in `router.tsx`. AGENTS.md requires route-relative navigation inside the layouts; confirm the absolute redirect is acceptable for this V2-only guard before changing it.
 10. Run `npm run typecheck` and `npm run build`; both should pass. `npm run lint` still has the 19 existing errors, so compare against that baseline. Then test manually: sign in through Keycloak and return to the app, reload and stay signed in, open `/v2/favorites` signed out (redirects) and signed in (shows), then sign out and confirm the guard works again.
+
+## D-061: Card scanning feature: scope, route and modes
+
+- Status: Accepted (2026-11-21). The route, navbar item, mode choice, Add-mode sign-in check, rear camera with error messages, and guide frame are implemented in `src/features/scan/`. It stays in this list until recognition (D-062), Identify (D-063) and Add (D-064) are built on it.
+- Date: 2026-11-21
+- Decision: Add a card scanning feature on a new route `/v2/scan`, reached from a new navbar item (Scan). The page first asks for a mode:
+  - **Identify** finds a card and opens its details (D-063). It works signed out, like search.
+  - **Add** adds recognized cards one after another to a binder or a deck (D-064). It requires sign-in, because binders and decks belong to a user.
+
+  Input is the live rear camera with automatic detection: a card is recognized as soon as it is held steady in the frame, with no capture button. Recognition must find the exact printing (set and collector number), because binder copies and deck entries store a Scryfall card id. When the printing can't be read, the app falls back to the recognized name and lets the user pick from that card's printings. The design targets phones first (portrait layout, one-handed controls) and must work in both iOS Safari and Chrome on Android. How recognition works is decided in D-062.
+
+  **Guide frame (visual cue in the camera view):** a card-shaped outline (the 63 × 88 mm card ratio) is drawn over the camera picture, and the area outside it is dimmed. Two zones are marked inside the outline:
+  - the **collector zone**, a box at the bottom left where the set code and collector number must sit;
+  - the **title zone**, a box along the top where the card name must sit.
+
+  A short line of text under the frame tells the user what to do, for example "Fit the card in the frame. Set and number in the lower box." While a zone is being read, it is highlighted. When the app falls back to the name (D-062 step 3), the title zone is highlighted and the text says so. When a card is found, the frame briefly turns to a success color.
+
+  The zones are fixed positions in the frame, and the OCR reads exactly those areas, so the guide is what makes the user scan the right part of the card. The outline and zones use the theme tokens, stay visible on both light and dark cards (a light line with a dark edge), and the instructions are also given as text for screen readers (`aria-live`).
+- Why: Adding a collection one card at a time through search is too slow. A camera flow that keeps running between cards makes rapid addition possible. One route for both modes shares the camera and recognition code.
+- Alternatives considered:
+  - Inputs: tap-to-capture, photo upload, or upload only. Each is slower than auto-detect; upload can be added later.
+  - Precision: recognizing only the name and then always choosing a printing, or using a default printing. Both are simpler but slower or less accurate.
+  - Entry points: camera buttons on Search, Binder and Decks instead of, or in addition to, a route. Rejected for now to keep a single entry point.
+- Consequences:
+  - A new public route and navbar item. The Add mode checks the session inside the page rather than protecting the whole route.
+  - A new feature folder `src/features/scan/`. AGENTS.md (routes, source layout) and the architecture docs must be updated when this is implemented.
+  - Camera access needs HTTPS (Netlify and `localhost` qualify) and a permission prompt. Denied permission must show a clear message.
+  - No data model change: the feature reuses the binder copy and deck entry tables (D-064).
+  - Out of scope: scanning several cards in one frame, binder proxies, price or collection valuation.
+- Source: "[Scan] Visual card recognition plan"
+
+## D-062: Card recognition technology
+
+- Status: Evaluating
+- Date: 2026-11-21
+- Decision (recommended, to be confirmed by a prototype): a staged pipeline that runs in the browser first and uses a cloud service only as a fallback.
+  1. **Steady frame (no library):** draw camera frames on a canvas a few times per second and compare them. When the picture stops changing, take that frame. This avoids recognizing a card while it is still moving.
+  2. **Collector line by in-browser OCR:** cut the small info line at the bottom left of the card (collector number and set code, printed on cards since Magic 2015 in 2014) out of the frame and read only that strip with tesseract.js (see "OCR library evaluation" below). The strip is cut out at the position of the guide frame's collector zone (D-061). tesseract.js runs in a Web Worker and is loaded only on `/v2/scan`. Look the printing up with Scryfall's `/cards/:code/:number`, which returns exactly one printing.
+  3. **Name fallback:** if the line can't be read (older cards, glare, foreign language), OCR the title (cut out at the guide frame's title zone) and match it, allowing small errors, against the Scryfall card-name catalog the app already prefetches. Then show that card's printings to pick from (D-061).
+  4. **Optional cloud fallback:** only if steps 2 and 3 fail, send that one still frame to a cloud vision service through a Supabase Edge Function, which keeps the API key secret. Never send video frames continuously.
+
+  Before this decision is accepted, a prototype on one iPhone (Safari) and one Android phone (Chrome) measures how often steps 2 and 3 succeed and how long they take. Based on that, the cloud step is either kept, with a chosen service and budget, or dropped. The prototype also settles the OCR library (see "OCR library evaluation" below).
+- Why:
+  - In-browser recognition is free, private and needs no backend. The app has only Supabase today.
+  - Reading set and number gives the exact printing in one lookup, which recognizing the art or name can't do for reprints.
+  - The cloud step covers the hard cases while its cost stays limited to failed scans.
+- Alternatives considered:
+  - **Browser built-in text detection (Shape Detection API `TextDetector`):** no library to add, but Chrome documents it as available only behind a flag or on some platforms, and no support in iOS Safari was found. Usable at most as an optional speed-up where it exists.
+  - **Cloud vision for every scan (Google Cloud Vision, an LLM with vision, Azure as used by MTGScan):** most accurate, but needs an Edge Function and a secret. It costs money per image: Google Cloud Vision lists the first 1,000 text-detection units a month as free, then $1.50 per 1,000 (to verify on the official page when choosing). It also adds network delay to every card.
+  - **Image matching (perceptual hash of the art):** used by open-source recognizers. It needs a reference hash for every printing, so a large download or a server. Reprints that share art can't be told apart without reading the set.
+  - **Native app (VisionKit, ML Kit):** best camera and OCR quality, but leaves the web stack. Rejected.
+- Consequences:
+  - tesseract.js is a new dependency, chosen by the developer in this decision. It must be lazy-loaded so it doesn't grow the main bundle.
+  - Scryfall limits: about 10 requests per second overall (2 per second for search and named lookups), and HTTP 429 must not be ignored. One lookup per steady frame, plus caching of recognized printings, stays well below this.
+  - The cloud step, if kept, adds an Edge Function, a secret, a monthly cost limit, and image data leaving the device. It needs its own follow-up decision.
+  - Camera quirks to handle: iOS may pick the ultra-wide lens for `facingMode: "environment"`, and camera streams have failed in iOS home-screen apps on some versions. The flashlight (torch) must be feature-detected, not assumed. Everything is tested on real devices.
+- Source: "[Scan] Visual card recognition plan". Research references: Chrome Shape Detection docs (developer.chrome.com/docs/capabilities/shape-detection), Google Cloud Vision pricing (cloud.google.com/vision/pricing), Scryfall rate limits (scryfall.com/docs/api/rate-limits), MTGScan (github.com/fortierq/mtgscan), Yet Another Magic Card Recognizer (github.com/ForOhForError/Yet-Another-Magic-Card-Recognizer), WebKit bugs 252560 and 253186 (rear camera selection) and 273938 (camera in home-screen apps).
+
+### OCR library evaluation
+
+What the OCR has to do: read very short text from a region the app has already cut out of a steady frame. That text is a collector number (digits), a set code (three to five letters or digits) and, in the fallback, a card title (one line). It does not need page layout, document handling or many languages. What matters is accuracy on phone photos, speed per strip, download size (loaded only on `/v2/scan`), support in iOS Safari and Chrome on Android, the license and maintenance.
+
+Package versions, licenses and dates below were read from the npm registry on 2026-11-21. "Unpacked size" is the npm package on disk, which contains several builds. It is not what a phone downloads, which the prototype measures.
+
+| Library | Version, license, last publish | Engine and size | Fit for this task |
+| --- | --- | --- | --- |
+| **tesseract.js** | 7.0.0, Apache-2.0, Dec 2025 | Tesseract compiled to WebAssembly, runs in a worker, caches the language data in IndexedDB. English data is a separate download (`@tesseract.js-data/eng`). | Most widely used browser OCR. Can be limited to given characters (`tessedit_char_whitelist`), told to expect one text line (page segmentation mode 7), and given a rectangle to read. All three suit a fixed, pre-cut strip. Weak on raw photos, curved text and perspective (reviews), so the strip must be straightened, enlarged and turned to black and white first. Version 7 reports 15–35% faster runs than version 6. |
+| **ppu-paddle-ocr** (+ `onnxruntime-web`) | 6.7.1, MIT, Nov 2026 (`onnxruntime-web` 1.31.1, MIT, Nov 2026) | PaddleOCR models run with ONNX Runtime Web, using WebGPU where available and WebAssembly otherwise. Default "tiny" model about 6 MB (multilingual); English mobile model about 12 MB. | PaddleOCR is described as clearly better than Tesseract on scene text and photos. The project's own receipt test reports 99.5% character accuracy, but there are no published phone or iOS timings. Two dependencies, a larger first download, and no documented character whitelist (a custom dictionary option exists). Accuracy drops with more than a few degrees of skew, so straightening is needed here too. Actively maintained. |
+| **@paddleocr/paddleocr-js** (official) | 0.4.2, Apache-2.0, Jun 2026 | Official PaddleOCR browser SDK, 23.8 MB unpacked. | A 2026 comparison called the official JS SDK immature and based on older models. The June 2026 release may have changed that, but it is less proven than the community port above. Not recommended now. |
+| **tesseract-wasm** | 0.11.0, BSD-2-Clause, Oct 2025 | Smaller Tesseract WebAssembly build: about 2.1 MB for the library plus English data, and uses SIMD (Safari 16.4+). | Smallest download, but a lower-level API, far fewer users, and character whitelisting is not confirmed. A fallback if tesseract.js turns out too heavy. |
+| **Scribe.js** | (fork of tesseract.js) | Tesseract with an improved model and PDF support. | Aimed at documents and PDFs. Files must be served from the same origin. No benefit for short strips. Rejected. |
+| **Transformers.js with TrOCR** | — | Transformer models of tens to hundreds of MB, best with WebGPU. | Accurate on hard text, but far too large and slow for scanning card after card on a phone. Rejected. |
+| **ocrad.js** | 0.0.1, GPL-3.0, 2022 | Old pure-JavaScript OCR. | Unmaintained, low accuracy, and a GPL license that doesn't fit the app. Rejected. |
+| **Browser `TextDetector`** | built in | Shape Detection API. | No library at all, but behind a flag or limited to some platforms in Chrome, and not found in iOS Safari. Only an optional speed-up. |
+
+Decision (developer choice, 2026-11-21): **use tesseract.js** (version 7) as the OCR library of the card scanner.
+
+- Why tesseract.js: it is the most proven and documented option, and it is one dependency with a permissive license (Apache-2.0). Its character whitelist, single-line mode and rectangle options fit the pre-cut strips exactly: digits and letters for the collector line, one line of text for the title. The guide frame in the camera view (D-061) makes the user place those strips where the app cuts them out, which avoids Tesseract's weak point: finding text in a busy photo.
+- How it is used:
+  - It is loaded with a dynamic `import()` only on `/v2/scan`, so the main bundle doesn't grow.
+  - One worker with the English data is created when the scanner opens and reused for every card.
+  - Each strip is straightened, enlarged and turned to black and white before it is read.
+  - It sits behind one small interface in `src/features/scan/` (for example `readText(image, { characters })`), so the library can be swapped later without touching the camera or confirm code.
+- The prototype (above) runs on 30–50 photos of real cards from the collection, covering new and old cards, foils, and normal and poor light, on both phones. It records:
+  - how often the set and number are read correctly;
+  - how often the title alone is read well enough to find the card;
+  - time per strip, first time and later;
+  - the download size on first use.
+- Package: `tesseract.js` (with its English data) is added to `package.json` when implementation starts.
+
+The other libraries in the table are kept as references. If the prototype shows tesseract.js reads too few cards, even with the guide frame, try them in this order:
+
+1. ppu-paddle-ocr: reported to be better on photos, at the cost of two dependencies and a larger download.
+2. tesseract-wasm: the same engine in a smaller build.
+
+Switching would need a new or amended decision and approval for the new dependency.
+
+Research references for this section: npm registry entries for each package (2026-11-21), "PaddleOCR vs Tesseract vs TrOCR: OCR in the Browser" (lofttools.com/blog/on-device-ocr-reviewed, June 2026), the ppu-paddle-ocr README (github.com/PT-Perkasa-Pilar-Utama/ppu-paddle-ocr), the tesseract.js 7.0.0 release notes, the tesseract-wasm README, the Scribe.js README, and "Deterministic OCR in JavaScript: PaddleOCR for Node, Bun, Deno, and the Browser" (dev.to).
+
+## D-063: Scan Identify mode
+
+- Status: Evaluating
+- Date: 2026-11-21
+- Decision: When a card is recognized in Identify mode, the app stops the camera and navigates to `/v2/search?q=<card name>&card=<scryfall id>`. This pushes a normal browser history entry: the search runs for that name and the existing details overlay opens on the recognized printing. If only the name was recognized and the user picked a printing (D-061), that printing's id is used. No scan history is stored.
+- Why: It reuses the existing search page and overlay (`?card=` already opens the overlay without replacing the search URL). Back returns to the scanner, and the URL can be shared.
+- Alternatives considered: a stored list of recent scans (local or Supabase), alone or in addition. It needs new storage and UI, and was not wanted.
+- Consequences:
+  - Works signed out. The overlay's favorite, binder and deck actions behave as on search, so they need sign-in.
+  - Going back to `/v2/scan` restarts the camera, which asks for permission again only if the browser forgot it.
+- Source: "[Scan] Visual card recognition plan"
