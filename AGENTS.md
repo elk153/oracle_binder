@@ -157,7 +157,7 @@ Component structure, CSS and Scryfall response handling are not part of it. Any 
 
 1. Work on `dev`. `package.json` keeps the last released version.
 2. Merge `dev` into `main` through a PR; `npm run typecheck` and `npm run build` must pass.
-3. On `main`: update `CHANGELOG.md` and commit; run `npm version patch` or `npm version YYYY.M.0` per the table above; run `git push --follow-tags`. This commits both package files and creates the annotated tag `vYYYY.M.MICRO`.
+3. On `main`: update `CHANGELOG.md`, replace every `Release: pending (on dev)` in `DECISIONS_HISTORY.md` with the new `vYYYY.M.MICRO`, and commit; run `npm version patch` or `npm version YYYY.M.0` per the table above; run `git push --follow-tags`. This commits both package files and creates the annotated tag `vYYYY.M.MICRO`.
 4. Hotfix: branch from the latest tag, fix, bump with `npm version patch` (or an explicit version if the month changed), merge back into `dev`.
 5. Pre-release builds, only if needed: `2026.12.0-beta.1`.
 
@@ -169,7 +169,7 @@ A release that depends on a Supabase migration needs that migration applied to t
 | --- | --- |
 | `package.json`, `package-lock.json` | Tracked version; `npm version` only |
 | `CHANGELOG.md` | Keep a Changelog format; `Unreleased` on top, one section per release; breaking contract changes under `### Breaking` |
-| `DECISIONS.md` | Not versioned; dated entries; add `- Release: vYYYY.M.MICRO` when shipped |
+| `DECISIONS.md`, `DECISIONS_HISTORY.md` | Not versioned; dated entries. Implemented or superseded decisions move to `DECISIONS_HISTORY.md`; an implemented one gets `- Release: pending (on dev)` until it ships, then `- Release: vYYYY.M.MICRO` |
 | `AGENTS.md` | Not versioned; once the first version tag exists, the header stamps the check date and the app version |
 | `README.md`, `docs/` | No hardcoded version; dated notes; link to the changelog |
 | Supabase migrations | Timestamp-named by the CLI, never part of the app version; each has a matching rollback in `supabase/rollback/`; the changelog says which release needs which migration |
