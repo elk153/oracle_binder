@@ -5,12 +5,15 @@ import CardBrowserPage from "../features/card-browser/CardBrowserPage.tsx";
 import LoginPage from "../features/auth/LoginPage.tsx";
 import AuthCallbackPage from "../features/auth/AuthCallbackPage.tsx";
 import RequireAuth from "../features/auth/RequireAuth.tsx";
+import ScanPage from "../features/scan/ScanPage.tsx";
 import { Home, Favorites, Binder, Decks } from "./App.tsx";
+import RouteErrorPage from "./RouteErrorPage.tsx";
 
 const router = createBrowserRouter([ // be aware of the capitals
   {
     path: "/",
     loader: () => redirect("/v2/home"),   // default route
+    errorElement: <RouteErrorPage />,
   },
   {
     path: "/v2",
@@ -19,6 +22,9 @@ const router = createBrowserRouter([ // be aware of the capitals
         <AppV2 />
       </NuqsAdapter>
     ),
+    // Catches errors in any /v2 page, including a code chunk that fails to
+    // load after a deploy, and unknown /v2 addresses (404).
+    errorElement: <RouteErrorPage />,
     children: [
       {
         index: true,
@@ -47,6 +53,11 @@ const router = createBrowserRouter([ // be aware of the capitals
       {
         path: "search/random",
         element: <CardBrowserPage />,
+      },
+      {
+        // Public: Identify works signed out; Add checks the session itself (D-061).
+        path: "scan",
+        element: <ScanPage />,
       },
       {
         path: "collection",

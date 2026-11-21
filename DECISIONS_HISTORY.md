@@ -631,3 +631,51 @@ Implemented and superseded decisions are retained here with their original IDs. 
 - Alternatives considered: Linking only the meld result (the first plan, replaced by the trio at the developer's request); a combined image of both pieces on the result (the developer chose to show the two pieces like the other relations); making the cards clickable only on the URL-based pages (Binder and Decks would close the overlay instead); swapping the card inside the overlay like the print selector (rulings and prints come from the original card, so the whole overlay must change).
 - Consequences: A related card is a `<button>` whose label ("Melds with …") is its accessible name, and its image has `alt=""`; the global focus ring applies. The images sit in an auto-fit grid in `CardDetailsOverlay.css` that stacks when narrow, with `--card-image-width` and `--radius-card`. On Binder and Decks there is no Back history, and an overlay opened for a card outside the page works like the Search overlay (it fetches the card; binder and deck actions use the page's existing props). Opening any meld card makes one collection request for its two related cards. `npm run typecheck`, `npm run build` and `npm run lint` pass. The developer confirmed on 2026-11-21 that the trio was clicked through in the browser. `npm run lint:css` failed after the merge because the images used an `img` type selector (against the D-053 rule); the follow-up commit gives them the `scryfall-card__meld-image` class.
 - Source: "[Meld] Complete the meld feature"
+
+## D-060: Build guard for Supabase variables and a route error page
+
+- Status: Implemented
+- Release: v2026.11.3
+- Date: 2026-11-21
+- Decision: `vite.config.ts` stops `vite build` when `VITE_SUPABASE_URL` or `VITE_SUPABASE_PUBLISHABLE_KEY` is missing, reading them with Vite's `loadEnv` (the `.env` files for the mode and the process environment); dev and preview are unchanged. A new `RouteErrorPage` is the `errorElement` of both top-level routes: a code chunk that fails to load shows "A new version of Oracle Binder is available" with a Reload button (the Chromium, Firefox and Safari wordings of a failed dynamic import are recognized), an unknown address shows "Page not found" with a link home, and any other error shows "Something went wrong" with Reload; error details appear only in development. Pages are not lazy-loaded.
+- Why: Vite warns that the main JavaScript file is larger than 500 kB (777 kB minified, 222 kB gzip). Looking into it showed that builds without the Supabase variables had silently produced a 266 kB bundle: `supabaseClient.ts` throws at load time, so the bundler removed Supabase and everything depending on it, and the app would crash on startup while the build passed (this also made the bundle sizes reported during D-058 wrong). Failing the build makes that visible. A prototype measured lazy loading: Favorites, Binder and Decks lazy gave 713 kB, adding `AdvancedSearchForm` 705 kB (205 kB gzip, about 9 percent less), and making Login and AuthCallback lazy as well gave 737 kB, because the bundler moved shared code back into the main file. The rest is React, the router and Supabase, which the Home page (`CardBrowserPage`, with its auth, favorites, binder and deck hooks) needs immediately. The developer judged 9 percent not worth the loading states. The app already loads the rarer card layouts and extras on demand, so a deploy while the app is open can make one of those chunks 404; the error page turns React Router's default screen into a clear reload prompt.
+- Alternatives considered: Lazy pages (measured above, skipped); splitting React, the router and Supabase into separate cached files (same total size; removes the warning, not chosen now); raising `chunkSizeWarningLimit` (hides the warning only); a global `vite:preloadError` handler that reloads automatically (could loop on a real outage, and reloads without telling the user); leaving React Router's default error screen.
+- Consequences: The 500 kB warning remains and is understood. Building in a folder without `.env.local` (for example a fresh worktree) now fails with a message naming the missing variable; set the variables first. The error page replaces the whole `/v2` layout, navbar included. Checked: with `.env.local` the build passes (778 kB main file); without either variable it exits with code 1 and names the missing one; with both set only in the environment it builds the full bundle; the dev server still starts. The error page was rendered on the server for every case (three chunk wordings, another error, unknown `/v2` and top-level paths) with the expected title and action, and without details in a production build. In the developer's first browser check, `/v2/nope` stayed on the pulsing splash logo: the splash was hidden by an effect in `App.tsx`, which the error page replaces. That effect moved into a `useDismissSplash` hook that both `App.tsx` and `RouteErrorPage` call (calling it again after the splash is gone changes nothing). The server-side render check could not catch this, because effects do not run there.
+- Source: "[Build] Chunk size warning"
+
+## D-064: Scan Add mode (rapid addition)
+
+- Status: Implemented
+- Release: v2026.11.3
+- Date: 2026-11-21
+- Decision: The Add mode has a session setup, then a loop of scan → confirm → next card.
+  - **Session setup (once):**
+    - Target: a binder folder, Loose, or a deck.
+    - Type: owned or proxy. Proxy is offered only when the target is a deck, because the data model has no binder proxies.
+    - For owned copies, default copy details applied to every card of the session (the fields of the binder copy form except finish, which is chosen per card). Individual copies are edited later in the Binder.
+  - **Confirm step (per card):**
+    - Shows the recognized printing (image, name, set, collector number), with a way to change the printing.
+    - A finish slider with three positions, Non-foil → Foil → Etched foil, which are the finish values of the binder copy form. It starts at Non-foil for each card. It's a native range input (`min=0`, `max=2`, `step=1`) with the three labels visible under it and the current label announced to screen readers (`aria-valuetext`). The slider sets the finish of the copies created, so finish is not one of the session defaults. It's shown only for owned cards, because deck entries (proxies) have no finish.
+    - A quantity stepper (default 1), so several copies of the same card take one scan.
+
+    Confirm adds the cards.
+  - **What Confirm creates:**
+    - Owned into a binder or Loose: new binder copies.
+    - Owned into a deck: new physical copies placed in the deck (a `kind='binder'` entry, as the add-copy dialog already does).
+    - Proxy into a deck: proxy deck entries.
+
+    The existing binder and deck mutations and cache updates are reused.
+  - **After Confirm:** an "Added N × name — Undo" message appears briefly and the scanner resumes at once. Undo deletes exactly the copies or entries just created. To avoid adding the same card twice by accident, the same printing is not offered again until the card has left the frame.
+- Why: Choosing target, type and details once, then confirming each card with one tap, is the fastest flow that still prevents wrong additions. Reusing the current data model and mutations means no migration.
+- Alternatives considered:
+  - Binder proxies (needs a data model change and its own decision).
+  - Copy details per card, collapsed or empty (slower, or more editing later).
+  - Rescanning each copy instead of a quantity stepper.
+  - A session list instead of, or in addition to, the undo message.
+- Consequences:
+  - Requires sign-in.
+  - Several copies in one confirm need several inserts. Whether that happens in one database call or a short loop is decided during implementation, and a partial failure must be reported clearly.
+  - Undo must also handle a copy placed in a deck (copy and deck entry).
+  - A two-state foil toggle was considered and replaced by the slider, so Etched foil can also be recorded.
+- Implementation (2026-11-21): `AddScanner`, `AddSessionSetup`, `AddConfirm` and `useScanAdd` in `src/features/scan/`. Several copies are created one after another in a short loop with the existing mutations (no new database function); the first failure stops the loop and the notice says "Added N of M", with Undo for what was added. Undo deletes deck entries before their copies through the new `deleteDeckCards` mutation in `useDeckManagement`, so no virtual entry is left. The option lists of the copy form moved to `src/features/binder/copyOptions.ts` to be shared. A newer notice replaces an older one, and its Undo with it.
+- Source: "[Scan] Visual card recognition plan"

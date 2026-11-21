@@ -220,6 +220,52 @@ export default function useDeckManagement() {
     },
   });
 
+  // Deletes deck entries, either by their own ids or by the binder copies
+  // they reference (`by: "binder_card_id"`). Deleting a Binder entry releases
+  // its copy to Loose (database trigger), so the copies are invalidated too.
+  // Used by the scanner's Undo (D-064).
+  const deleteDeckCards = useMutation<
+    DeckCard[],
+    Error,
+    { by: "id" | "binder_card_id"; values: string[] }
+  >({
+    mutationFn: async ({ by, values }) => {
+      if (!user) throw new Error("Sign in to remove deck cards.");
+      if (values.length === 0) return [];
+      const copyIds =
+        by === "binder_card_id"
+          ? values
+          : (queryClient.getQueryData<DeckCard[]>(deckCardsKey) ?? []).flatMap((entry) =>
+              values.includes(entry.id) && entry.binder_card_id ? [entry.binder_card_id] : [],
+            );
+      markLocalRealtimeChange("binder_cards", user.id, copyIds);
+      try {
+        const { data, error } = await supabase
+          .from("deck_cards")
+          .delete()
+          .eq("user_id", user.id)
+          .in(by, values)
+          .select("*");
+        if (error) throw error;
+        return data;
+      } catch (error) {
+        clearLocalRealtimeChange("binder_cards", user.id, copyIds);
+        throw error;
+      }
+    },
+    onSuccess: async (deleted) => {
+      const deletedIds = new Set(deleted.map((entry) => entry.id));
+      queryClient.setQueryData<DeckCard[]>(deckCardsKey, (current) =>
+        current?.filter((entry) => !deletedIds.has(entry.id)),
+      );
+      if (deleted.some((entry) => entry.binder_card_id)) {
+        await queryClient.invalidateQueries({
+          queryKey: binderCopiesQueryKey(user?.id),
+        });
+      }
+    },
+  });
+
   return {
     decks: decksQuery.data ?? [],
     deckCards: deckCardsQuery.data ?? [],
@@ -230,12 +276,14 @@ export default function useDeckManagement() {
       renameDeck.isPending ||
       deleteDeck.isPending ||
       addDeckCard.isPending ||
-      updateDeckCard.isPending,
+      updateDeckCard.isPending ||
+      deleteDeckCards.isPending,
     createDeck: createDeck.mutateAsync,
     renameDeck: renameDeck.mutateAsync,
     deleteDeck: deleteDeck.mutateAsync,
     addDeckCard: addDeckCard.mutateAsync,
     updateDeckCard: updateDeckCard.mutateAsync,
+    deleteDeckCards: deleteDeckCards.mutateAsync,
   };
 }
 

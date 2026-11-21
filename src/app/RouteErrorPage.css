@@ -1,0 +1,42 @@
+/* Route error page (RouteErrorPage.tsx). It replaces the whole /v2 layout,
+   navbar included, so it drops the top padding .page keeps for the navbar
+   and centers its content on the screen. .page still gives the full height
+   (min-height: 100vh); this file loads after layout.css, so it wins. */
+.route-error {
+  display: grid;
+  place-items: center;
+  padding: 2rem 1rem;
+}
+
+.route-error__content {
+  display: grid;
+  justify-items: center;
+  gap: 1rem;
+  width: min(100%, 40rem);
+  text-align: center;
+}
+
+.route-error__text {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+/* The look comes from .page__action (layout.css). "Go to home" is a link, so
+   it also needs a box and no underline to match the Reload button. */
+.route-error__action {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  text-decoration: none;
+}
+
+/* Development only: the error and its stack. */
+.route-error__details {
+  max-width: 100%;
+  margin: 0;
+  overflow-x: auto;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

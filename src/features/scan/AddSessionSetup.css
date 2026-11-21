@@ -1,0 +1,64 @@
+/* ==========================================================================
+   AddSessionSetup.css
+   Session setup of the scanner's Add mode (D-064): one narrow column, phone
+   first. Fields use the shared .field classes from forms.css.
+   ========================================================================== */
+
+.scan-setup {
+  display: grid;
+  gap: 1rem;
+  width: min(100%, 28rem);
+  margin: 0 auto;
+}
+
+.scan-setup__types {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.scan-setup__legend {
+  margin-bottom: 0.35rem;
+  padding: 0;
+}
+
+/* A large tap target per choice. */
+.scan-setup__type {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 2.75rem;
+  padding: 0 0.9rem;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  cursor: pointer;
+}
+
+.scan-setup__type:has(:disabled) {
+  color: var(--text-secondary);
+  cursor: not-allowed;
+}
+
+.scan-setup__details {
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+}
+
+.scan-setup__summary {
+  padding: 0.75rem 0.9rem;
+  cursor: pointer;
+}
+
+.scan-setup__fields {
+  display: grid;
+  gap: 0.9rem;
+  padding: 0 0.9rem 0.9rem;
+}
+
+.scan-setup__start {
+  justify-self: stretch;
+}

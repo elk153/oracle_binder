@@ -1,0 +1,23 @@
+/* ==========================================================================
+   AddScanner.css
+   Session summary line above the camera in the scanner's Add mode (D-064).
+   ========================================================================== */
+
+.scan-add__session {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: min(100%, 28rem);
+  margin: 0 auto 0.75rem;
+}
+
+.scan-add__summary {
+  margin: 0;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.scan-add__target {
+  color: var(--text-primary);
+}

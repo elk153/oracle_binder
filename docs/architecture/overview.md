@@ -52,6 +52,7 @@ The route definitions live in [`src/app/router.tsx`](../../src/app/router.tsx).
 | `/v2/login` | `LoginPage` | Email/password authentication. |
 | `/v2/auth/callback` | `AuthCallbackPage` | Completes the Supabase auth callback and returns to a safe V2 URL. |
 | `/v2/collection` | Router redirect | Compatibility path to `/v2/binder`. |
+| `/v2/scan` | `ScanPage` | Public card scanner (D-061); `?mode=identify\|add`; Add mode asks for sign-in inside the page. Shows the rear camera and guide frame and recognizes cards by their collector line (D-062 prototype); Identify opens the found card on `/v2/search?q=<name>&card=<id>` (D-063). |
 | `/v2/favorites` | `FavoritesPage` | Sign-in required. |
 | `/v2/binder` | `BinderPage` | Sign-in required; opens the binder list by default; binder folders, owned copies, and loose copies. |
 | `/v2/decks` | `DecksPage` | Sign-in required; opens the deck list by default; deck management and card entries. |
@@ -74,6 +75,7 @@ read/write URL-backed filter state.
 | `src/features/favorites/` | User-scoped favorite queries/mutations, a shared card favorite-action hook, and the favorites page. |
 | `src/features/binder/` | Binder folders, per-copy metadata, disposal/history, exclusive physical-copy storage locations, and Binder page. |
 | `src/features/decks/` | Deck and deck-entry queries/mutations, exclusive physical-copy storage transitions, entry popover, and Decks page. |
+| `src/features/scan/` | Card scanner: mode choice, rear-camera hook, and card guide frame (D-061). |
 | `src/features/navigation/` | Responsive navigation, theme/search controls, and route-aware search behavior. |
 | `src/features/scryfall-card-renderer/` | Shared renderer for normalized Scryfall card layouts and Oracle text. |
 | `src/assets/icons/` | Reusable React SVG components. Site branding SVGs remain under `public/`. |
