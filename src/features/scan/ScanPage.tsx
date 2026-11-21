@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { useAuth } from "../../app/AppProviders/AuthContext.ts";
 import ScanCamera from "./ScanCamera.tsx";
+import AddScanner from "./AddScanner.tsx";
 import type { CardBrowserCard } from "../card-browser/types.ts";
 import "./ScanPage.css";
 
@@ -122,5 +123,5 @@ function AddModeGate() {
     );
   }
 
-  return <ScanCamera />;
+  return <AddScanner />;
 }
