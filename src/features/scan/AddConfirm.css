@@ -1,7 +1,8 @@
 /* ==========================================================================
    AddConfirm.css
    Confirm step of the scanner's Add mode (D-064), drawn over the camera
-   view. Compact, so it fits the phone-sized camera box without scrolling.
+   view. The camera box grows to fit it (ScanCamera.css), so it is never
+   cut off; it stays compact to fit a phone screen.
    ========================================================================== */
 
 .scan-confirm {
