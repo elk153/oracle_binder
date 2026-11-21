@@ -23,3 +23,13 @@
   max-width: 100%;
   border: 1px solid var(--surface-border);
 }
+
+.scan-debug__text {
+  margin: 0;
+  padding: 0.4rem;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  background: var(--bg-card);
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+}

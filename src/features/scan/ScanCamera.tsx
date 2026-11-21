@@ -5,6 +5,7 @@ import GuideFrame from "./GuideFrame.tsx";
 import { GUIDE_INSTRUCTIONS } from "./guideFrame.ts";
 import type { GuideStatus } from "./guideFrame.ts";
 import useSteadyFrame from "./useSteadyFrame.ts";
+import useCollectorReading from "./useCollectorReading.ts";
 import "./ScanCamera.css";
 
 // The debug panel is loaded only in development. In a production build
@@ -49,7 +50,9 @@ export default function ScanCamera() {
   }, [stream]);
 
   // Hooks must run on every render, so this comes before the early return.
-  const steady = useSteadyFrame(videoRef, state.status === "live");
+  const isLive = state.status === "live";
+  const steady = useSteadyFrame(videoRef, isLive);
+  const reading = useCollectorReading(steady.capture, isLive);
   // Prototype (D-062 stage 1): a steady card shows the collector zone as
   // being read. The OCR stages will set the other statuses.
   const guideStatus: GuideStatus =
@@ -100,6 +103,7 @@ export default function ScanCamera() {
             status={steady.status}
             difference={steady.difference}
             capture={steady.capture}
+            reading={reading}
           />
         </Suspense>
       )}
