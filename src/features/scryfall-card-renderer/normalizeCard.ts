@@ -1,20 +1,33 @@
 import {
-  SCRYFALL_CARD_LAYOUT_MAP,
+  getCardRenderConfig,
   AFTERMATH_ROTATION_OVERRIDE,
   BATTLE_ROTATION_OVERRIDE,
-} from './scryfallCardLayouts.js';
+} from './scryfallCardLayouts.ts';
+import type {
+  FaceRotation,
+  NormalizedCard,
+  NormalizedFace,
+  RawScryfallCard,
+  RawScryfallFace,
+} from './types.ts';
 
 /**
  * Normalize a single Scryfall face (or a single-faced root card) into a
  * flat, consistently-named object. Every renderer downstream consumes this
  * shape only — never the raw Scryfall field names directly.
  *
- * @param {object} face - Raw face object (or the root card, for single-faced cards)
- * @param {number} rotation - Degrees (0/90/180/270) to rotate this face's
+ * @param face - Raw face object (or the root card, for single-faced cards)
+ * @param rotation - Degrees (0/90/180/270) to rotate this face's
  *   block (image + text together) to read it as printed. See
- *   ROTATION_BY_LAYOUT in scryfallCardLayouts.js for how this is derived.
+ *   ROTATION_BY_LAYOUT in scryfallCardLayouts.ts for how this is derived.
+ * @param card - The root card, for fields that only exist there (rarity)
+ *   or that a face may omit (colors).
  */
-function toNormalizedFace(face, rotation, card) {
+function toNormalizedFace(
+  face: RawScryfallFace,
+  rotation: FaceRotation,
+  card: RawScryfallCard,
+): NormalizedFace {
   return {
     name: face.name,
     manaCost: face.mana_cost ?? null,
@@ -43,22 +56,18 @@ function toNormalizedFace(face, rotation, card) {
  * always a `faces` array (length 1 for single-faced cards), a resolved
  * `shape` for component dispatch, and the raw `layout`/`allParts` kept
  * around for the rare cases that need them (extras widgets, meld).
- *
- * @param {object} card - Raw Scryfall card object
- * @returns {object} Normalized card
  */
-export function normalizeCard(card) {
-  const config =
-    SCRYFALL_CARD_LAYOUT_MAP.get(card.layout) ??
-    SCRYFALL_CARD_LAYOUT_MAP.get('normal');
+export function normalizeCard(card: RawScryfallCard): NormalizedCard {
+  const config = getCardRenderConfig(card);
 
   // Aftermath split cards (e.g. "Destined // Lead by Example") only rotate
   // their second half — Scryfall exposes this as a keyword, not a distinct
   // layout, so it can't live in the static ROTATION_BY_LAYOUT table and has
   // to be checked here, per card.
-  const isAftermath = card.layout === 'split' && card.keywords?.includes('Aftermath');
-  const isBattle = card.layout === 'transform' && card.card_faces[0]?.type_line.startsWith("Battle");
-  const faceRotations = 
+  const isAftermath = card.layout === 'split' && (card.keywords?.includes('Aftermath') ?? false);
+  const isBattle =
+    card.layout === 'transform' && (card.card_faces?.[0]?.type_line?.startsWith('Battle') ?? false);
+  const faceRotations =
     isAftermath ? AFTERMATH_ROTATION_OVERRIDE
     : isBattle ? BATTLE_ROTATION_OVERRIDE
     : config.faceRotations;

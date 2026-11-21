@@ -1,6 +1,6 @@
 import React, { Suspense, useMemo } from 'react';
-import { CARD_SHAPES } from './scryfallCardLayouts.js';
-import { normalizeCard } from './normalizeCard.js';
+import { CARD_SHAPES } from './scryfallCardLayouts.ts';
+import { normalizeCard } from './normalizeCard.ts';
 
 // Eager: ONE_FACE covers 15 of the 24 layouts and is the overwhelming
 // majority of any real card pool — no reason to pay a lazy-load waterfall

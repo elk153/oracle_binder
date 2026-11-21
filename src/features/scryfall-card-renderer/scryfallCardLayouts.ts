@@ -2,37 +2,62 @@
  * Scryfall card `layout` values mapped to rendering configuration.
  * Source: https://scryfall.com/docs/api/layouts
  *
- * Shape: [layoutKey, renderConfig][]
+ * Shape: [layoutKey, LayoutDescription][]
  *
- * renderConfig fields:
- * - label            Human-readable name
+ * LayoutDescription fields (see the type below):
+ * - label             Human-readable name
  * - hasCardFaces      Whether the card object will have a `card_faces` array
  * - faceCount         Number of distinct faces to render (0 = use root card fields)
- * - faceRelation      'none' | 'related' | 'unrelated' | 'meld' | 'sameCard'
+ * - faceRelation      'none' | 'related' | 'unrelated' | 'meld' | 'split'
  *                      - related: faces belong to one gameplay object (transform, modal_dfc, split, flip, adventure...)
  *                      - unrelated: two independent cards printed back-to-back (reversible_card, double_faced_token, art_series)
  *                      - meld: needs `all_parts` to find the meld result
  * - interaction       Gameplay/UI behavior hint, used to pick a component
  * - component         Suggested React component name
- * - layoutDirection   'stacked' | 'sideBySide' | 'flipVertical' | 'frontBack'
+ * - layoutDirection   'stacked' | 'sideBySide' | 'flipVertical' | 'frontBack' | 'horizontal'
  * - needsAllParts     Whether `all_parts` must be fetched/resolved to render fully (meld, some tokens/emblems)
  * - notes             Implementation notes
- * - shape             Attached below: one of CARD_SHAPES, used for component dispatch
- * - faceRotations      Attached below: degrees[] to rotate each face's block to read it as printed (see ROTATION_BY_LAYOUT)
+ *
+ * SCRYFALL_CARD_LAYOUT_MAP (bottom of this file) adds two derived fields to
+ * each description, giving a full LayoutConfig:
+ * - shape             One of CARD_SHAPES, used for component dispatch
+ * - faceRotations     Degrees[] to rotate each face's block to read it as printed (see ROTATION_BY_LAYOUT)
  */
+import type { FaceRotation } from './types.ts';
 
-export const SCRYFALL_CARD_LAYOUTS = [
-  ['normal', {
-    label: 'Normal',
-    hasCardFaces: false,
-    faceCount: 0,
-    faceRelation: 'none',
-    interaction: 'standard',
-    component: 'NormalCard',
-    layoutDirection: 'stacked',
-    needsAllParts: false,
-    notes: 'Single face, all fields on the root card object.',
-  }],
+export type LayoutDescription = {
+  label: string;
+  hasCardFaces: boolean;
+  faceCount: number;
+  faceRelation: 'none' | 'related' | 'unrelated' | 'meld' | 'split';
+  interaction: string;
+  component: string;
+  layoutDirection: 'stacked' | 'sideBySide' | 'flipVertical' | 'frontBack' | 'horizontal';
+  needsAllParts: boolean;
+  notes: string;
+};
+
+export type LayoutConfig = LayoutDescription & {
+  shape: CardShape;
+  faceRotations: readonly FaceRotation[];
+};
+
+// Kept as its own constant because it is also the fallback config for
+// unknown or future layouts (see getCardRenderConfig).
+const NORMAL_LAYOUT: LayoutDescription = {
+  label: 'Normal',
+  hasCardFaces: false,
+  faceCount: 0,
+  faceRelation: 'none',
+  interaction: 'standard',
+  component: 'NormalCard',
+  layoutDirection: 'stacked',
+  needsAllParts: false,
+  notes: 'Single face, all fields on the root card object.',
+};
+
+export const SCRYFALL_CARD_LAYOUTS: ReadonlyArray<readonly [string, LayoutDescription]> = [
+  ['normal', NORMAL_LAYOUT],
 
   ['split', {
     label: 'Split',
@@ -337,9 +362,13 @@ export const CARD_SHAPES = {
   SPLIT_FACES: 'SPLIT_FACES',     // two faces, shown side by side
   FLIP_VERTICAL: 'FLIP_VERTICAL', // one image, two text states, 180deg rotate
   MELD: 'MELD',                   // one face + resolve all_parts for the result
-};
+} as const;
 
-const SHAPE_BY_LAYOUT = {
+/** One of the CARD_SHAPES values: 'ONE_FACE' | 'TOGGLE_FACES' | ... */
+export type CardShape = (typeof CARD_SHAPES)[keyof typeof CARD_SHAPES];
+
+// Partial: layouts not listed fall back to ONE_FACE below.
+const SHAPE_BY_LAYOUT: Partial<Record<string, CardShape>> = {
   normal: CARD_SHAPES.ONE_FACE,
   leveler: CARD_SHAPES.ONE_FACE,
   class: CARD_SHAPES.ONE_FACE,
@@ -386,7 +415,7 @@ const SHAPE_BY_LAYOUT = {
  *
  * Layouts not listed default to [0] (no rotation) via the fallback below.
  */
-const ROTATION_BY_LAYOUT = {
+const ROTATION_BY_LAYOUT: Partial<Record<string, readonly FaceRotation[]>> = {
   // Classic split (e.g. "Fire // Ice"): each half is printed rotated a
   // quarter turn, in opposite directions, so turning the whole card one
   // way reads the left half and the other way reads the right half.
@@ -409,32 +438,40 @@ const ROTATION_BY_LAYOUT = {
 // since it's cast from hand before the aftermath half is ever relevant.
 // Scryfall doesn't expose this as a separate layout, only as a keyword, so
 // it has to be special-cased at normalization time rather than in this
-// static table — see normalizeCard.js.
-export const AFTERMATH_ROTATION_OVERRIDE = [0, 270];
+// static table — see normalizeCard.ts.
+export const AFTERMATH_ROTATION_OVERRIDE: readonly FaceRotation[] = [0, 270];
 
-// Tansform Battle  card override
+// Transform Battle card override
 // Front face is in landscape, back face is normal.
-export const BATTLE_ROTATION_OVERRIDE = [90, 0];
+export const BATTLE_ROTATION_OVERRIDE: readonly FaceRotation[] = [90, 0];
 
-// Attach `shape` and `faceRotations` onto each layout's config so they're a
-// single source of truth (renderConfig.shape / .faceRotations) instead of
-// extra lookup tables callers need to know about.
-for (const [layout, config] of SCRYFALL_CARD_LAYOUTS) {
-  config.shape = SHAPE_BY_LAYOUT[layout] ?? CARD_SHAPES.ONE_FACE;
-  config.faceRotations = ROTATION_BY_LAYOUT[layout] ?? [0];
+// Combine a layout's description with its derived `shape` and
+// `faceRotations`, so a LayoutConfig is the single source of truth
+// (config.shape / config.faceRotations) instead of extra lookup tables
+// callers need to know about. Building a new object keeps the description
+// tables above unchanged.
+function toLayoutConfig(layout: string, description: LayoutDescription): LayoutConfig {
+  return {
+    ...description,
+    shape: SHAPE_BY_LAYOUT[layout] ?? CARD_SHAPES.ONE_FACE,
+    faceRotations: ROTATION_BY_LAYOUT[layout] ?? [0],
+  };
 }
 
 /** Convenience Map for O(1) lookup by layout key. */
-export const SCRYFALL_CARD_LAYOUT_MAP = new Map(SCRYFALL_CARD_LAYOUTS);
+export const SCRYFALL_CARD_LAYOUT_MAP: ReadonlyMap<string, LayoutConfig> = new Map(
+  SCRYFALL_CARD_LAYOUTS.map(([layout, description]) => [
+    layout,
+    toLayoutConfig(layout, description),
+  ]),
+);
+
+const FALLBACK_LAYOUT_CONFIG = toLayoutConfig('normal', NORMAL_LAYOUT);
 
 /**
  * Get the render config for a given Scryfall card object.
  * Falls back to the 'normal' config for unknown/future layouts.
- * @param {{ layout?: string }} card
  */
-export function getCardRenderConfig(card) {
-  return (
-    SCRYFALL_CARD_LAYOUT_MAP.get(card?.layout) ??
-    SCRYFALL_CARD_LAYOUT_MAP.get('normal')
-  );
+export function getCardRenderConfig(card: { layout?: string } | null | undefined): LayoutConfig {
+  return SCRYFALL_CARD_LAYOUT_MAP.get(card?.layout ?? '') ?? FALLBACK_LAYOUT_CONFIG;
 }
