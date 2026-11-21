@@ -89,10 +89,14 @@
   aspect-ratio: 4 / 3; /* a minimum: content taller than this grows the box */
 }
 
-/* Switches what the box should hold: set and number, or name (D-065). */
-.scan-camera__switch {
-  display: block;
-  margin: 0.25rem auto 0;
+/* Under the instruction: switch between set and number and name (D-065),
+   and the flashlight where the camera has one. */
+.scan-camera__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 0.25rem;
 }
 
 /* Test mode: the button that allows the next capture. */

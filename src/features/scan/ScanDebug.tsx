@@ -5,7 +5,7 @@ import type { PrintingLookup } from "./usePrintingLookup.ts";
 import type { CameraOptions } from "./useCamera.ts";
 import { describeCamera, listCameras } from "./cameraInfo.ts";
 import type { CameraInfo } from "./cameraInfo.ts";
-import { laplacianVariance, toGray } from "./imageMath.ts";
+import { SHARPNESS_HEIGHT } from "./stripSharpness.ts";
 import { downloadSample, parseTruth } from "./scanSample.ts";
 import type { ScanSample, StripImage } from "./scanSample.ts";
 import "./ScanDebug.css";
@@ -23,30 +23,6 @@ type ScanDebugProps = {
 
 // The info line text is roughly 1 mm tall on the card.
 const TEXT_HEIGHT_MM = 1;
-
-// The strip is measured at this height, whatever the camera resolution:
-// the Laplacian compares neighbouring pixels, so the same edge spread over
-// more pixels (4K) would otherwise score lower although it looks sharper.
-const SHARPNESS_HEIGHT = 48;
-
-function sharpnessOf(source: HTMLCanvasElement): number {
-  if (source.width === 0 || source.height === 0) {
-    return 0;
-  }
-  const height = SHARPNESS_HEIGHT;
-  const width = Math.max(3, Math.round((source.width * height) / source.height));
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const context = canvas.getContext("2d", { willReadFrequently: true });
-  if (!context) {
-    return 0;
-  }
-  context.imageSmoothingQuality = "high";
-  context.drawImage(source, 0, 0, width, height);
-  const { data } = context.getImageData(0, 0, width, height);
-  return laplacianVariance(toGray(data), width, height);
-}
 
 function toStripImage(canvas: HTMLCanvasElement): StripImage {
   return { width: canvas.width, height: canvas.height, dataUrl: canvas.toDataURL("image/png") };
@@ -99,7 +75,6 @@ export default function ScanDebug({
     () =>
       capture && {
         collector: capture.collector.toDataURL(),
-        sharpness: sharpnessOf(capture.collector),
         time: new Date(capture.capturedAt).toLocaleTimeString(),
       },
     [capture],
@@ -159,7 +134,7 @@ export default function ScanDebug({
           </p>
           <p className="scan-debug__line">
             Box strip {capture.collector.width}×{capture.collector.height} px · sharpness{" "}
-            {Math.round(captured.sharpness)} (at {SHARPNESS_HEIGHT} px height, comparable across
+            {Math.round(capture.sharpness)} (at {SHARPNESS_HEIGHT} px height, comparable across
             resolutions)
           </p>
           <img className="scan-debug__image" src={captured.collector} alt="Guide box" />
@@ -209,7 +184,7 @@ export default function ScanDebug({
           // A new capture starts with an empty form.
           key={capture.capturedAt}
           capture={capture}
-          sharpness={captured.sharpness}
+          sharpness={capture.sharpness}
           camera={camera}
           reading={reading}
         />

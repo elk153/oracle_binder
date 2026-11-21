@@ -11,6 +11,7 @@ import type { SteadyStatus } from "./useSteadyFrame.ts";
 import useStripReading from "./useStripReading.ts";
 import type { ReadTarget, StripReading } from "./useStripReading.ts";
 import usePrintingLookup from "./usePrintingLookup.ts";
+import useTorch from "./useTorch.ts";
 import type { LookupRequest, PrintingLookup } from "./usePrintingLookup.ts";
 import { buildNameIndex } from "./matchCardName.ts";
 import type { FinishAndLanguage } from "./parseCollectorLine.ts";
@@ -49,8 +50,14 @@ const CAN_RETRY: Record<CameraErrorReason, boolean> = {
 const FOUND_DELAY_MS = 700;
 
 // After this many captures in a row whose set and number couldn't be read
-// or found, the scanner asks for the card name instead (D-065 step 2).
-const FAILURES_BEFORE_NAME = 2;
+// or found, the scanner asks for the card name instead (D-065 step 2). It
+// was 2 before failed readings were retried automatically (step 3), which
+// made the name prompt come after about 3 seconds of holding still.
+const FAILURES_BEFORE_NAME = 3;
+
+// A failed reading is retried with a fresh capture after this pause, without
+// the card having to move (D-065 step 3): the camera may have refocused.
+const RETRY_DELAY_MS = 300;
 
 // What the guide shows, from the recognition stages (D-062) and what the box
 // should hold (D-065): still working → the box is being read; a printing
@@ -156,6 +163,14 @@ export default function ScanCamera({ onFound, overlay, testMode = false }: ScanC
     (!reading.parsed || lookup.status === "not-found")
       ? (steady.capture?.capturedAt ?? null)
       : null;
+  // Any failed reading, also of a name: retried with a new capture.
+  const failedAnyCapture =
+    failedCapture ??
+    (reading.status === "done" &&
+    reading.target === "title" &&
+    (!reading.name || lookup.status === "not-found")
+      ? (steady.capture?.capturedAt ?? null)
+      : null);
   const [failures, setFailures] = useState({ lastCapture: 0, count: 0 });
   if (failedCapture !== null && failedCapture !== failures.lastCapture) {
     const count = failures.count + 1;
@@ -164,6 +179,18 @@ export default function ScanCamera({ onFound, overlay, testMode = false }: ScanC
       setTarget("title");
     }
   }
+
+  // Test mode keeps each capture for a sample until Reset, so no retries.
+  const retryCapture = useEffectEvent(() => steady.reset());
+  useEffect(() => {
+    if (failedAnyCapture === null || testMode) {
+      return;
+    }
+    const timer = window.setTimeout(retryCapture, RETRY_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [failedAnyCapture, testMode]);
+
+  const torch = useTorch(stream);
 
   function readCollector() {
     setTarget("collector");
@@ -250,14 +277,29 @@ export default function ScanCamera({ onFound, overlay, testMode = false }: ScanC
             ? `${instruction} Capture kept: save a sample below if you want, then tap Reset for the next card.`
             : instruction}
       </p>
-      {state.status === "live" && guideStatus !== "found" && (
-        <button
-          type="button"
-          className="page__control page__button scan-camera__switch"
-          onClick={target === "title" ? readCollector : () => setTarget("title")}
-        >
-          {target === "title" ? "Read the set and number instead" : "Read the name instead"}
-        </button>
+      {state.status === "live" && (
+        <div className="scan-camera__controls">
+          {guideStatus !== "found" && (
+            <button
+              type="button"
+              className="page__control page__button"
+              onClick={target === "title" ? readCollector : () => setTarget("title")}
+            >
+              {target === "title" ? "Read the set and number instead" : "Read the name instead"}
+            </button>
+          )}
+          {/* Only where the camera reports a flashlight (D-065 step 3). */}
+          {torch.supported && (
+            <button
+              type="button"
+              className="page__control page__button"
+              aria-pressed={torch.on}
+              onClick={() => void torch.toggle()}
+            >
+              {torch.on ? "Light off" : "Light on"}
+            </button>
+          )}
+        </div>
       )}
       {isHolding && (
         <button type="button" className="page__action scan-camera__reset" onClick={steady.reset}>

@@ -4,9 +4,12 @@ import { getGuideRect } from "./frameGeometry.ts";
 import { INFO_LINE_WIDTH_MM } from "./guideFrame.ts";
 import type { PixelRect } from "./frameGeometry.ts";
 import { toGray } from "./imageMath.ts";
+import { stripSharpness } from "./stripSharpness.ts";
 
 // Stage 1 of the recognition pipeline (D-062): notice when the card is held
-// still in the guide box, then cut the box out of that one frame (D-065).
+// still in the guide box, then cut the box out of the frame (D-065). Each
+// still sample's box is kept as a candidate, and the sharpest one is
+// captured (D-065 step 3): the camera often refocuses while the card settles.
 //
 // Tuning values. The thresholds were raised from 6 / 14 to 20 / 30 after a
 // hand-held test on a phone (2026-11-21): camera noise alone kept the change
@@ -30,6 +33,9 @@ export type SteadyCapture = {
   // Estimated video pixels per millimetre of card, if the info line spans
   // the box's width as asked (INFO_LINE_WIDTH_MM).
   pixelsPerMm: number;
+  // Sharpness of the captured strip (stripSharpness), the best of the
+  // still samples.
+  sharpness: number;
 };
 
 function meanDifference(a: Uint8Array, b: Uint8Array): number {
@@ -87,6 +93,8 @@ export default function useSteadyFrame(
     let previous: Uint8Array | null = null;
     let stillCount = 0;
     let captured = false;
+    // The sharpest box of the current run of still samples.
+    let best: { strip: HTMLCanvasElement; sharpness: number } | null = null;
 
     const timer = window.setInterval(() => {
       if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || video.videoWidth === 0) {
@@ -105,23 +113,32 @@ export default function useSteadyFrame(
           if (!holdCaptures && change > MOVED_ABOVE) {
             captured = false;
             stillCount = 0;
+            best = null;
             setStatus("moving");
           }
         } else if (change < STEADY_BELOW) {
           stillCount += 1;
+          const strip = cropToCanvas(video, box);
+          const sharpness = stripSharpness(strip);
+          if (!best || sharpness > best.sharpness) {
+            best = { strip, sharpness };
+          }
           if (stillCount >= STEADY_SAMPLES) {
             captured = true;
             setCapture({
-              collector: cropToCanvas(video, box),
+              collector: best.strip,
               capturedAt: Date.now(),
               videoWidth: video.videoWidth,
               videoHeight: video.videoHeight,
               pixelsPerMm: box.width / INFO_LINE_WIDTH_MM,
+              sharpness: best.sharpness,
             });
+            best = null;
             setStatus("steady");
           }
         } else {
           stillCount = 0;
+          best = null;
         }
       }
       previous = gray;
