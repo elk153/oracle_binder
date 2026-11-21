@@ -1,6 +1,11 @@
 import { toGray } from "../imageMath.ts";
-import { prepareStrip } from "../prepareStrip.ts";
-import { COLLECTOR_CHARACTERS } from "../parseCollectorLine.ts";
+import { prepareStrip, splitStripRows } from "../prepareStrip.ts";
+import {
+  COLLECTOR_CHARACTERS,
+  NUMBER_ROW_CHARACTERS,
+  parseCollectorLine,
+  SET_ROW_CHARACTERS,
+} from "../parseCollectorLine.ts";
 import {
   contrastStretch,
   invertIfDarkBackground,
@@ -33,8 +38,6 @@ export function stripHeight(guide: "card" | "code" | undefined): number {
   return guide === "code" ? 230 : 170;
 }
 const PADDING = 12;
-const NUMBER_LINE_CHARACTERS = "0123456789/CURMSTPLI";
-const SET_LINE_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 type GrayImage = { gray: Uint8Array; width: number; height: number };
 
@@ -99,11 +102,11 @@ async function readBlock(reader: TextReader, canvas: HTMLCanvasElement) {
 async function readLines(reader: TextReader, image: GrayImage, forSplit: GrayImage) {
   const cut = splitRow(forSplit.gray, forSplit.width, forSplit.height);
   const top = await reader.readText(toCanvas(rows(image, 0, cut)), {
-    characters: NUMBER_LINE_CHARACTERS,
+    characters: NUMBER_ROW_CHARACTERS,
     layout: "line",
   });
   const bottom = await reader.readText(toCanvas(rows(image, cut, image.height)), {
-    characters: SET_LINE_CHARACTERS,
+    characters: SET_ROW_CHARACTERS,
     layout: "line",
   });
   return { text: `${top.text.trim()}\n${bottom.text.trim()}`, ms: top.durationMs + bottom.durationMs };
@@ -111,9 +114,27 @@ async function readLines(reader: TextReader, image: GrayImage, forSplit: GrayIma
 
 export const BENCH_VARIANTS: BenchVariant[] = [
   {
-    id: "current",
-    description: "What the app does: enlarge to ≥120 px, Otsu black and white, block",
+    id: "otsu-block",
+    description: "The app before rows: enlarge to ≥120 px, Otsu black and white, block",
     read: (raw, reader) => readBlock(reader, prepareStrip(raw)),
+  },
+  {
+    id: "otsu-rows",
+    description:
+      "What the app does: otsu-block's strip cut into two rows, number row without S, block if that gives nothing",
+    read: async (raw, reader) => {
+      const strip = prepareStrip(raw);
+      const [numberRow, setRow] = splitStripRows(strip);
+      const top = await reader.readText(numberRow, { characters: NUMBER_ROW_CHARACTERS, layout: "line" });
+      const bottom = await reader.readText(setRow, { characters: SET_ROW_CHARACTERS, layout: "line" });
+      const text = `${top.text.trim()}\n${bottom.text.trim()}`;
+      const ms = top.durationMs + bottom.durationMs;
+      if (parseCollectorLine(text)) {
+        return { text, ms };
+      }
+      const block = await readBlock(reader, strip);
+      return { text: block.text, ms: ms + block.ms };
+    },
   },
   {
     id: "gray",
@@ -135,7 +156,7 @@ export const BENCH_VARIANTS: BenchVariant[] = [
   },
   {
     id: "sauvola-lines",
-    description: "sauvola, split into two lines, each read as one line with its own characters",
+    description: "sauvola, split into two lines, each read as one line with its own characters (number row without S)",
     read: (raw, reader, height) => {
       const binary = sauvola(stretched(raw, height));
       return readLines(reader, binary, binary);

@@ -114,6 +114,11 @@ test("a leading S, or an S after 4 digits, is the special rarity", () => {
   assert.deepEqual(parseCollectorLine("0125 S\nTSR EN"), { setCode: "tsr", collectorNumber: "125" });
 });
 
+test("a padded number wins over a short one before it", () => {
+  // "S 0125" read with a number row that has no S: the rarity became 5.
+  assert.deepEqual(parseCollectorLine("5 0125\nTSR EN"), { setCode: "tsr", collectorNumber: "125" });
+});
+
 test("set codes with S stay letters", () => {
   assert.deepEqual(parseCollectorLine("0045 R\nSNC EN"), { setCode: "snc", collectorNumber: "45" });
 });

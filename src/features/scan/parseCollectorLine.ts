@@ -15,6 +15,15 @@ export type CollectorLine = {
 // The characters the OCR is limited to when reading the collector line.
 export const COLLECTOR_CHARACTERS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ/";
 
+// When the two rows are read one at a time (prepareStrip's splitStripRows):
+// - the number row holds the number, "/set size" and a rarity letter. S is
+//   left out on purpose: OCR often reads 5 as S, and without S it must pick
+//   5. The rare special rarity S is then read as 5 or dropped.
+// - the set row holds the set code and language (and the artist, which the
+//   parser ignores).
+export const NUMBER_ROW_CHARACTERS = "0123456789/CURMTPLI";
+export const SET_ROW_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
 // Language codes printed after the set code; never a set code themselves.
 const LANGUAGE_CODES = new Set([
   "EN", "DE", "FR", "IT", "ES", "PT", "JA", "JP", "KO", "RU", "ZHS", "ZHT", "CS", "CT", "PH",
@@ -91,17 +100,21 @@ export function parseCollectorLine(text: string): CollectorLine | null {
     .map((line) => tokensOf(line))
     .filter((tokens) => tokens.length > 0);
 
-  // The collector number: the first number-like token on any line.
+  // The collector number: on the first line with a number-like token, the
+  // first token of at least 3 digits (numbers are printed padded: "025",
+  // "0125"), else the first number-like token. So a rarity read as a digit
+  // before the number ("5 0125" for "S 0125") is not taken for the number.
   let numberLine = -1;
   let collectorNumber = "";
   for (let i = 0; i < lines.length && numberLine < 0; i += 1) {
-    for (const candidate of lines[i]) {
-      const number = numberOf(candidate);
-      if (number) {
-        numberLine = i;
-        collectorNumber = stripLeadingZeros(fixDigits(number).split("/")[0]);
-        break;
-      }
+    const numbers = lines[i]
+      .map((candidate) => numberOf(candidate))
+      .filter((number): number is string => number !== null)
+      .map((number) => fixDigits(number).split("/")[0]);
+    const number = numbers.find((digits) => digits.length >= 3) ?? numbers[0];
+    if (number !== undefined) {
+      numberLine = i;
+      collectorNumber = stripLeadingZeros(number);
     }
   }
   if (numberLine < 0) {

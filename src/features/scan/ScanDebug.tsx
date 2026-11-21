@@ -183,7 +183,8 @@ export default function ScanDebug({
                 : "No set and number found"}
           </p>
           <p className="scan-debug__line">
-            Confidence {Math.round(reading.confidence)} · read {Math.round(reading.readMs)} ms ·
+            Read as {reading.method === "rows" ? "two rows" : "one block"} · confidence{" "}
+            {Math.round(reading.confidence)} · read {Math.round(reading.readMs)} ms ·
             total {Math.round(reading.totalMs)} ms
           </p>
         </>

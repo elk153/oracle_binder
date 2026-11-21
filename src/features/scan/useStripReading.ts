@@ -1,8 +1,13 @@
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { createTextReader } from "./ocr.ts";
 import type { ReadTextOptions, TextReader } from "./ocr.ts";
-import { prepareStrip } from "./prepareStrip.ts";
-import { COLLECTOR_CHARACTERS, parseCollectorLine } from "./parseCollectorLine.ts";
+import { prepareStrip, splitStripRows } from "./prepareStrip.ts";
+import {
+  COLLECTOR_CHARACTERS,
+  NUMBER_ROW_CHARACTERS,
+  parseCollectorLine,
+  SET_ROW_CHARACTERS,
+} from "./parseCollectorLine.ts";
 import type { CollectorLine } from "./parseCollectorLine.ts";
 import { matchCardName, NAME_CHARACTERS } from "./matchCardName.ts";
 import type { NameIndex } from "./matchCardName.ts";
@@ -22,6 +27,9 @@ export type StripReading =
   | {
       status: "done";
       target: ReadTarget; // what the box was read as
+      // "rows": the two collector rows read one at a time; "block": the
+      // whole strip at once (titles, and collector rows that gave nothing).
+      method: "rows" | "block";
       strip: HTMLCanvasElement; // the cleaned-up strip the OCR read
       text: string; // raw OCR text
       confidence: number;
@@ -41,6 +49,36 @@ const OCR_OPTIONS: Record<ReadTarget, ReadTextOptions> = {
   // border. Each line is then tried on its own.
   title: { characters: NAME_CHARACTERS, layout: "block" },
 };
+
+// The collector line read row by row, each row with only the characters it
+// can contain (no S in the number row, so a 5 can't come out as S). If that
+// gives no set and number, for example when the cut between the rows went
+// wrong, the whole strip is read as one block as before.
+async function readCollector(reader: TextReader, strip: HTMLCanvasElement) {
+  const [numberRow, setRow] = splitStripRows(strip);
+  const top = await reader.readText(numberRow, { characters: NUMBER_ROW_CHARACTERS, layout: "line" });
+  const bottom = await reader.readText(setRow, { characters: SET_ROW_CHARACTERS, layout: "line" });
+  const rowsText = `${top.text.trim()}\n${bottom.text.trim()}`;
+  const rowsMs = top.durationMs + bottom.durationMs;
+  const parsed = parseCollectorLine(rowsText);
+  if (parsed) {
+    return {
+      method: "rows" as const,
+      text: rowsText,
+      confidence: Math.min(top.confidence, bottom.confidence),
+      readMs: rowsMs,
+      parsed,
+    };
+  }
+  const block = await reader.readText(strip, OCR_OPTIONS.collector);
+  return {
+    method: "block" as const,
+    text: block.text,
+    confidence: block.confidence,
+    readMs: rowsMs + block.durationMs,
+    parsed: parseCollectorLine(block.text),
+  };
+}
 
 function nameIn(text: string, index: NameIndex): string | null {
   for (const line of text.split(/\r?\n/)) {
@@ -96,19 +134,32 @@ export default function useStripReading(
       let reading: StripReading;
       try {
         const strip = prepareStrip(capture.collector);
-        const ocr = await (await reader).readText(strip, OCR_OPTIONS[settings.target]);
-        const isTitle = settings.target === "title";
-        reading = {
-          status: "done",
-          target: settings.target,
-          strip,
-          text: ocr.text,
-          confidence: ocr.confidence,
-          readMs: ocr.durationMs,
-          totalMs: performance.now() - started,
-          parsed: isTitle ? null : parseCollectorLine(ocr.text),
-          name: isTitle ? nameIn(ocr.text, settings.nameIndex) : null,
-        };
+        const loaded = await reader;
+        if (settings.target === "collector") {
+          const result = await readCollector(loaded, strip);
+          reading = {
+            status: "done",
+            target: "collector",
+            strip,
+            ...result,
+            totalMs: performance.now() - started,
+            name: null,
+          };
+        } else {
+          const ocr = await loaded.readText(strip, OCR_OPTIONS.title);
+          reading = {
+            status: "done",
+            target: "title",
+            method: "block",
+            strip,
+            text: ocr.text,
+            confidence: ocr.confidence,
+            readMs: ocr.durationMs,
+            totalMs: performance.now() - started,
+            parsed: null,
+            name: nameIn(ocr.text, settings.nameIndex),
+          };
+        }
       } catch (error) {
         reading = {
           status: "error",
