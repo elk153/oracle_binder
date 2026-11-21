@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useEffectEvent, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import useCamera from "./useCamera.ts";
 import type { CameraOptions } from "./useCamera.ts";
@@ -8,10 +8,13 @@ import { GUIDE_INSTRUCTIONS } from "./guideFrame.ts";
 import type { GuideStatus } from "./guideFrame.ts";
 import useSteadyFrame from "./useSteadyFrame.ts";
 import type { SteadyStatus } from "./useSteadyFrame.ts";
-import useCollectorReading from "./useCollectorReading.ts";
-import type { CollectorReading } from "./useCollectorReading.ts";
+import useStripReading from "./useStripReading.ts";
+import type { ReadTarget, StripReading } from "./useStripReading.ts";
 import usePrintingLookup from "./usePrintingLookup.ts";
-import type { PrintingLookup } from "./usePrintingLookup.ts";
+import type { LookupRequest, PrintingLookup } from "./usePrintingLookup.ts";
+import { buildNameIndex } from "./matchCardName.ts";
+import useFetchUrl from "../../hooks/useFetchUrl.ts";
+import getSecondsUntilNextLocalFour from "../../hooks/getSecondsUntilNextLocalFour.ts";
 import type { CardBrowserCard } from "../card-browser/types.ts";
 import "./ScanCamera.css";
 
@@ -44,31 +47,52 @@ const CAN_RETRY: Record<CameraErrorReason, boolean> = {
 // user sees that the scan worked (D-061).
 const FOUND_DELAY_MS = 700;
 
-// What the guide frame shows, from the recognition stages (D-062):
-// still working → the collector zone is being read; a printing found → the
-// success state; a failed reading or lookup → back to aiming, so the user
-// adjusts the card (any movement triggers a new capture).
+// After this many captures in a row whose set and number couldn't be read
+// or found, the scanner asks for the card name instead (D-065 step 2).
+const FAILURES_BEFORE_NAME = 2;
+
+// What the guide shows, from the recognition stages (D-062) and what the box
+// should hold (D-065): still working → the box is being read; a printing
+// found → the success state; a failed reading or lookup → back to aiming,
+// so the user adjusts the card (any movement triggers a new capture).
 function toGuideStatus(
+  target: ReadTarget,
   steady: SteadyStatus,
-  reading: CollectorReading,
+  reading: StripReading,
   lookup: PrintingLookup,
 ): GuideStatus {
+  const aiming = target === "title" ? "aiming-title" : "aiming";
   if (steady !== "steady") {
-    return "aiming";
+    return aiming;
   }
   if (lookup.status === "found") {
     return "found";
   }
   if (reading.status === "reading" || lookup.status === "loading") {
-    return "reading-collector";
+    return target === "title" ? "reading-title" : "reading-collector";
   }
-  return "aiming";
+  return aiming;
 }
+
+// What to look up for a finished reading: the set and number, or the name.
+function toLookupRequest(reading: StripReading): LookupRequest {
+  if (reading.status !== "done") {
+    return null;
+  }
+  if (reading.parsed) {
+    return { line: reading.parsed };
+  }
+  return reading.name ? { name: reading.name } : null;
+}
+
+// How a found card was recognized. A card found by name is Scryfall's
+// default printing, so the page lets the user pick the one they hold.
+export type FoundMatch = { byName: boolean };
 
 type ScanCameraProps = {
   // Called once a printing has been found and shown as found for a moment.
   // The page decides what happens next (D-063 Identify, D-064 Add).
-  onFound?: (card: CardBrowserCard) => void;
+  onFound?: (card: CardBrowserCard, match: FoundMatch) => void;
   // Drawn over the camera view, e.g. the Add mode's confirm step (D-064).
   // The camera stays mounted underneath, so a found card is not offered
   // again until it has left the frame.
@@ -98,12 +122,52 @@ export default function ScanCamera({ onFound, overlay, testMode = false }: ScanC
     }
   }, [stream]);
 
+  // The name catalog for the name fallback, prefetched by App and cached.
+  const namesQuery = useFetchUrl(
+    "cardNames",
+    "https://api.scryfall.com/catalog/card-names",
+    getSecondsUntilNextLocalFour,
+  );
+  const nameIndex = useMemo(
+    () =>
+      buildNameIndex(
+        (namesQuery.data ?? []).filter((name): name is string => typeof name === "string"),
+      ),
+    [namesQuery.data],
+  );
+
   // Hooks must run on every render, so this comes before the early return.
   const isLive = state.status === "live";
+  const [target, setTarget] = useState<ReadTarget>("collector");
   const steady = useSteadyFrame(videoRef, isLive, { holdCaptures: testMode });
-  const reading = useCollectorReading(steady.capture, isLive);
-  const lookup = usePrintingLookup(reading.status === "done" ? reading.parsed : null);
-  const guideStatus = toGuideStatus(steady.status, reading, lookup);
+  const reading = useStripReading(steady.capture, isLive, target, nameIndex);
+  const lookup = usePrintingLookup(toLookupRequest(reading));
+  const guideStatus = toGuideStatus(target, steady.status, reading, lookup);
+
+  // Counts captures in a row whose set and number failed (nothing parsed,
+  // or no such printing) and switches to the name after a few. Adjusted
+  // while rendering (React's pattern for state that follows other values),
+  // keyed by the capture so each one counts once.
+  const failedCapture =
+    reading.status === "done" &&
+    reading.target === "collector" &&
+    (!reading.parsed || lookup.status === "not-found")
+      ? (steady.capture?.capturedAt ?? null)
+      : null;
+  const [failures, setFailures] = useState({ lastCapture: 0, count: 0 });
+  if (failedCapture !== null && failedCapture !== failures.lastCapture) {
+    const count = failures.count + 1;
+    setFailures({ lastCapture: failedCapture, count });
+    if (count >= FAILURES_BEFORE_NAME) {
+      setTarget("title");
+    }
+  }
+
+  function readCollector() {
+    setTarget("collector");
+    setFailures((current) => ({ ...current, count: 0 }));
+  }
+
   const instruction =
     guideStatus === "found" && lookup.status === "found"
       ? `Card found: ${lookup.card.name}.`
@@ -120,7 +184,11 @@ export default function ScanCamera({ onFound, overlay, testMode = false }: ScanC
   // it. ScanCamera re-renders about four times a second, and an inline
   // onFound from the page is a new function each time; as a dependency it
   // would restart the timer before it could ever fire.
-  const reportFound = useEffectEvent((card: CardBrowserCard) => onFound?.(card));
+  const reportFound = useEffectEvent((card: CardBrowserCard) => {
+    onFound?.(card, { byName: reading.status === "done" && reading.target === "title" });
+    // The next card starts with its set and number again.
+    readCollector();
+  });
   useEffect(() => {
     if (!foundCard) {
       return;
@@ -175,6 +243,15 @@ export default function ScanCamera({ onFound, overlay, testMode = false }: ScanC
             ? `${instruction} Capture kept: save a sample below if you want, then tap Reset for the next card.`
             : instruction}
       </p>
+      {state.status === "live" && guideStatus !== "found" && (
+        <button
+          type="button"
+          className="page__control page__button scan-camera__switch"
+          onClick={target === "title" ? readCollector : () => setTarget("title")}
+        >
+          {target === "title" ? "Read the set and number instead" : "Read the name instead"}
+        </button>
+      )}
       {isHolding && (
         <button type="button" className="page__action scan-camera__reset" onClick={steady.reset}>
           Reset for a new capture

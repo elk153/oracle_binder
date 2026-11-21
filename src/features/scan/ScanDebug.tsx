@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { SteadyCapture, SteadyStatus } from "./useSteadyFrame.ts";
-import type { CollectorReading } from "./useCollectorReading.ts";
+import type { StripReading } from "./useStripReading.ts";
 import type { PrintingLookup } from "./usePrintingLookup.ts";
 import type { CameraOptions } from "./useCamera.ts";
 import { describeCamera, listCameras } from "./cameraInfo.ts";
@@ -17,7 +17,7 @@ type ScanDebugProps = {
   status: SteadyStatus;
   difference: number | null;
   capture: SteadyCapture | null;
-  reading: CollectorReading;
+  reading: StripReading;
   lookup: PrintingLookup;
 };
 
@@ -174,9 +174,13 @@ export default function ScanDebug({
           {stripImage && <img className="scan-debug__image" src={stripImage} alt="Strip as read by OCR" />}
           <pre className="scan-debug__text">{reading.text.trim() || "(no text)"}</pre>
           <p className="scan-debug__line">
-            {reading.parsed
-              ? `Set ${reading.parsed.setCode} · number ${reading.parsed.collectorNumber}`
-              : "No set and number found"}
+            {reading.target === "title"
+              ? reading.name
+                ? `Name ${reading.name}`
+                : "No card name matched"
+              : reading.parsed
+                ? `Set ${reading.parsed.setCode} · number ${reading.parsed.collectorNumber}`
+                : "No set and number found"}
           </p>
           <p className="scan-debug__line">
             Confidence {Math.round(reading.confidence)} · read {Math.round(reading.readMs)} ms ·
@@ -194,7 +198,12 @@ export default function ScanDebug({
       )}
       {lookup.status === "error" && <p className="scan-debug__line">{lookup.message}</p>}
 
-      {capture && captured && (
+      {reading.status === "done" && reading.target === "title" && (
+        <p className="scan-debug__line">
+          Samples are for the set and number only: switch back to save one.
+        </p>
+      )}
+      {capture && captured && !(reading.status === "done" && reading.target === "title") && (
         <SampleSaver
           // A new capture starts with an empty form.
           key={capture.capturedAt}
@@ -234,7 +243,7 @@ type SampleSaverProps = {
   capture: SteadyCapture;
   sharpness: number;
   camera: CameraInfo | null;
-  reading: CollectorReading;
+  reading: StripReading;
 };
 
 // Saves the current capture as a sample file for the benchmark.

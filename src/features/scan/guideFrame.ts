@@ -43,17 +43,19 @@ export const GUIDE_RECT: Rect = {
 // language) on cards since Magic 2015, for the debug panel's px/mm estimate.
 export const INFO_LINE_WIDTH_MM = 28;
 
-// What the scanner is doing. "reading-title" is the name fallback (D-065
-// step 2), which reads the card name in the same box.
+// What the scanner is doing. The "-title" states are the name fallback
+// (D-065 step 2): the user puts the card name in the same box.
 export type GuideStatus =
   | "aiming"
+  | "aiming-title"
   | "reading-collector"
   | "reading-title"
   | "found";
 
 export const GUIDE_INSTRUCTIONS: Record<GuideStatus, string> = {
   aiming: "Hold the card close: fill the box with the set and number (bottom left of the card).",
+  "aiming-title": "Put the card name (top left of the card) in the box.",
   "reading-collector": "Reading the set and number. Hold still.",
-  "reading-title": "Can't read the set and number. Put the card name in the box.",
+  "reading-title": "Reading the card name. Hold still.",
   found: "Card found.",
 };

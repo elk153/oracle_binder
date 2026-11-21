@@ -71,6 +71,12 @@
   background: color-mix(in srgb, var(--bg-main) 94%, transparent);
 }
 
+/* Switches what the box should hold: set and number, or name (D-065). */
+.scan-camera__switch {
+  display: block;
+  margin: 0.25rem auto 0;
+}
+
 /* Test mode: the button that allows the next capture. */
 .scan-camera__reset {
   display: block;

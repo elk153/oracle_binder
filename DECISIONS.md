@@ -241,11 +241,11 @@ Research references for this section: npm registry entries for each package (202
 
 ## D-065: Scanner guide for the code only, with a name fallback in the same box
 
-- Status: Accepted (2026-11-21). Step 1 (the guide box) is implemented on the hotfix branch `2026.11.3a`; steps 2 (name fallback) and 3 (low-light help) are not yet built.
+- Status: Accepted (2026-11-21). Steps 1 (the guide box) and 2 (name fallback) are implemented on the hotfix branch `2026.11.3a`; step 3 (low-light help) is not yet built.
 - Date: 2026-11-21
 - Decision: Replace D-061's card-shaped guide with one wide box (4:1) in the middle of a 4:3 landscape camera view, 90% of its width. The user fills the box with the card's info line (set code and collector number, bottom left), not the whole card. A small card sketch in the corner shows which part goes in the box. The steady-frame check and the OCR both use only this box.
   1. **Code in the box:** the strip is read as before (D-062 stage 2).
-  2. **Name fallback in the same box:** when the code can't be read, the text asks the user to put the card name in the box. The name is matched against the card-name catalog, and the user picks the printing (D-061, D-062 stage 3).
+  2. **Name fallback in the same box:** after 2 captures in a row whose code can't be read or found (or with a "Read the name instead" button), the text asks the user to put the card name in the box. The OCR text is matched against the card-name catalog, allowing one wrong letter in five, and `/cards/named` gives the card. In Add mode the printing list then opens at once for the user to pick theirs (D-061, D-062 stage 3); in Identify mode the card opens on its default printing, and the details overlay lists the others. After a found card, the next card starts with the code again.
   3. **Low-light help:** a flashlight button only where the camera reports torch support, and the sharpest of the last few frames before giving up.
 - Why:
   - Measured on an iPhone 13 Pro (Test mode, 2026-11-21): with the whole card in a 3:4 view at 4K, the info text gets about 31 px/mm, and the reading succeeds only about half the time in poor light. That is below the target of 75% in low light (90% in normal light, no wrong printings).

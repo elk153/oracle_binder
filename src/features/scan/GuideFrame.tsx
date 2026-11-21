@@ -18,14 +18,20 @@ const box = {
 const BOX_CORNER = 6;
 
 // A small card sketch in the top-left corner (63:88), with the part that goes
-// in the box (the info line, bottom left) filled in, so the user sees what to
-// aim at.
+// in the box filled in, so the user sees what to aim at: the info line
+// (bottom left) or, for the name fallback, the name (top left).
 const HINT_HEIGHT = Math.min(56, box.y - 16);
 const hint = { x: 12, y: 8, width: (HINT_HEIGHT * 63) / 88, height: HINT_HEIGHT };
-const hintZone = {
+const hintCollector = {
   x: hint.x + hint.width * 0.06,
   y: hint.y + hint.height * 0.9,
   width: hint.width * 0.45,
+  height: hint.height * 0.06,
+};
+const hintTitle = {
+  x: hint.x + hint.width * 0.08,
+  y: hint.y + hint.height * 0.05,
+  width: hint.width * 0.6,
   height: hint.height * 0.06,
 };
 
@@ -41,6 +47,7 @@ export default function GuideFrame({ status }: GuideFrameProps) {
   // A unique id, because an SVG mask is referenced by id within the page.
   const maskId = useId();
   const isReading = status === "reading-collector" || status === "reading-title";
+  const isTitle = status === "aiming-title" || status === "reading-title";
   const boxClass = `guide-frame__box${isReading ? " guide-frame__box--active" : ""}`;
 
   return (
@@ -69,7 +76,7 @@ export default function GuideFrame({ status }: GuideFrameProps) {
       </g>
       <g className="guide-frame__hint">
         <rect className="guide-frame__hint-card" rx={2} {...hint} />
-        <rect className="guide-frame__hint-zone" {...hintZone} />
+        <rect className="guide-frame__hint-zone" {...(isTitle ? hintTitle : hintCollector)} />
       </g>
     </svg>
   );
