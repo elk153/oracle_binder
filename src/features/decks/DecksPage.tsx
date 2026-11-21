@@ -250,6 +250,7 @@ export default function DecksPage() {
         <div className="deck-page__view-switch" role="group" aria-label="Deck view">
           <button
             type="button"
+            className="page__control page__button"
             aria-pressed={view === "all"}
             onClick={() => void setView("all")}
           >
@@ -257,6 +258,7 @@ export default function DecksPage() {
           </button>
           <button
             type="button"
+            className="page__control page__button"
             aria-pressed={view === "decks"}
             onClick={() => void setView("decks")}
           >
@@ -315,20 +317,21 @@ export default function DecksPage() {
               void createDeck();
             }}
           >
-            <label>
+            <label className="page__label">
               New deck
               <input
+                className="page__control"
                 value={newDeckName}
                 onChange={(event) => setNewDeckName(event.currentTarget.value)}
                 maxLength={100}
               />
             </label>
-            <button type="submit" disabled={!newDeckName.trim() || decks.isPending}>
+            <button type="submit" className="page__control page__button" disabled={!newDeckName.trim() || decks.isPending}>
               Create deck
             </button>
           </form>
 
-          <div className="deck-page__grid">
+          <div className="card-grid">
             {decks.decks.map((deck) => {
               const entries = decks.deckCards.filter(
                 (entry) => entry.deck_id === deck.id,
@@ -339,7 +342,7 @@ export default function DecksPage() {
                 entries.length === 1 ? "card" : "cards"
               }`;
               return (
-                <article className="deck-page__deck-card" key={deck.id}>
+                <article className="page__cover-card deck-page__deck-card" key={deck.id}>
                   {card && cover ? (
                     <CardTile
                       card={card}
@@ -359,12 +362,13 @@ export default function DecksPage() {
                     </button>
                   )}
                   <div className="deck-page__deck-meta">
-                    <h2>{deck.name}</h2>
+                    <h2 className="deck-page__deck-name">{deck.name}</h2>
                     <span className="deck-page__count">{countLabel}</span>
                   </div>
-                  <div className="deck-page__deck-actions">
+                  <div className="page__card-actions">
                     <button
                       type="button"
+                      className="page__control page__button page__card-action"
                       disabled={decks.isPending}
                       onClick={() => void renameDeck(deck)}
                     >
@@ -372,6 +376,7 @@ export default function DecksPage() {
                     </button>
                     <button
                       type="button"
+                      className="page__control page__button page__card-action"
                       disabled={decks.isPending}
                       onClick={() => void deleteDeck(deck)}
                     >
@@ -390,10 +395,11 @@ export default function DecksPage() {
 
       {view === "all" && (
         <>
-          <div className="page__toolbar deck-page__toolbar">
-            <label>
+          <div className="page__toolbar">
+            <label className="page__label">
               Show
               <select
+                className="page__control"
                 value={selectedDeckId ?? ""}
                 onChange={(event) =>
                   void setSelectedDeckId(event.currentTarget.value || null)
@@ -408,7 +414,7 @@ export default function DecksPage() {
               </select>
             </label>
             {selectedDeckId && (
-              <button type="button" onClick={() => void setView("decks")}>
+              <button type="button" className="page__control page__button" onClick={() => void setView("decks")}>
                 Back to decks
               </button>
             )}
@@ -503,9 +509,9 @@ export default function DecksPage() {
       )}
 
       {notice && (
-        <p className="page__notice deck-page__notice" role="status">
+        <p className="page__notice" role="status">
           <span>{notice}</span>
-          <button type="button" onClick={() => setNotice("")}>Dismiss</button>
+          <button type="button" className="page__notice-action" onClick={() => setNotice("")}>Dismiss</button>
         </p>
       )}
 

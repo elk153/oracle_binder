@@ -1,79 +1,28 @@
-/* Page shell, heading, toolbar, card grid, messages and notice box: src/styles/layout.css. */
+/* Page shell, heading, toolbar, controls, card and cover grids, messages and notice: src/styles/layout.css. */
 
 .binder-page__binders {
+  display: grid;
+  gap: 1rem;
   width: min(100%, 80rem);
   margin-right: auto;
   margin-left: auto;
 }
 
 .binder-page__view-switch,
-.binder-page__create,
-.binder-page__binder-actions {
+.binder-page__create {
   display: flex;
   flex-wrap: wrap;
   align-items: end;
   gap: 0.6rem;
 }
 
-.binder-page button,
-.binder-page select,
-.binder-page input {
-  min-height: 2.5rem;
-  padding: 0.45rem 0.7rem;
-  border: 1px solid var(--surface-border);
-  border-radius: var(--control-radius);
-  color: var(--text-primary);
-  background: var(--bg-card);
-  font: 0.9rem var(--font-ui);
-}
-
-.binder-page button {
-  cursor: pointer;
-}
-
-.binder-page button[aria-pressed="true"] {
-  border-color: var(--text-accent);
-  color: var(--text-accent);
-}
-
-.binder-page__toolbar label {
-  display: grid;
-  gap: 0.25rem;
-  color: var(--text-secondary);
-  font: 0.78rem var(--font-ui);
-}
-
-.binder-page__binders {
-  display: grid;
-  gap: 1rem;
-}
-
-.binder-page__create {
-  align-items: end;
-}
-
-.binder-page__binder-grid {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--card-image-gap);
-  width: min(100%, 80rem);
-  margin: 0 auto;
-}
-
-.binder-page__binder-card {
-  flex: 0 0 calc(var(--card-image-width) + 1.45rem);
-  width: calc(var(--card-image-width) + 1.45rem);
-}
-
 /* D-056: the fill color is set inline from the binder's `color`. */
-.binder-page .binder-page__binder-cover {
+.binder-page__binder-cover {
   display: grid;
   width: var(--card-image-width);
   aspect-ratio: 488 / 680;
   place-items: center;
   overflow: hidden;
-  min-height: 0;
   margin: 0 auto;
   padding: 0;
   border: 1px solid var(--surface-border);
@@ -83,13 +32,17 @@
   transition: transform 0.15s ease;
 }
 
-.binder-page .binder-page__binder-cover:hover {
+.binder-page__binder-cover:hover {
   transform: translateY(-3px);
+}
+
+.binder-page__binder-cover:focus-visible {
+  outline-offset: 3px;
 }
 
 /* The global reduced-motion rule in base.css shortens the transition but does not cancel the hover lift. */
 @media (prefers-reduced-motion: reduce) {
-  .binder-page .binder-page__binder-cover:hover {
+  .binder-page__binder-cover:hover {
     transform: none;
   }
 }
@@ -102,24 +55,7 @@
   user-select: none;
 }
 
-.binder-page .browser-card__media {
-  min-height: 0;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-card);
-  background: transparent;
-}
-
-.binder-page .browser-card__action {
-  min-height: 0;
-  padding: 0.4rem;
-  border: 1px solid color-mix(in srgb, var(--text-accent) 75%, transparent);
-  border-radius: 50%;
-  color: var(--text-accent);
-  background: color-mix(in srgb, var(--bg-main) 78%, transparent);
-}
-
-.binder-page__binder-card h2 {
+.binder-page__binder-name {
   overflow-wrap: anywhere;
   margin: 0.6rem 0 0.25rem;
   color: var(--text-primary);
@@ -127,35 +63,12 @@
   text-align: center;
 }
 
-.binder-page__binder-card p {
+.binder-page__binder-count {
   margin: 0 0 0.5rem;
   color: var(--text-secondary);
   font-size: 0.8rem;
   text-align: center;
 }
-
-.binder-page__binder-actions {
-  justify-content: center;
-}
-
-.binder-page__binder-actions button {
-  min-height: 2rem;
-  padding: 0.35rem 0.65rem;
-  border-radius: var(--control-radius);
-  color: var(--text-secondary);
-  background: transparent;
-  font-size: 0.78rem;
-}
-
-.binder-page__binder-actions button:hover {
-  border-color: var(--text-accent);
-  color: var(--text-accent);
-}
-
-.binder-page__binder-cover:focus-visible {
-  outline-offset: 3px;
-}
-
 
 .binder-page__card {
   position: relative;
@@ -171,26 +84,12 @@
   font: 0.72rem var(--font-ui);
 }
 
-.binder-page__select input {
-  min-height: auto;
+.binder-page__select-input {
   accent-color: var(--text-accent);
 }
 
-/* Repeats part of .page__notice button from layout.css: the page-wide button rule above is just as specific and comes later. */
-.binder-page__notice button {
-  border: 0;
-  color: var(--text-accent);
-  background: transparent;
-  text-decoration: underline;
-}
-
 @media (max-width: 540px) {
-  .binder-page__binder-card {
-    flex-basis: min(calc(var(--card-image-width) + 1.45rem), calc(100vw - 1.5rem));
-    width: min(calc(var(--card-image-width) + 1.45rem), calc(100vw - 1.5rem));
-  }
-
-  .binder-page .binder-page__binder-cover {
+  .binder-page__binder-cover {
     width: min(var(--card-image-width), calc(100vw - 2.95rem));
   }
 }

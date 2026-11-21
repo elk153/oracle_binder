@@ -12,7 +12,7 @@
   text-align: center;
 }
 
-.card-browser__heading p {
+.card-browser__intro {
   color: var(--text-secondary);
 }
 

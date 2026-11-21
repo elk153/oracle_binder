@@ -260,7 +260,7 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
             nameSuggestionsError={nameSuggestionsError}
           />
           {isPersonalSearch && (
-            <p>
+            <p className="card-browser__intro">
               {user
                 ? `Search your favorites, owned Binder copies, and deck entries${searchQuery ? ` for “${searchQuery}”` : ""}.`
                 : "Sign in to search your personal collection."}
@@ -399,6 +399,7 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
             <div className="pagination">
               <button
                 type="button"
+                className="pagination__button"
                 onClick={cardSource.fetchNextPage}
                 disabled={cardSource.isFetchingNextPage}
               >
@@ -416,9 +417,10 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
       {notice && (
         <div className="page__notice" role="status">
           <span>{notice}</span>
-          {signInPath && <Link to={signInPath}>Sign in</Link>}
+          {signInPath && <Link className="page__notice-action" to={signInPath}>Sign in</Link>}
           <button
             type="button"
+            className="page__notice-action"
             onClick={() => {
               setNotice("");
               setSignInPath(null);

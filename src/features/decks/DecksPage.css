@@ -1,88 +1,40 @@
-/* Page shell, heading, toolbar, card grid, messages and notice box: src/styles/layout.css. */
+/* Page shell, heading, toolbar, controls, card and cover grids, messages and notice: src/styles/layout.css. */
 
 .deck-page__decks {
+  display: grid;
+  gap: 1rem;
   width: min(100%, 80rem);
   margin-right: auto;
   margin-left: auto;
 }
 
 .deck-page__view-switch,
-.deck-page__create,
-.deck-page__deck-actions {
+.deck-page__create {
   display: flex;
   flex-wrap: wrap;
   align-items: end;
   gap: 0.6rem;
 }
 
-.deck-page button,
-.deck-page select,
-.deck-page input {
-  min-height: 2.5rem;
-  padding: 0.45rem 0.7rem;
-  border: 1px solid var(--surface-border);
-  border-radius: var(--control-radius);
-  color: var(--text-primary);
-  background: var(--bg-card);
-  font: 0.9rem var(--font-ui);
-}
-
-.deck-page button {
-  cursor: pointer;
-}
-
-.deck-page button[aria-pressed="true"] {
-  border-color: var(--text-accent);
-  color: var(--text-accent);
-}
-
-.deck-page button:disabled {
+/* Only the Decks page shows a waiting state on its disabled buttons. */
+.deck-page .page__button:disabled {
   cursor: wait;
   opacity: 0.65;
 }
 
-.deck-page__create label,
-.deck-page__toolbar label {
-  display: grid;
-  gap: 0.25rem;
-  color: var(--text-secondary);
-  font: 0.78rem var(--font-ui);
-}
-
-.deck-page__decks {
-  display: grid;
-  gap: 1rem;
-}
-
-.deck-page__create {
-  align-items: end;
-}
-
-.deck-page__grid {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--card-image-gap);
-}
-
-.deck-page__deck-card {
-  flex: 0 0 calc(var(--card-image-width) + 1.45rem);
-  width: calc(var(--card-image-width) + 1.45rem);
-}
-
+/* A deck cover that is a card tile instead of .deck-page__cover. */
 .deck-page__deck-card .browser-card {
   flex: 0 0 var(--card-image-width);
   width: var(--card-image-width);
   margin: 0 auto;
 }
 
-.deck-page .deck-page__cover {
+.deck-page__cover {
   display: grid;
   width: var(--card-image-width);
   aspect-ratio: 488 / 680;
   place-items: center;
   overflow: hidden;
-  min-height: 0;
   margin: 0 auto;
   padding: 0.75rem;
   border: 1px solid var(--surface-border);
@@ -90,23 +42,7 @@
   color: var(--text-secondary);
   background: var(--bg-card);
   font: 0.9rem var(--font-ui);
-}
-
-.deck-page .browser-card__media {
-  min-height: 0;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-card);
-  background: transparent;
-}
-
-.deck-page .browser-card__action {
-  min-height: 0;
-  padding: 0.4rem;
-  border: 1px solid color-mix(in srgb, var(--text-accent) 75%, transparent);
-  border-radius: 50%;
-  color: var(--text-accent);
-  background: color-mix(in srgb, var(--bg-main) 78%, transparent);
+  cursor: pointer;
 }
 
 .deck-page__deck-meta {
@@ -117,7 +53,7 @@
   margin: 0.6rem 0 0.45rem;
 }
 
-.deck-page__deck-meta h2 {
+.deck-page__deck-name {
   min-width: 0;
   overflow-wrap: anywhere;
   margin: 0;
@@ -135,24 +71,6 @@
   background: color-mix(in srgb, var(--text-accent) 10%, var(--bg-card));
   font: 700 0.72rem var(--font-ui);
   white-space: nowrap;
-}
-
-.deck-page__deck-actions {
-  justify-content: center;
-}
-
-.deck-page__deck-actions button {
-  min-height: 2rem;
-  padding: 0.35rem 0.65rem;
-  border-radius: var(--control-radius);
-  color: var(--text-secondary);
-  background: transparent;
-  font-size: 0.78rem;
-}
-
-.deck-page__deck-actions button:hover {
-  border-color: var(--text-accent);
-  color: var(--text-accent);
 }
 
 .deck-page__entry {
@@ -189,26 +107,13 @@
   opacity: 0.72;
 }
 
-/* Repeats part of .page__notice button from layout.css: the page-wide button rule above is just as specific and comes later. */
-.deck-page__notice button {
-  border: 0;
-  color: var(--text-accent);
-  background: transparent;
-  text-decoration: underline;
-}
-
 @media (max-width: 540px) {
-  .deck-page__deck-card {
-    flex-basis: min(calc(var(--card-image-width) + 1.45rem), calc(100vw - 1.5rem));
-    width: min(calc(var(--card-image-width) + 1.45rem), calc(100vw - 1.5rem));
-  }
-
   .deck-page__deck-card .browser-card {
     flex-basis: min(var(--card-image-width), calc(100vw - 2.95rem));
     width: min(var(--card-image-width), calc(100vw - 2.95rem));
   }
 
-  .deck-page .deck-page__cover {
+  .deck-page__cover {
     width: min(var(--card-image-width), calc(100vw - 2.95rem));
   }
 }

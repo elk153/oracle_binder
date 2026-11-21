@@ -263,6 +263,7 @@ export default function BinderPage() {
         <div className="binder-page__view-switch" role="group" aria-label="Binder view">
           <button
             type="button"
+            className="page__control page__button"
             aria-pressed={view === "all"}
             onClick={() => void setView("all")}
           >
@@ -270,6 +271,7 @@ export default function BinderPage() {
           </button>
           <button
             type="button"
+            className="page__control page__button"
             aria-pressed={view === "binders"}
             onClick={() => void setView("binders")}
           >
@@ -314,6 +316,7 @@ export default function BinderPage() {
           <div className="binder-page__create">
             <button
               type="button"
+              className="page__control page__button"
               onClick={() => setBinderDialog({ mode: "create" })}
               disabled={binder.bindersLoading}
             >
@@ -321,44 +324,45 @@ export default function BinderPage() {
             </button>
           </div>
 
-          <div className="binder-page__binder-grid">
+          <div className="card-grid">
             {[...binder.binders].map((target) => {
               const count = unallocatedOwnedCopies.filter(
                 (copy) => copy.binder_id === target.id,
               ).length;
               return (
-                <article className="binder-page__binder-card" key={target.id}>
+                <article className="page__cover-card" key={target.id}>
                   <BinderCover
                     color={target.color}
                     onSelect={() => chooseBinder(target.id)}
                     label={`Open ${target.name}, ${count} ${count === 1 ? "copy" : "copies"}`}
                   />
-                  <h2>{target.name}</h2>
-                  <p>{count} {count === 1 ? "copy" : "copies"}</p>
-                  <div className="binder-page__binder-actions">
+                  <h2 className="binder-page__binder-name">{target.name}</h2>
+                  <p className="binder-page__binder-count">{count} {count === 1 ? "copy" : "copies"}</p>
+                  <div className="page__card-actions">
                     <button
                       type="button"
+                      className="page__control page__button page__card-action"
                       onClick={() =>
                         setBinderDialog({ mode: "modify", binder: target })
                       }
                     >
                       Modify
                     </button>
-                    <button type="button" onClick={() => void deleteBinder(target)}>
+                    <button type="button" className="page__control page__button page__card-action" onClick={() => void deleteBinder(target)}>
                       Delete
                     </button>
                   </div>
                 </article>
               );
             })}
-            <article className="binder-page__binder-card binder-page__binder-card--loose">
+            <article className="page__cover-card">
               <BinderCover
                 color={LOOSE_BINDER_COLOR}
                 onSelect={() => chooseBinder("loose")}
                 label={`Open Loose, ${looseCopies.length} ${looseCopies.length === 1 ? "copy" : "copies"}`}
               />
-              <h2>Loose</h2>
-              <p>{looseCopies.length} {looseCopies.length === 1 ? "copy" : "copies"}</p>
+              <h2 className="binder-page__binder-name">Loose</h2>
+              <p className="binder-page__binder-count">{looseCopies.length} {looseCopies.length === 1 ? "copy" : "copies"}</p>
             </article>
           </div>
         </section>
@@ -366,10 +370,11 @@ export default function BinderPage() {
 
       {view === "all" && (
         <>
-          <div className="page__toolbar binder-page__toolbar">
-            <label>
+          <div className="page__toolbar">
+            <label className="page__label">
               Show
               <select
+                className="page__control"
                 value={selectedBinderId ?? ""}
                 onChange={(event) => {
                   setSelectedCardIds(new Set());
@@ -388,9 +393,10 @@ export default function BinderPage() {
             </label>
             {selectedBinderId !== HISTORY_FILTER && (
               <>
-                <label>
+                <label className="page__label">
                   Move selected copies to
                   <select
+                    className="page__control"
                     value={moveDestination}
                     onChange={(event) => setMoveDestination(event.currentTarget.value)}
                   >
@@ -405,6 +411,7 @@ export default function BinderPage() {
                 </label>
                 <button
                   type="button"
+                  className="page__control page__button"
                   onClick={() => void moveSelectedCopies()}
                   disabled={!moveDestination || selectedCardIds.size === 0 || binder.isPending}
                 >
@@ -436,6 +443,7 @@ export default function BinderPage() {
                     <label className="binder-page__select">
                       <input
                         type="checkbox"
+                        className="binder-page__select-input"
                         checked={selectedCardIds.has(card.id)}
                         onChange={() => toggleCardSelection(card.id)}
                         aria-label={`Select all owned copies of ${card.name}`}
@@ -474,9 +482,9 @@ export default function BinderPage() {
       )}
 
       {notice && (
-        <p className="page__notice binder-page__notice" role="status">
+        <p className="page__notice" role="status">
           <span>{notice}</span>
-          <button type="button" onClick={() => setNotice("")}>Dismiss</button>
+          <button type="button" className="page__notice-action" onClick={() => setNotice("")}>Dismiss</button>
         </p>
       )}
 

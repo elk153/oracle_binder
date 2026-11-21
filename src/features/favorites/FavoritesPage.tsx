@@ -234,6 +234,7 @@ export default function FavoritesPage() {
         <div className="pagination">
           <button
             type="button"
+            className="pagination__button"
             onClick={favoriteSource.error ? favoriteSource.retry : favoriteSource.fetchNextPage}
             disabled={favoriteSource.isFetchingNextPage}
           >
@@ -249,7 +250,7 @@ export default function FavoritesPage() {
       {notice && (
         <div className="page__notice" role="status">
           <span>{notice}</span>
-          <button type="button" onClick={() => setNotice("")}>
+          <button type="button" className="page__notice-action" onClick={() => setNotice("")}>
             Dismiss
           </button>
         </div>
