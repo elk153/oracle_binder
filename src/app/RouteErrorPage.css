@@ -1,11 +1,19 @@
 /* Route error page (RouteErrorPage.tsx). It replaces the whole /v2 layout,
-   navbar included, so it only needs its own column. */
+   navbar included, so it drops the top padding .page keeps for the navbar
+   and centers its content on the screen. .page still gives the full height
+   (min-height: 100vh); this file loads after layout.css, so it wins. */
+.route-error {
+  display: grid;
+  place-items: center;
+  padding: 2rem 1rem;
+}
+
 .route-error__content {
   display: grid;
-  justify-items: start;
+  justify-items: center;
   gap: 1rem;
   width: min(100%, 40rem);
-  margin: 0 auto;
+  text-align: center;
 }
 
 .route-error__text {
