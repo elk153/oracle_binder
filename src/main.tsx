@@ -13,6 +13,11 @@ if (!container) {
   throw new Error('Missing the DOM element with id="root"');
 }
 
+// Striped frame that marks the dev server; removed from production builds.
+if (import.meta.env.DEV) {
+  void import("./app/devIndicator.ts");
+}
+
 const root = createRoot(container);
 
 root.render(
