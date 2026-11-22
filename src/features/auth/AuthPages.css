@@ -7,25 +7,32 @@
   margin-bottom: 1.5rem;
 }
 
-.auth-form {
+.auth-providers {
   display: grid;
   gap: 0.75rem;
 }
 
-.auth-form__label {
-  color: var(--text-primary);
-  font-weight: 700;
-}
-
-/* Larger than the shared .field__input it is used with. */
-.auth-form__input {
+.auth-provider {
   min-height: 2.75rem;
-  padding: 0.65rem 0.8rem;
+  color: var(--text-primary);
+  background: none;
+  border: 1px solid var(--surface-border);
   border-radius: var(--radius-sm);
   font: inherit;
+  font-weight: 700;
+  cursor: pointer;
 }
 
-.auth-form__input:focus-visible,
+.auth-provider:hover:not(:disabled) {
+  border-color: var(--text-accent);
+}
+
+.auth-provider:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.auth-provider:focus-visible,
 .auth-submit:focus-visible,
 .auth-link:focus-visible {
   outline-offset: 3px;
@@ -56,8 +63,7 @@
   text-decoration: none;
 }
 
-.auth-submit:disabled,
-.auth-form__input:disabled {
+.auth-submit:disabled {
   cursor: wait;
   opacity: 0.7;
 }
@@ -70,13 +76,6 @@
 
 .auth-message--error {
   color: var(--text-error);
-}
-
-.auth-mode-switch {
-  margin-top: 1.5rem;
-  margin-bottom: 0;
-  color: var(--text-secondary);
-  text-align: center;
 }
 
 .auth-link {
