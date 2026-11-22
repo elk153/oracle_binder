@@ -1,23 +1,25 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useAuth } from "../../app/AppProviders/AuthContext.ts";
 import { supabase } from "../../services/supabaseClient.ts";
 import { getAuthCallbackUrl, getSafeNextPath } from "./authRedirect.ts";
 import "./AuthPages.css";
 
-type AuthMode = "sign-in" | "sign-up";
+// D-067/D-069: OAuth providers enabled in the Supabase dashboard (D-068).
+const SOCIAL_PROVIDERS = [
+  { id: "github", label: "GitHub" },
+  { id: "discord", label: "Discord" },
+] as const;
+
+type SocialProvider = (typeof SOCIAL_PROVIDERS)[number]["id"];
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { isLoading, user } = useAuth();
   const nextPath = getSafeNextPath(searchParams.get("next"));
-  const [mode, setMode] = useState<AuthMode>("sign-in");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [statusMessage, setStatusMessage] = useState("");
 
   useEffect(() => {
     if (!isLoading && user) {
@@ -25,59 +27,19 @@ export default function LoginPage() {
     }
   }, [isLoading, navigate, nextPath, user]);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function handleProviderSignIn(provider: SocialProvider) {
     setErrorMessage("");
-    setStatusMessage("");
     setIsSubmitting(true);
 
-    try {
-      if (mode === "sign-in") {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password,
-        });
+    // On success the browser leaves the app for the provider and returns to
+    // /v2/auth/callback, so isSubmitting is only reset when the redirect fails.
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: getAuthCallbackUrl(nextPath) },
+    });
 
-        if (error) {
-          setErrorMessage(error.message);
-          return;
-        }
-
-        if (!data.session) {
-          setErrorMessage("Sign-in succeeded without creating a session. Please try again.");
-          return;
-        }
-
-        navigate(nextPath, { replace: true });
-        return;
-      }
-
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        options: {
-          emailRedirectTo: getAuthCallbackUrl(nextPath),
-        },
-      });
-
-      if (error) {
-        setErrorMessage(error.message);
-        return;
-      }
-
-      if (data.session) {
-        navigate(nextPath, { replace: true });
-        return;
-      }
-
-      setStatusMessage(
-        "If this address can be registered, check its inbox for a confirmation email before signing in.",
-      );
-    } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Authentication could not be completed.",
-      );
-    } finally {
+    if (error) {
+      setErrorMessage(error.message);
       setIsSubmitting(false);
     }
   }
@@ -90,80 +52,33 @@ export default function LoginPage() {
     );
   }
 
-  const isSigningIn = mode === "sign-in";
-
   return (
     <section className="app-v2__page auth-page">
-      <h1 className="app-v2__page-title">{isSigningIn ? "Sign in" : "Create account"}</h1>
+      <h1 className="app-v2__page-title">Sign in</h1>
       <p className="app-v2__page-text auth-page__intro">
-        {isSigningIn
-          ? "Sign in with your email address and password."
-          : "Create an account with your email address and a password."}
+        Sign in or create an account with GitHub or Discord. A new account is created the
+        first time you sign in.
       </p>
 
-      <form className="auth-form" onSubmit={handleSubmit}>
-        <label className="auth-form__label" htmlFor="auth-email">Email</label>
-        <input
-          id="auth-email"
-          className="field__input auth-form__input"
-          name="email"
-          type="email"
-          autoComplete="email"
-          required
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          disabled={isSubmitting}
-        />
+      <div className="auth-providers">
+        {SOCIAL_PROVIDERS.map((provider) => (
+          <button
+            key={provider.id}
+            type="button"
+            className="auth-provider"
+            onClick={() => void handleProviderSignIn(provider.id)}
+            disabled={isSubmitting}
+          >
+            Continue with {provider.label}
+          </button>
+        ))}
+      </div>
 
-        <label className="auth-form__label" htmlFor="auth-password">Password</label>
-        <input
-          id="auth-password"
-          className="field__input auth-form__input"
-          name="password"
-          type="password"
-          autoComplete={isSigningIn ? "current-password" : "new-password"}
-          required
-          minLength={6}
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          disabled={isSubmitting}
-        />
-
-        {errorMessage && (
-          <p className="auth-message auth-message--error" role="alert">
-            {errorMessage}
-          </p>
-        )}
-        {statusMessage && (
-          <p className="auth-message" role="status">
-            {statusMessage}
-          </p>
-        )}
-
-        <button className="auth-submit" type="submit" disabled={isSubmitting}>
-          {isSubmitting
-            ? "Please wait…"
-            : isSigningIn
-              ? "Sign in"
-              : "Create account"}
-        </button>
-      </form>
-
-      <p className="auth-mode-switch">
-        {isSigningIn ? "New here?" : "Already have an account?"}{" "}
-        <button
-          type="button"
-          className="auth-link"
-          onClick={() => {
-            setMode(isSigningIn ? "sign-up" : "sign-in");
-            setErrorMessage("");
-            setStatusMessage("");
-          }}
-          disabled={isSubmitting}
-        >
-          {isSigningIn ? "Create an account" : "Sign in"}
-        </button>
-      </p>
+      {errorMessage && (
+        <p className="auth-message auth-message--error" role="alert">
+          {errorMessage}
+        </p>
+      )}
     </section>
   );
 }

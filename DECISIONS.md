@@ -9,7 +9,7 @@ This file holds standing policies and open, evaluating or deferred decisions. Im
 - Decision: Use one Supabase project in an EU region for local development and the Netlify site. Only the publishable key reaches the browser (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`). The auth redirect allow-list holds `http://localhost:5173/**` and the Netlify URL. Unused auth providers are off, and the Data API exposes only the `public` schema.
 - Why: This is a solo learning app, so one project keeps setup small. A publishable key in a bundle is only safe because RLS restricts every row.
 - Alternatives considered: Separate dev and production projects (safer, double the setup, can be added later). Any use of the secret/service-role key in the app (rejected: it bypasses RLS).
-- Consequences: Dev and production share data. Free projects can pause after inactivity (verify current rules). Keys never go in chat or the repo, and Netlify holds the production values. New projects expose no tables to the Data API by default, so every migration must grant access explicitly. Legacy anon/service_role keys are not used. The production redirect entry is tightened to the callback route in D-008. Status: implemented once the checks above pass. Checked in code on 2026-11-21: `src/services/supabaseClient.ts` reads only `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`, and no `service_role` key appears in `src/`; the dashboard settings (region, redirect allow-list, providers, exposed schemas) cannot be checked from the repository.
+- Consequences: Dev and production share data. Free projects can pause after inactivity (verify current rules). Keys never go in chat or the repo, and Netlify holds the production values. New projects expose no tables to the Data API by default, so every migration must grant access explicitly. Legacy anon/service_role keys are not used. The enabled providers become GitHub and Discord, and Email is turned off at the end of D-070 (D-067). The production redirect entry is tightened to the callback route in D-008. Status: implemented once the checks above pass. Checked in code on 2026-11-21: `src/services/supabaseClient.ts` reads only `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`, and no `service_role` key appears in `src/`; the dashboard settings (region, redirect allow-list, providers, exposed schemas) cannot be checked from the repository.
 - Source: "[Supabase] Auth and favorites plan"
 
 ## D-005: Supabase MCP is read-only
@@ -39,7 +39,7 @@ This file holds standing policies and open, evaluating or deferred decisions. Im
 - Decision: Use a dedicated realm (e.g. `oracle-binder`) on the existing Pikapod Keycloak server, with one confidential client that Supabase uses to sign users in. Supabase's built-in `keycloak` OAuth provider is used; Keycloak is not a Supabase third-party auth issuer.
 - Why: A realm isolates users, clients and sessions, so the other app on the same server is unaffected. Supabase needs a client ID, a client secret and the realm URL, so Keycloak is configured first. The Pikapod is publicly reachable, which hosted Supabase requires.
 - Alternatives considered: The `master` realm (reserved for administering Keycloak). Reusing the other app's realm (mixes users). A second Keycloak server (more cost and upkeep). Supabase third-party auth (its supported list is Clerk, Firebase Auth, Auth0, AWS Cognito and WorkOS, not Keycloak). Google/GitHub login through Supabase, or custom SMTP, which are lighter but were not chosen.
-- Consequences: Not implemented; deferred on 2026-11-21. Sign-in uses Supabase email and password (D-008, D-017), and the repository has no Keycloak configuration (only the commented provider list in `supabase/config.toml`). The plan below is kept for a possible later switch. Both apps share one server, so downtime and upgrades affect both. Accounts are separate per realm. Email settings are per realm, so verification and password-reset emails need their own SMTP or must stay off; email sending is still unsolved.
+- Consequences: Not implemented; deferred on 2026-11-21. Sign-in uses Supabase email and password (D-008, D-017), and the repository has no Keycloak configuration (only the commented provider list in `supabase/config.toml`). The plan below is kept for a possible later switch. Both apps share one server, so downtime and upgrades affect both. Accounts are separate per realm. Email settings are per realm, so verification and password-reset emails need their own SMTP or must stay off; email sending is still unsolved. Re-assessed on 2026-11-22 in D-067: still deferred, because Keycloak needs its own SMTP for verification and password reset and so does not solve email delivery. Accounts use Supabase social sign-in instead (D-067 to D-070).
 - Source: "[Auth] Keycloak realm for Supabase"
 
 ### Instructions (Keycloak admin console)
@@ -61,7 +61,7 @@ Check: the discovery URL returns JSON whose `issuer` ends in `/realms/oracle-bin
 - Decision: Create a Supabase project, enable its built-in Keycloak provider with the D-004 values, and allow the app's URLs as redirect targets.
 - Why: Supabase Auth stays the session issuer, so `auth.uid()` and RLS work without changes. The app talks only to Supabase, never directly to Keycloak.
 - Alternatives considered: Supabase third-party auth (Keycloak is not supported). Social login through Google or GitHub (simpler, not chosen).
-- Consequences: Not implemented; deferred on 2026-11-21. Sign-in uses Supabase email and password (D-008, D-017), and the repository has no Keycloak configuration (only the commented provider list in `supabase/config.toml`). The plan below is kept for a possible later switch. The client secret lives only in the Supabase dashboard. The redirect allowlist must contain every origin the app runs on, or sign-in fails on the way back. Supabase's default email sender only reaches the project team's addresses, so email/password and magic-link sign-in for real users need custom SMTP; Keycloak sign-in does not depend on it.
+- Consequences: Not implemented; deferred on 2026-11-21. Sign-in uses Supabase email and password (D-008, D-017), and the repository has no Keycloak configuration (only the commented provider list in `supabase/config.toml`). The plan below is kept for a possible later switch. The client secret lives only in the Supabase dashboard. The redirect allowlist must contain every origin the app runs on, or sign-in fails on the way back. Supabase's default email sender only reaches the project team's addresses, so email/password and magic-link sign-in for real users need custom SMTP; Keycloak sign-in does not depend on it. Re-assessed on 2026-11-22 in D-067: still deferred, because Keycloak needs its own SMTP for verification and password reset and so does not solve email delivery. Accounts use Supabase social sign-in instead (D-067 to D-070).
 - Source: "[Auth] Supabase Keycloak provider"
 
 ### Instructions (Supabase dashboard)
@@ -81,7 +81,7 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
 - Decision: Add a Supabase client, an `AuthProvider` with a `useAuth` hook, sign-in/out controls, and a protected-route layout for the user-owned pages, in that order.
 - Why: This mirrors the existing `ThemeContext` / `ThemeProvider` pattern, uses the existing React Router layout routes, and keeps each change to one purpose.
 - Alternatives considered: Calling `supabase.auth` directly in components (duplicates session logic). A third-party auth library (new dependency, not needed).
-- Consequences: Deferred on 2026-11-21 as written here (Keycloak OAuth). Parts exist in another form: the Supabase client (`src/services/supabaseClient.ts`, D-007), `AuthProvider` and `AuthContext` (`src/app/AppProviders/`), the `RequireAuth` layout route (D-009) and email and password sign-in (`signInWithPassword`, D-008, D-017); there is no `signInWithOAuth` call. Favorites, Binder and Decks are implemented, not placeholders. The original text follows. Adds one dependency (`@supabase/supabase-js`). Favorites, collection and decks stay placeholders until they have storage and RLS (a later decision). `PersistenceProvider` persists only Scryfall queries, so no user data reaches `localStorage`. The route guard only controls what the UI shows; real protection comes from RLS policies.
+- Consequences: Deferred on 2026-11-21 as written here (Keycloak OAuth). Parts exist in another form: the Supabase client (`src/services/supabaseClient.ts`, D-007), `AuthProvider` and `AuthContext` (`src/app/AppProviders/`), the `RequireAuth` layout route (D-009) and email and password sign-in (`signInWithPassword`, D-008, D-017); there is no `signInWithOAuth` call. Favorites, Binder and Decks are implemented, not placeholders. The original text follows. Adds one dependency (`@supabase/supabase-js`). Favorites, collection and decks stay placeholders until they have storage and RLS (a later decision). `PersistenceProvider` persists only Scryfall queries, so no user data reaches `localStorage`. The route guard only controls what the UI shows; real protection comes from RLS policies. Re-assessed on 2026-11-22 in D-067: still deferred, because Keycloak needs its own SMTP for verification and password reset and so does not solve email delivery. Accounts use Supabase social sign-in instead (D-067 to D-070).
 - Source: "[Auth] App-side Supabase auth"
 
 ### Instructions (one step at a time, each approved first)
@@ -238,3 +238,84 @@ Research references for this section: npm registry entries for each package (202
   - Works signed out. The overlay's favorite, binder and deck actions behave as on search, so they need sign-in.
   - Going back to `/v2/scan` restarts the camera, which asks for permission again only if the browser forgot it.
 - Source: "[Scan] Visual card recognition plan"
+
+## D-067: Account system: Supabase social sign-in only
+
+- Status: Accepted
+- Date: 2026-11-22
+- Decision: Accounts use Supabase Auth with two OAuth providers: GitHub and Discord. Google was planned as a third provider and dropped on 2026-11-22 at the developer's request; it is not enabled in Supabase. Anyone can sign up, with no invite or allow-list. Email and password sign-up and sign-in are removed once the existing accounts are linked (D-070). Supabase stays the session issuer, so `auth.uid()`, RLS, `RequireAuth` (D-009) and every user table are unchanged. Keycloak (D-038 to D-040) stays deferred.
+- Why: The goals are simplicity, security and no extra cost, using only services already in use (Supabase free, Netlify free, the Keycloak Pikapod). There is no mailbox or domain for sending email. Supabase's built-in mailer delivers only to members of the project team, at about 2 emails an hour, so today's sign-up confirmation emails never reach anyone else. Social sign-in sends no email: the provider confirms the address and handles forgotten passwords. That gives self-service sign-up and recovery for free. The app then stores no passwords, so there are none to leak, guess or reset.
+- Users and requirements (answered on 2026-11-22): the developer plus a few people, open self-service sign-up, users must recover access on their own, no personal mailbox may send app email, and users have GitHub or Discord accounts.
+- Alternatives considered:
+  - Social sign-in plus email/password with "Confirm email" off. No mailbox needed, but password users without a linked social account cannot reset their password themselves. An unconfirmed password account could also be auto-linked to a social account that uses the same email. Rejected in favour of no passwords.
+  - The same, plus a new Gmail used only by the app as custom SMTP. Gives full confirmation and reset emails, but adds an account to look after and sends from a `@gmail.com` address. Rejected.
+  - Keycloak broker (D-038 to D-040). Keycloak needs its own SMTP for verification and reset, so it doesn't solve email. It adds a second admin console and a client secret, and makes sign-in depend on the shared Pikapod. Kept deferred.
+  - Firebase Auth, Clerk or Auth0. They send email from their own domain on free tiers, but each is a new service to subscribe to. Rejected by the no-new-services rule.
+  - Custom SMTP through a free email provider (Brevo, Resend, Mailgun). Each needs a verified sender mailbox or an owned domain. Not possible today.
+- Consequences:
+  - Each user needs a GitHub or Discord account. Someone without one cannot sign up. Google can be added later with a new provider step in D-068 and one entry in `SOCIAL_PROVIDERS`.
+  - A user who signs in with two providers that report the same verified email gets one account (Supabase automatic identity linking). Different emails give separate accounts, each with its own data.
+  - The provider apps (GitHub OAuth app, Discord application) are free. Their client secrets live only in the Supabase dashboard (D-068).
+  - D-004's "Unused auth providers are off" still holds: these three are the providers in use, and Email is turned off at the end of D-070.
+  - When implemented, D-008 and D-017 in `DECISIONS_HISTORY.md` get `Superseded by D-067`, and `AGENTS.md` ("App at a glance", Routes) is updated.
+  - If the app ever has a domain and a mailbox, email sign-in can come back as a new decision.
+- Source: "[Auth] Account management selection"
+
+## D-068: GitHub and Discord provider configuration
+
+- Status: Accepted
+- Date: 2026-11-22
+- Decision: Register one free OAuth app with each provider, then enable each provider in Supabase with that app's client ID and secret. Every provider app uses Supabase's callback, `https://<project-ref>.supabase.co/auth/v1/callback`, as its only redirect URI. The app's own `/v2/auth/callback` stays in the Supabase redirect allow-list (D-004, D-008).
+- Why: Supabase finishes the OAuth exchange and then returns to the app, so the providers only ever see Supabase's address. The secrets never reach the browser, the repo or Netlify.
+- Alternatives considered: Also enabling Google (planned, then dropped on 2026-11-22 at the developer's request; its console setup is the heaviest of the three, with a consent screen and publishing step).
+- Consequences: Dashboard work only, with no code change. Labels and requirements in the provider consoles change over time, so check each step against the console and the Supabase provider guide when doing it.
+- Source: "[Auth] Account management selection"
+
+### Instructions (one provider at a time)
+
+1. Note the Supabase callback URL from Authentication → Sign In / Providers → (provider). It is `https://<project-ref>.supabase.co/auth/v1/callback`.
+2. **GitHub**: Settings → Developer settings → OAuth Apps → New. Set Homepage URL to `https://oraclebinder.netlify.app` and the authorization callback URL to the Supabase callback. Generate a client secret.
+3. **Discord**: Developer Portal → New Application → OAuth2. Add the Supabase callback as a redirect and copy the client ID and secret.
+4. In Supabase, enable each provider and paste its client ID and secret. Copy secrets straight from the provider console into the dashboard, never into a chat, the repo or `.env`.
+5. Under Authentication → URL Configuration, confirm that the Site URL is `https://oraclebinder.netlify.app` and that the redirect URLs include the Netlify callback and `http://localhost:5173/**`.
+
+Check: each provider shows as enabled. The sign-in test happens in D-069.
+
+## D-069: App-side social sign-in
+
+- Status: Accepted
+- Date: 2026-11-22
+- Decision: `/v2/login` shows one button per provider ("Continue with GitHub / Discord"). Each calls `supabase.auth.signInWithOAuth({ provider, options: { redirectTo: getAuthCallbackUrl(nextPath) } })`. The page carries the safe `next` path through to `/v2/auth/callback` exactly as today. `AuthCallbackPage` keeps its logic, and its wording changes from "Email confirmation" to a general sign-in message. The email/password form was removed in D-070 step 4.
+- Why: The client already uses `flowType: "pkce"` with `detectSessionInUrl: true` (`src/services/supabaseClient.ts`). The callback page already waits for `AuthProvider` to pick up the session and then follows `getSafeNextPath`. So the OAuth return needs no new route and no new dependency.
+- Alternatives considered: A Supabase auth UI package (new dependency, less control). Going straight to Supabase without a login page (loses the provider choice and the `next` handling).
+- Consequences:
+  - Touches `LoginPage.tsx`, `AuthCallbackPage.tsx` and `AuthPages.css`, so it needs a short plan and approval before coding (AGENTS.md).
+  - Provider buttons use the existing tokens and BEM classes. Provider logos are optional, and any logo must follow the provider's brand rules.
+  - Check: `npm run typecheck`, `npm run build` and `npm run lint` (against the existing baseline) pass. Then test each provider locally and on Netlify: sign in, return to the `next` page, reload and stay signed in, sign out.
+  - Progress (2026-11-22, branch `claude/account-management-selection-85da20`): coded. `npm run typecheck`, `npm run build`, `npm run lint` and `npm run lint:css` pass with no errors; the build keeps the existing >500 kB chunk warning. On 2026-11-22 the developer signed in on `http://localhost:5173` with both GitHub and Discord using their existing app account: both returned through the callback to the app, signed in to that account. The Google button was then removed. Not yet tested: the Netlify site, and reload and sign-out after a social sign-in.
+- Source: "[Auth] Account management selection"
+
+## D-070: Moving existing password accounts to social sign-in
+
+- Status: Accepted
+- Date: 2026-11-22
+- Decision: Keep each existing email/password account and its data by attaching a social identity to it. Then remove password sign-in from the app and turn off the Email provider in Supabase.
+- Why: All user data references `auth.users.id`. Linking keeps that id, so favorites, Binder and Decks need no data migration.
+- Alternatives considered: Keeping password sign-in for existing accounts (keeps passwords in the app; rejected). Recreating the accounts (loses their data).
+- Consequences: Not every existing account email is known to match an email on GitHub or Discord. A matching account links automatically; a mismatched one needs one of the manual paths below. Until step 4 is done, the old password sign-up stays reachable and its confirmation emails still fail.
+- Source: "[Auth] Account management selection"
+
+### Instructions (in order)
+
+1. Ship D-069 with the password form still in place.
+2. For each existing account, list its email in Supabase (Authentication → Users) and choose a path:
+   - **Email matches a GitHub or Discord account**: the user signs in once with that provider. Supabase links the new identity to the existing user automatically. Check that the user now shows two identities and that their data is still visible. Done on 2026-11-22 for the developer's own account with both GitHub and Discord.
+   - **No match**: change the account's email in Supabase to the email of the user's social account, then sign in with that provider. First check whether the dashboard lets you edit a user's email. If it doesn't, ask before choosing another way, because the Admin API needs the secret key and must never run from the app.
+   - **Test accounts not worth keeping**: delete them in the dashboard. Their rows in `favorites`, `binders`, `binder_cards`, `decks` and `deck_cards` are removed by the existing `on delete cascade` foreign keys to `auth.users`.
+3. Confirm every remaining account has a social identity.
+4. Remove the email/password form and the sign-up mode from `LoginPage.tsx` (approval first). Then turn off the Email provider in Supabase.
+5. Mark D-008 and D-017 as superseded by D-067 in `DECISIONS_HISTORY.md` and update `AGENTS.md`.
+
+Check: signed-out password sign-up is no longer offered, and every user reaches their existing data through a provider.
+
+Progress (2026-11-22, branch `claude/account-management-selection-85da20`): steps 1–3 done for the developer's account, which is linked to GitHub and Discord. Step 4, code part: the email/password form, the sign-up mode and their styles are removed from `LoginPage.tsx` and `AuthPages.css`. Still open: turning off the Email provider in the Supabase dashboard. Step 5: D-008 and D-017 are marked superseded and `AGENTS.md` is updated.
