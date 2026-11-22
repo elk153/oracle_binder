@@ -71,7 +71,7 @@ Why this order: wave 1 and 2 are small, visible improvements that each teach one
 
 **Recommendation:** A. Even #31 does not need Keycloak, because self-hosted Supabase includes its own auth server.
 
-**Open in D-070:** turning off the Email provider in the Supabase dashboard is still a pending step (see the 2026.11.7 changelog). That is tracked in DECISIONS.md, not in this issue.
+**Open in D-070:** turning off the Email provider in the Supabase dashboard is still a pending step (see the 2026.11.7 changelog). It is noted in D-070's status in DECISIONS_HISTORY.md, not in this issue.
 
 ---
 
