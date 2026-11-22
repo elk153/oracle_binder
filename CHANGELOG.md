@@ -7,6 +7,26 @@ Release versions follow the CalVer policy in [AGENTS.md](./AGENTS.md).
 
 ## [Unreleased]
 
+## [2026.11.7] - 2026-11-22
+
+### Added
+
+- Sign in with GitHub or Discord. The login page offers one "Continue with"
+  button per provider; a first sign-in creates the account, and returning
+  to the page you came from works as before.
+
+### Removed
+
+- Email and password sign-in and sign-up. Existing email and password
+  accounts keep their data once a GitHub or Discord identity is linked to
+  them.
+
+### Database
+
+- No migration in this release. In the Supabase dashboard, the GitHub and
+  Discord providers must be enabled; turning off the Email provider is
+  still open.
+
 ## [2026.11.6] - 2026-11-21
 
 ### Added
