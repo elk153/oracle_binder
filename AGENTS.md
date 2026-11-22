@@ -19,7 +19,7 @@ The developer is learning React and TypeScript and wants to understand every cha
 - React 19 + Vite SPA that finds Magic: The Gathering cards through the public Scryfall API (`https://api.scryfall.com`). Routing uses `react-router` 8 (`createBrowserRouter`).
 - The app has one V2 layout. Home shows a daily seven-card set; search results support local color, rarity, type and sorting controls; card details show artwork, rules/legalities and printings with current EUR / foil EUR prices. Favorites are saved to Supabase and displayed in a paginated favorites page. The Binder tracks per-copy metadata, folders, loose copies and disposed-copy history. Decks supports managing Binder, proxy and virtual card entries, with All cards and deck-list views. Advanced search is implemented for both sources: a form (`AdvancedSearchForm`) writes `s_` URL parameters, Scryfall results use `toScryfallQuery`, and collection results use the local `matchesAdvancedFilters` (D-050 to D-055).
 - The V2 layout has a dark/light theme control. Theme state is shared through React context, defaults to dark on each page load, and is not persisted.
-- No custom application backend or user database. Supabase Auth provides managed email/password signup and sign-in; account data is managed by Supabase. TanStack Query caches remote data in memory and persists some of it in browser `localStorage`.
+- No custom application backend or user database. Supabase Auth provides sign-in and sign-up through GitHub and Discord OAuth only (D-067 to D-070); there is no email/password sign-in, and the app sends no email. Account data is managed by Supabase. TanStack Query caches remote data in memory and persists some of it in browser `localStorage`.
 - Binder copies track acquisition/location details and disposal status. Basic deck and card-entry management is implemented; full deck-building tools such as format validation, collection valuation and price history, sales and balance remain **goals, not features**. Never imply they exist.
 
 ## Commands and current status
@@ -49,8 +49,8 @@ Defined in `src/app/router.tsx`. `/` redirects to `/v2/home`. Both top-level rou
 | `/` | redirects to `/v2/home` |
 | `/v2` | redirects to `/v2/home` (route loader) |
 | `/v2/home` | daily seven-card set (`CardBrowserPage` in mulligan mode) |
-| `/v2/login` | email/password signup and sign-in |
-| `/v2/auth/callback` | completes email confirmation and returns to a safe `/v2/` path |
+| `/v2/login` | GitHub and Discord sign-in (a first sign-in creates the account) |
+| `/v2/auth/callback` | completes the OAuth sign-in and returns to a safe `/v2/` path |
 | `/v2/search?q=<name>` | Search controls for source and simple/advanced mode, plus Scryfall name search and local filters |
 | `/v2/search/random` | daily set/mulligan browser |
 | `/v2/scan` | card scanner (`ScanPage`, D-061); public; `?mode=identify\|add` picks the mode (`test` too in development builds), Add mode asks signed-out users to sign in inside the page; shows the rear camera with a guide box for the info line (D-065) and recognizes a card by its collector line (D-062 prototype); in Identify mode a found card opens `/v2/search?q=<name>&card=<id>` (D-063) |
@@ -90,6 +90,7 @@ Defined in `src/app/router.tsx`. `/` redirects to `/v2/home`. Both top-level rou
 - `PersistenceProvider.tsx` persists `fetchedUrl` queries except `cardNames`, plus `scryfallCards` queries whose second key is `"cards/search"`, in `localStorage`. The roughly 687 KB Scryfall card-name catalog is prefetched per app session but not persisted because the combined cache exceeds the 2-million-character safety threshold. Random and single-card queries are not persisted.
 - `queryProvider.ts`: `gcTime` is 24 h and must stay >= the persisted data's max age.
 - `QueryDevToolsProvider.tsx` loads Devtools lazily and only when `import.meta.env.DEV`.
+- `src/app/devIndicator.ts` (+ `.css`) draws a striped amber/black frame around the window so the dev server is recognizable; `main.tsx` imports it only when `import.meta.env.DEV`, so neither file reaches the production build. It sits outside React with `pointer-events: none`. Its colors and z-index stay in its own CSS (stylelint allows hex colors in that one file) so nothing of it lands in the production CSS through `tokens.css`.
 - `features/card-filters/` uses TanStack Table and `nuqs` to filter by color, rarity, type, place and card kind, sort by name/CMC/rarity/price/place, and keep filter state in the URL. Place and kind filters are enabled only for collection search; other pages keep their existing controls.
 - Many files contain debug `console.log` calls (e.g. `createApiClient.ts`, `useFetchUrl.ts`). Do not add more; ask before removing. The card renderer's logs were removed in D-058.
 - Prices are current per-printing Scryfall data, not history or collection valuation.

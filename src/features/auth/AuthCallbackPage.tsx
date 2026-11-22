@@ -20,15 +20,15 @@ export default function AuthCallbackPage() {
 
   return (
     <section className="app-v2__page auth-page" aria-live="polite">
-      <h1 className="app-v2__page-title">{isLoading ? "Confirming your account…" : "Email confirmation"}</h1>
+      <h1 className="app-v2__page-title">{isLoading ? "Signing you in…" : "Sign-in"}</h1>
       {isLoading ? (
         <p className="app-v2__page-text">Finishing authentication. This may take a moment.</p>
       ) : user ? null : (
         <>
           <p className="auth-message auth-message--error" role="alert">
             {callbackError
-              ? `Confirmation failed: ${callbackError}`
-              : "No authenticated session was created. The confirmation link may have expired or already been used."}
+              ? `Sign-in failed: ${callbackError}`
+              : "No authenticated session was created. The sign-in may have been cancelled, or the link may have expired or already been used."}
           </p>
           <p className="app-v2__page-text">
             <a className="auth-link" href="/v2/login">

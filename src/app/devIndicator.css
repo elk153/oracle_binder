@@ -1,0 +1,21 @@
+/* Development-only frame around the window (see devIndicator.ts).
+   It covers the whole viewport but lets every click through.
+   Its colors and layer live here, not in tokens.css, so that nothing of the
+   frame reaches the production CSS (this file is only loaded by the dev
+   server); stylelint allows literal colors in this one file. */
+.dev-indicator {
+  --dev-stripe-a: #ffb000;
+  --dev-stripe-b: #111111;
+
+  position: fixed;
+  inset: 0;
+  z-index: 1000; /* above every global layer in tokens.css (highest: --z-dialog 120) */
+  pointer-events: none;
+  border: 6px solid transparent;
+  border-image: repeating-linear-gradient(
+      45deg,
+      var(--dev-stripe-a) 0 10px,
+      var(--dev-stripe-b) 10px 20px
+    )
+    6;
+}

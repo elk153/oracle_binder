@@ -88,7 +88,7 @@ Implemented and superseded decisions are retained here with their original IDs. 
 
 ## D-008: Email and password authentication
 
-- Status: Implemented
+- Status: Superseded by D-067 (GitHub and Discord sign-in; email/password form removed on 2026-11-22, branch `claude/account-management-selection-85da20`)
 - Release: v2026.11.0
 - Date: 2026-10-27
 - Decision: Add `/v2/login` with email/password sign-in and signup, plus `/v2/auth/callback` for email confirmation. After authentication, navigate to `next` only when it starts with `/v2/` and contains no `//` or backslash; otherwise use `/v2/home`.
@@ -175,7 +175,7 @@ Implemented and superseded decisions are retained here with their original IDs. 
 
 ## D-017: Email and password authentication replaces magic-link sign-in
 
-- Status: Implemented
+- Status: Superseded by D-067 (GitHub and Discord sign-in; email/password form removed on 2026-11-22, branch `claude/account-management-selection-85da20`)
 - Release: v2026.11.0
 - Date: 2026-10-27
 - Decision: Use Supabase's native email/password signup and sign-in on `/v2/login`; keep `/v2/auth/callback` for signup email confirmation and return users only to validated `/v2/` paths.
