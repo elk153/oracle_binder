@@ -171,6 +171,7 @@ Component structure, CSS and Scryfall response handling are not part of it. Any 
    7. `npm version patch -m "Release %s"` (or `npm version YYYY.M.0 -m "Release %s"` for a new month): it commits both package files and creates the annotated tag `vYYYY.M.MICRO`.
    8. `git switch main && git merge --no-ff release/YYYY.M.MICRO` (message `Merge branch 'release/YYYY.M.MICRO' into main`), then `git switch dev && git merge --no-ff main` (`Merge branch 'main' into dev`).
    9. `git push origin main dev --follow-tags`, then delete the release branch locally (`git branch -d`).
+   10. Close the GitHub issues this release finishes: for each decision moved in step 2.4 that has an `- Issue: #N` line, close issue N with `gh issue close N --reason completed --comment "Released in vYYYY.M.MICRO (D-0xx)."`, but only once **every** decision linked to that issue is implemented and released (an issue split into several decisions stays open until the last one ships). Mention the closed issues in the release summary.
 3. **Hotfix** (a fix that can't wait for `dev`):
    1. Branch from the latest release tag: `git switch -c YYYY.M.MICROa vYYYY.M.MICRO` (for example `2026.11.3a` from `v2026.11.3`). The letter only names the branch; it is not a version, because npm versions can't carry it.
    2. Fix and commit there, and test on the device concerned.
@@ -186,7 +187,7 @@ A release that depends on a Supabase migration needs that migration applied to t
 | --- | --- |
 | `package.json`, `package-lock.json` | Tracked version; `npm version` only |
 | `CHANGELOG.md` | Keep a Changelog format; `Unreleased` on top, one section per release; breaking contract changes under `### Breaking` |
-| `DECISIONS.md`, `DECISIONS_HISTORY.md` | Not versioned; dated entries. Implemented or superseded decisions move to `DECISIONS_HISTORY.md`; an implemented one gets `- Release: pending (on dev)` until it ships, then `- Release: vYYYY.M.MICRO` |
+| `DECISIONS.md`, `DECISIONS_HISTORY.md` | Not versioned; dated entries. Implemented or superseded decisions move to `DECISIONS_HISTORY.md`; an implemented one gets `- Release: pending (on dev)` until it ships, then `- Release: vYYYY.M.MICRO`. A decision that comes from a GitHub issue carries `- Issue: #N` under its date (several decisions may share one issue); the issue is closed in release step 2.10 |
 | `AGENTS.md` | Not versioned; once the first version tag exists, the header stamps the check date and the app version |
 | `README.md`, `docs/` | No hardcoded version; dated notes; link to the changelog |
 | Supabase migrations | Timestamp-named by the CLI, never part of the app version; each has a matching rollback in `supabase/rollback/`; the changelog says which release needs which migration |

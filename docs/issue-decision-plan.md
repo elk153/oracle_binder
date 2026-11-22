@@ -2,7 +2,22 @@
 
 Review of the open GitHub issues against the `dev` branch on 22 Nov 2026 (app version 2026.11.7). This is a working document for review: each issue has what exists today, what is unclear, the options, and a recommendation. Nothing here is decided yet. Once a choice is made in a fine-tuning session, it becomes a `D-0xx` entry in [DECISIONS.md](../DECISIONS.md) and this file can be updated or deleted.
 
-## Closed during this review
+## Outcome of the review (22 Nov 2026)
+
+The options below were reviewed and turned into decisions. The decisions in [DECISIONS.md](../DECISIONS.md) are now the source of truth; the sections further down are kept as background. Each decision carries an `- Issue: #N` line, and the issue is closed at release time once all its decisions have shipped (AGENTS.md, release step 2.10).
+
+| Issue | Outcome |
+| --- | --- |
+| #26 Swap binder and decks icons | Closed as implemented |
+| #30 Auth (Keycloak) | Closed as deferred; linked from D-038 |
+| #35 Speed up the UI | D-071 app performance audit (fast first screen, rest in the background) |
+| #5 Share option | D-072 share link that shows the same cards to anyone |
+| #28 Home page mulligan | D-073 "Hand of the day" layout |
+| #12 Other languages | D-074 cards in other languages; D-075 multi-language interface |
+| #29 Value tracker | D-076 value dashboard; D-077 price source comparison; D-078 value history jobs |
+| #31, #32, #33 | Kept out of decisions for now |
+
+## Closed during the first pass
 
 | Issue | Why it was closed |
 | --- | --- |
