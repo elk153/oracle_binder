@@ -26,6 +26,11 @@ export default {
       rules: { "color-no-hex": null, "color-named": null, "function-disallowed-list": null, "selector-max-type": null },
     },
     {
+      // Development-only frame; kept out of tokens.css so it never reaches the production CSS.
+      files: ["src/app/devIndicator.css"],
+      rules: { "color-no-hex": null },
+    },
+    {
       files: ["src/styles/base.css"],
       rules: { "declaration-no-important": null, "selector-max-type": null },
     },
