@@ -19,6 +19,8 @@ export default function NavBarMobile({
     <nav
       className={`nav-bar nav-bar--mobile nav-surface${scrollVisible ? "" : " nav-bar--hidden"}`}
       data-visible={scrollVisible}
+      // Lets the notification stack find this bar (useMobileNavbar, D-080).
+      data-navbar="mobile"
       aria-label="Primary"
     >
       <div className="nav-bar__row">
