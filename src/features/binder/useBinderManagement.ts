@@ -29,26 +29,31 @@ export default function useBinderManagement(notify: Notify) {
 
   async function addCopy(values: CopyFormValues) {
     if (!cardToAdd) return;
+    const card = cardToAdd;
+    // Optimistic (D-071): the new copy gets its id here, shows up at once,
+    // and the dialog closes without waiting for the server. A failure takes
+    // the copy away again and explains why in the notice.
+    setCardToAdd(null);
     try {
       const { deck_id: deckId, ...copyValues } = values;
       const copy = {
         ...copyValues,
+        id: crypto.randomUUID(),
         binder_id: deckId ? null : copyValues.binder_id ?? null,
         status: values.status ?? "owned",
-        scryfall_id: cardToAdd.id,
-        rarity: cardToAdd.rarity,
+        scryfall_id: card.id,
+        rarity: card.rarity,
       };
       if (deckId) {
         await copies.addCopyToDeck.mutateAsync({ copy, deckId });
-        notify(`Added ${cardToAdd.name} to the selected deck.`);
+        notify(`Added ${card.name} to the selected deck.`);
       } else {
         await copies.addCopy.mutateAsync(copy);
-        notify(`Added ${cardToAdd.name} to your Binder.`);
+        notify(`Added ${card.name} to your Binder.`);
       }
-      setCardToAdd(null);
     } catch (error) {
       notify(
-        `Could not add ${cardToAdd.name}: ${
+        `Could not add ${card.name}: ${
           error instanceof Error ? error.message : "The request failed."
         }`,
       );

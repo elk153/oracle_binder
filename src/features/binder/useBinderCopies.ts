@@ -6,6 +6,17 @@ import type { Tables, TablesInsert, TablesUpdate } from "../../types/database.ts
 import useRealtimeInvalidation from "../../hooks/useRealtimeInvalidation.ts";
 import { clearLocalRealtimeChange, markLocalRealtimeChange } from "../../services/localRealtimeChanges.ts";
 import {
+  applyChanges,
+  patchLists,
+  releaseDeckEntriesOf,
+  restoreLists,
+  toOptimisticCopy,
+  toOptimisticDeckEntry,
+  updateById,
+  type DeckEntry,
+  type ListSnapshot,
+} from "../optimisticCache.ts";
+import {
   binderCopiesQueryKey,
   deckCardsQueryKey,
 } from "../queryKeys.ts";
@@ -74,6 +85,7 @@ export default function useBinderCopies() {
     () => binderCopiesQueryKey(user?.id),
     [user?.id],
   );
+  const deckKey = useMemo(() => deckCardsQueryKey(user?.id), [user?.id]);
   const query = useQuery({
     queryKey,
     queryFn: () => {
@@ -99,10 +111,24 @@ export default function useBinderCopies() {
     return copies;
   }, [query.data]);
 
-  const addCopy = useMutation<BinderCopy, Error, NewBinderCopy>({
+  // Every mutation below is optimistic (D-071): `onMutate` changes the cached
+  // lists the way the database will, so the Binder/Deck icons and lists react
+  // at once; `onError` restores the snapshots; `onSuccess` swaps in the row
+  // the server returned; `onSettled` refetches the deck entries in the
+  // background when database triggers may have changed them. The refetch is
+  // not awaited, so the buttons unlock after the one write request.
+
+  const addCopy = useMutation<
+    BinderCopy,
+    Error,
+    NewBinderCopy,
+    ListSnapshot[]
+  >({
     mutationFn: async (copy) => {
       if (!user) throw new Error("Sign in to add a binder copy.");
-      const id = crypto.randomUUID();
+      // The caller may choose the id, so the optimistic row and the saved
+      // row are the same row.
+      const id = copy.id ?? crypto.randomUUID();
       markLocalRealtimeChange("binder_cards", user.id, [id]);
       try {
         const { data, error } = await supabase
@@ -117,20 +143,26 @@ export default function useBinderCopies() {
         throw error;
       }
     },
-    onSuccess: (copy) =>
-      queryClient.setQueryData<BinderCopy[]>(queryKey, (current) =>
-        current ? [...current, copy] : [copy],
-      ),
+    onMutate: (copy) => {
+      if (!user || !copy.id) return [];
+      const optimistic = toOptimisticCopy({ ...copy, id: copy.id }, user.id);
+      return patchLists(queryClient, [
+        [queryKey, (current: BinderCopy[]) => [...current, optimistic]],
+      ]);
+    },
+    onError: (_error, _copy, snapshots) => restoreLists(queryClient, snapshots),
+    onSuccess: (copy) => replaceCopies([copy]),
   });
 
   const addCopyToDeck = useMutation<
     BinderCopy,
     Error,
-    AddBinderCopyToDeck
+    AddBinderCopyToDeck,
+    ListSnapshot[]
   >({
     mutationFn: async ({ copy, deckId }) => {
       if (!user) throw new Error("Sign in to add a binder copy.");
-      const id = crypto.randomUUID();
+      const id = copy.id ?? crypto.randomUUID();
       markLocalRealtimeChange("binder_cards", user.id, [id]);
       try {
         const { data, error } = await supabase.rpc("add_binder_copy_to_deck", {
@@ -159,20 +191,33 @@ export default function useBinderCopies() {
         throw error;
       }
     },
-    onSuccess: async (copy) => {
-      queryClient.setQueryData<BinderCopy[]>(queryKey, (current) =>
-        current ? [...current, copy] : [copy],
+    // The database function creates the copy (no folder: it is in the deck)
+    // and a Binder entry in the deck.
+    onMutate: ({ copy, deckId }) => {
+      if (!user || !copy.id) return [];
+      const optimistic = toOptimisticCopy(
+        { ...copy, id: copy.id, binder_id: null },
+        user.id,
       );
-      await queryClient.invalidateQueries({
-        queryKey: deckCardsQueryKey(user?.id),
-      });
+      const entry = toOptimisticDeckEntry(
+        { deck_id: deckId, kind: "binder", binder_card_id: copy.id, scryfall_id: copy.scryfall_id },
+        user.id,
+      );
+      return patchLists(queryClient, [
+        [queryKey, (current: BinderCopy[]) => [...current, optimistic]],
+        [deckKey, (current: DeckEntry[]) => [...current, entry]],
+      ]);
     },
+    onError: (_error, _input, snapshots) => restoreLists(queryClient, snapshots),
+    onSuccess: (copy) => replaceCopies([copy]),
+    onSettled: () => refetchDeckEntries(),
   });
 
   const updateCopy = useMutation<
     BinderCopy,
     Error,
-    { id: string; changes: BinderCopyUpdate }
+    { id: string; changes: BinderCopyUpdate },
+    ListSnapshot[]
   >({
     mutationFn: async ({ id, changes }) => {
       if (!user) throw new Error("Sign in to update a binder copy.");
@@ -192,16 +237,19 @@ export default function useBinderCopies() {
         throw error;
       }
     },
-    onSuccess: (updated) =>
-      queryClient.setQueryData<BinderCopy[]>(queryKey, (current) =>
-        current?.map((copy) => (copy.id === updated.id ? updated : copy)),
-      ),
+    onMutate: ({ id, changes }) =>
+      patchLists(queryClient, [
+        [queryKey, updateById<BinderCopy>([id], (copy) => applyChanges(copy, changes))],
+      ]),
+    onError: (_error, _input, snapshots) => restoreLists(queryClient, snapshots),
+    onSuccess: (updated) => replaceCopies([updated]),
   });
 
   const removeOrDisposeCopy = useMutation<
     void,
     Error,
-    RemoveOrDisposeBinderCopy
+    RemoveOrDisposeBinderCopy,
+    ListSnapshot[]
   >({
     mutationFn: async ({ id, status, changes = {} }) => {
       if (!user) throw new Error("Sign in to remove or dispose a binder copy.");
@@ -218,31 +266,32 @@ export default function useBinderCopies() {
         throw error;
       }
     },
-    onSuccess: async (_result, { id, status, changes = {} }) => {
-      queryClient.setQueryData<BinderCopy[]>(queryKey, (current) =>
-        status === null
-          ? current?.filter((copy) => copy.id !== id)
-          : current?.map((copy) =>
-              copy.id === id
-                ? {
-                    ...copy,
-                    ...changes,
-                    status,
-                    disposed_at: new Date().toISOString(),
-                  }
-                : copy,
-            ),
-      );
-      await queryClient.invalidateQueries({
-        queryKey: deckCardsQueryKey(user?.id),
-      });
-    },
+    // Deleted copies leave the list; disposed copies keep their row with the
+    // new status. Either way, a deck entry using the copy becomes a virtual
+    // card (remove_or_dispose_binder_copy in the database).
+    onMutate: ({ id, status, changes = {} }) =>
+      patchLists(queryClient, [
+        [
+          queryKey,
+          status === null
+            ? (current: BinderCopy[]) => current.filter((copy) => copy.id !== id)
+            : updateById<BinderCopy>([id], (copy) => ({
+                ...applyChanges(copy, changes),
+                status,
+                disposed_at: new Date().toISOString(),
+              })),
+        ],
+        [deckKey, releaseDeckEntriesOf(id)],
+      ]),
+    onError: (_error, _input, snapshots) => restoreLists(queryClient, snapshots),
+    onSettled: () => refetchDeckEntries(),
   });
 
   const moveCopies = useMutation<
     BinderCopy[],
     Error,
-    { ids: string[]; binderId: string | null }
+    { ids: string[]; binderId: string | null },
+    ListSnapshot[]
   >({
     mutationFn: async ({ ids, binderId }) => {
       if (!user) throw new Error("Sign in to move binder copies.");
@@ -262,18 +311,19 @@ export default function useBinderCopies() {
         throw error;
       }
     },
-    onSuccess: (updated) => {
-      const updatedById = new Map(updated.map((copy) => [copy.id, copy]));
-      queryClient.setQueryData<BinderCopy[]>(queryKey, (current) =>
-        current?.map((copy) => updatedById.get(copy.id) ?? copy),
-      );
-    },
+    onMutate: ({ ids, binderId }) =>
+      patchLists(queryClient, [
+        [queryKey, updateById<BinderCopy>(ids, (copy) => ({ ...copy, binder_id: binderId }))],
+      ]),
+    onError: (_error, _input, snapshots) => restoreLists(queryClient, snapshots),
+    onSuccess: (updated) => replaceCopies(updated),
   });
 
   const moveCopyToLocation = useMutation<
     BinderCopy,
     Error,
-    MoveBinderCopyLocation
+    MoveBinderCopyLocation,
+    ListSnapshot[]
   >({
     mutationFn: async ({ id, binderId, deckId, changes }) => {
       if (!user) throw new Error("Sign in to move a binder copy.");
@@ -297,15 +347,62 @@ export default function useBinderCopies() {
         throw error;
       }
     },
-    onSuccess: async (updated) => {
-      queryClient.setQueryData<BinderCopy[]>(queryKey, (current) =>
-        current?.map((copy) => (copy.id === updated.id ? updated : copy)),
-      );
-      await queryClient.invalidateQueries({
-        queryKey: deckCardsQueryKey(user?.id),
-      });
+    // Mirrors move_binder_copy_to_location: into a deck, the copy has no
+    // folder and its Binder entry moves to that deck (or a new one is made);
+    // anywhere else, an existing Binder entry becomes a virtual card.
+    onMutate: ({ id, binderId, deckId, changes }) => {
+      if (!user) return [];
+      const userId = user.id;
+      const moveEntry = (current: DeckEntry[]): DeckEntry[] => {
+        const existing = current.find(
+          (entry) => entry.binder_card_id === id && entry.kind === "binder",
+        );
+        if (!deckId) return releaseDeckEntriesOf(id)(current);
+        if (existing) {
+          return updateById<DeckEntry>([existing.id], (entry) => ({ ...entry, deck_id: deckId }))(current);
+        }
+        const copy = queryClient
+          .getQueryData<BinderCopy[]>(queryKey)
+          ?.find((item) => item.id === id);
+        if (!copy) return current;
+        return [
+          ...current,
+          toOptimisticDeckEntry(
+            { deck_id: deckId, kind: "binder", binder_card_id: id, scryfall_id: copy.scryfall_id },
+            userId,
+          ),
+        ];
+      };
+      return patchLists(queryClient, [
+        [deckKey, moveEntry],
+        [
+          queryKey,
+          updateById<BinderCopy>([id], (copy) => ({
+            ...applyChanges(copy, changes),
+            binder_id: deckId ? null : binderId,
+          })),
+        ],
+      ]);
     },
+    onError: (_error, _input, snapshots) => restoreLists(queryClient, snapshots),
+    onSuccess: (updated) => replaceCopies([updated]),
+    onSettled: () => refetchDeckEntries(),
   });
+
+  // Puts the server's version of these rows in the cached list.
+  function replaceCopies(rows: BinderCopy[]) {
+    const byId = new Map(rows.map((row) => [row.id, row]));
+    queryClient.setQueryData<BinderCopy[]>(queryKey, (current) => {
+      if (!current) return rows;
+      const missing = rows.filter((row) => !current.some((copy) => copy.id === row.id));
+      return [...current.map((copy) => byId.get(copy.id) ?? copy), ...missing];
+    });
+  }
+
+  // Background refetch (not awaited, see above).
+  function refetchDeckEntries() {
+    void queryClient.invalidateQueries({ queryKey: deckKey });
+  }
 
   return {
     ...query,

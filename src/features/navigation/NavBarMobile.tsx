@@ -1,5 +1,5 @@
 import { resolvePath, useLocation, useNavigate, useResolvedPath } from "react-router";
-import navItems from "./navItems";
+import navItems, { preloadPage } from "./navItems";
 import type { NavBarProps } from "./types.ts";
 import NavThemeToggle from "./NavThemeToggle.tsx";
 import LogoutIcon from "../../assets/icons/navigation/LogoutIcon.tsx";
@@ -23,7 +23,7 @@ export default function NavBarMobile({
     >
       <div className="nav-bar__row">
         <ul className="nav-bar__list">
-          {navItems.map(({ id, label, path, Icon }) => {
+          {navItems.map(({ id, label, path, preload, Icon }) => {
             const isActive = pathname === resolvePath(path, routeBasePath).pathname;
             return (
               <li key={id}>
@@ -31,6 +31,8 @@ export default function NavBarMobile({
                   type="button"
                   className={`nav-item${isActive ? " is-active" : ""}`}
                   onClick={() => navigate(path)}
+                  onPointerEnter={() => preloadPage(preload)}
+                  onFocus={() => preloadPage(preload)}
                   aria-current={isActive ? "page" : undefined}
                   aria-label={label}
                 >

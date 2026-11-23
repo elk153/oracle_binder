@@ -144,6 +144,8 @@ export default function DeckCardPopover({
     await runAction(
       () =>
         actions.addDeckCard({
+          // Chosen here so the entry shows at once (optimistic, D-071).
+          id: crypto.randomUUID(),
           deck_id: deckId,
           kind,
           binder_card_id: kind === "binder" ? binderCardId : null,

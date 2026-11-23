@@ -11,6 +11,10 @@ type FavoriteRow = {
   scryfall_id: string;
 };
 
+type FavoriteMutationContext = {
+  previousIds: string[] | undefined;
+};
+
 type ToggleFavoriteInput = {
   userId: string;
   scryfallId: string;
@@ -101,7 +105,7 @@ export function useToggleFavorite() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, ToggleFavoriteInput>({
+  return useMutation<void, Error, ToggleFavoriteInput, FavoriteMutationContext>({
     mutationFn: async ({ userId, scryfallId, isFavorite }) => {
       if (!user || user.id !== userId) {
         throw new Error("Sign in again before changing favorites.");
@@ -126,9 +130,36 @@ export function useToggleFavorite() {
         throw error;
       }
     },
-    onSuccess: (_data, variables) =>
-      queryClient.invalidateQueries({
-        queryKey: ["favorites", variables.userId],
-      }),
+    // Optimistic update (D-071): show the new heart state right away instead
+    // of after the server round trips. Steps:
+    // 1. stop running favorites fetches so they cannot overwrite our change,
+    // 2. remember the current list (the snapshot) for a rollback,
+    // 3. write the expected list into the cache; every heart re-renders.
+    onMutate: async ({ userId, scryfallId, isFavorite }) => {
+      const queryKey = ["favorites", userId] as const;
+      await queryClient.cancelQueries({ queryKey });
+      const previousIds = queryClient.getQueryData<string[]>(queryKey);
+      // No list loaded yet: nothing to update safely; wait for the server.
+      if (previousIds === undefined) return { previousIds };
+      queryClient.setQueryData<string[]>(queryKey, (ids = previousIds) =>
+        isFavorite
+          ? ids.filter((id) => id !== scryfallId)
+          : ids.includes(scryfallId)
+            ? ids
+            : [...ids, scryfallId],
+      );
+      return { previousIds };
+    },
+    // The server refused: put the snapshot back, so the heart shows the truth.
+    onError: (_error, { userId }, context) => {
+      if (context?.previousIds !== undefined) {
+        queryClient.setQueryData(["favorites", userId], context.previousIds);
+      }
+    },
+    // Success or failure: fetch the real list in the background. Not returned,
+    // so the mutation is no longer "pending" while this refetch runs.
+    onSettled: (_data, _error, { userId }) => {
+      void queryClient.invalidateQueries({ queryKey: ["favorites", userId] });
+    },
   });
 }
