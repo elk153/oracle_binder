@@ -266,6 +266,7 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
 
 - Status: Evaluating
 - Date: 2026-11-23
+- Requires: D-071 (optimistic Binder and Deck actions). Building starts only once D-071's work (`feature/d-071-performance`) is merged into `dev`, because D-079 changes the same hooks (`useBinderCopies`, `useDeckManagement`) and reuses its helpers in `src/features/optimisticCache.ts`, which `dev` does not have yet.
 - Decision: Give Binder and Decks the same three ways to take cards out, each available for one card (in the card's popover) and for a selection (in a shared selection bar). The three actions have different meanings and keep distinct labels everywhere:
 
   | Action (label) | Where | What happens to the data | Reversible |
