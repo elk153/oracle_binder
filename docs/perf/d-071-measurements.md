@@ -232,6 +232,29 @@ summary: `docs/perf/lighthouse/2026-11-23-summary-2.md`.
   network variance (Scryfall's API and image CDN are real, not throttled stand-ins). Compare
   before and after **within** one recording, not across recordings.
 
+## Hover/focus preload of nav items (decision step 4, second half)
+
+The Scan, Favorites, Binder and Decks nav items now start downloading their page's code when
+the pointer enters them or they get keyboard focus (`preload` in `navItems.ts`). Pointer events
+also fire when a finger touches down, so phones get a short head start too.
+
+Measured with `docs/perf/hover/measure-hover.mjs` (puppeteer-core from the Lighthouse package,
+headless Chrome, empty cache per run, same 4G/slow-4G profiles as above, 5 runs, medians), on
+the same build: open Home, wait for the hand, then click **Scan** either directly or after a
+300 ms hover. Scan is the test case because idle time does not preload its code, so only
+the hover can fetch it early. "Click only" is the before: a click without pointer events
+does what the app did before this change.
+
+| Profile | Click only (before) | Hover 300 ms, then click (after) | Saved |
+| --- | ---: | ---: | ---: |
+| Mobile 4G | 211 ms | **27 ms** | −184 ms (−87 %) |
+| Mobile slow 4G | 1,110 ms | **796 ms** | −314 ms (−28 %) |
+
+- On 4G the page code arrives within the 300 ms hover, so the click opens Scan almost at once.
+- On slow 4G the download takes longer than the hover, so the saving is about the hover time.
+- Favorites, Binder and Decks are usually already preloaded in idle time; there the hover only
+  helps when the user is quicker than the idle preload.
+
 ### Not done / next
 
 - Netlify + real phone: repeat the recording on a Netlify deploy preview (HTTP/2) to check the
