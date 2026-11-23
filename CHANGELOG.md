@@ -7,6 +7,38 @@ Release versions follow the CalVer policy in [AGENTS.md](./AGENTS.md).
 
 ## [Unreleased]
 
+## [2026.11.8] - 2026-11-23
+
+### Added
+
+- Home shows the day's seven cards as a "Hand of the day": the cards are
+  fanned out like a held hand, with the day's set name next to the title.
+  Pointing at or tabbing to a card lifts it so its favorite, Binder and deck
+  buttons are reachable; on a phone the hand scrolls sideways.
+- Delete, dispose and remove cards in the Binder and in Decks, one card at a
+  time or for a selection. Delete removes the card, Dispose moves an owned
+  copy to the history as sold, lost or given away, and "Remove from deck"
+  sends an owned copy back to a Binder folder or Loose that you choose.
+  Every one of these can be undone for 8 seconds.
+- Messages from all pages now appear in one stack: confirmations disappear
+  after 5 seconds, undo messages after 8 seconds (each keeps its own Undo),
+  and errors stay until you dismiss them.
+
+### Changed
+
+- The app opens faster: only the first screen loads at startup, other pages
+  and Scryfall catalogs load in the background, and pages start loading when
+  you point at their menu item.
+- Favorites, Binder and deck actions update the screen at once instead of
+  waiting for the server, and are rolled back if the server refuses them.
+- The filter bar is no longer shown above the daily cards on Home.
+
+### Database
+
+- Migration `20261123185905_card_removal` (bulk delete, dispose and
+  remove-from-deck functions) is required before this release is deployed.
+  It is already applied to the linked project.
+
 ## [2026.11.7] - 2026-11-22
 
 ### Added

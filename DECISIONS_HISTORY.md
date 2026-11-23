@@ -959,7 +959,7 @@ Progress (2026-11-22, branch `claude/account-management-selection-85da20`): step
 ## D-079: Delete, dispose and remove cards in Binder and Decks, one by one or in bulk
 
 - Status: Implemented (2026-11-23, branch `feature/d-079-card-removal`; migration applied to the linked project; pgTAP 39/39 passed there)
-- Release: pending (on dev)
+- Release: v2026.11.8
 - Date: 2026-11-23
 - Requires: D-071 (optimistic Binder and Deck actions), because D-079 changes the same hooks (`useBinderCopies`, `useDeckManagement`) and reuses its helpers in `src/features/optimisticCache.ts`. Met on 2026-11-23: D-071 was merged into `dev` (PR #38), and D-079 is built on `feature/d-079-card-removal` from there.
 - Decision: Give Binder and Decks the same three ways to take cards out, each available for one card (in the card's popover) and for a selection (in a shared selection bar). The three actions have different meanings and keep distinct labels everywhere:
@@ -1004,7 +1004,7 @@ Progress (2026-11-22, branch `claude/account-management-selection-85da20`): step
 ## D-080: App-wide notification stack
 
 - Status: Implemented (2026-11-23, branch `feature/d-079-card-removal`)
-- Release: pending (on dev)
+- Release: v2026.11.8
 - Date: 2026-11-23
 - Related: D-079 (the 8-second undo buffer, `useUndoNotice`, `UndoNotice`)
 - Decision: Replace the single notice that each page keeps today (Search, Binder, Decks, Favorites, the deck card popover and scanner Add mode) with one notification collection for the whole app. All of them move to the new stack in the same change.
@@ -1036,3 +1036,20 @@ Progress (2026-11-22, branch `claude/account-management-selection-85da20`): step
   - Touches more than two files: built in small steps, each with a plan and approval (AGENTS.md).
 - Source: "[App] Notification collection"
 - Verification (2026-11-23): stack rules tested in `tests/notifications/notificationList.test.ts`, undo-window pause/resume in `tests/binder/undoWindow.test.ts`, overlapping undo windows in `tests/binder/optimisticCache.test.ts`. Browser-checked: order and roles, Undo to "Undone.", 5 s info and 8 s undo timers, hover and focus pause, the limit of 5, placement above the mobile navbar and bottom-right with the desktop navbar, a notice surviving a page change, and two overlapping Undos. The stack uses its own layer, `--z-notifications` (115), above popovers and the card-details overlay and below dialogs. Not tried in the browser: the Search "Sign in" link (needs a signed-out session) and scanner Add mode (needs the camera).
+
+## D-073: Home layout: "Hand of the day"
+
+- Status: Implemented (2026-11-23, branch `feature/d-073-hand-of-the-day`, PR #40)
+- Release: v2026.11.8
+- Date: 2026-11-22
+- Issue: #28
+- Decision: Restyle the daily seven-card set on Home so it **looks like a hand of cards** and has the title **"Hand of the day"** (with the day's set name as a subtitle). The cards overlap in a slight fan, as if held, instead of the current grid of tiles. The data stays the same: up to seven cards from the booster-focused set chosen per UTC day (`mulliganSets.ts`, `CardBrowserPage` in mulligan mode).
+  - Desktop: a fan of seven overlapping cards; hovering or focusing a card lifts it a little (no transform when `prefers-reduced-motion` is set; `base.css` rule plus the local block AGENTS.md asks for).
+  - Phone: a tighter fan or a horizontal row that scrolls, so all seven stay reachable without horizontal page overflow at 390 px.
+  - A tap/click still opens the card details overlay. The card action icons (favorite, binder, deck) stay available, for example on the lifted card or in the details.
+  - The value dashboard (D-076) sits above the hand for signed-in users.
+- Why: The issue asks to "simulate a hand of cards". The cards already form a daily hand; presenting them as one makes the page read as that instead of as a search result.
+- Alternatives considered: A Mulligan button that redraws the hand (from the plan document; not asked for now, can be added on top later). A sample hand drawn from one of the user's decks (a different feature, on the Decks page).
+- Consequences: Mostly CSS and the Home part of `CardBrowserPage`; tokens only, no new colors, radii or z-index values (`npm run lint:css`). `CardTile` is reused; if the fan needs a variant, add it as a modifier class rather than a copy.
+- Source: "[Issues] Decision plan review"
+- Implementation (2026-11-23): `CardBrowserPage` in mulligan mode (Home and `/v2/search/random`) shows a "Hand of the day" heading with the set name and renders the cards as an `<ol class="hand">` of `CardTile`s; the filter bar is not shown on the hand (seven cards need no filters). Each card gets `--hand-offset` (distance from the middle card); `CardBrowserPage.css` turns it into a `rotate` and an arc `translate`. Hover or keyboard focus (`:focus-within`) brings a card to the front (local `z-index` inside `isolation: isolate`) and lifts it, so its action icons are reachable; the lift is cancelled under `prefers-reduced-motion`. Card width follows the window (`clamp(6rem, 18vw, var(--card-image-width))`); at 540 px and below the hand is a sideways-scrolling row with a lighter fan. Browser-checked at 1440 px and 390 px (seven cards, no page overflow, click opens the details). The D-076 dashboard slot is not added, because D-076 is not built yet.
