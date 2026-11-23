@@ -2,11 +2,9 @@ import { createBrowserRouter, Navigate, redirect } from "react-router";
 import { NuqsAdapter } from "nuqs/adapters/react-router/v8";
 import AppV2 from "./App.tsx";
 import CardBrowserPage from "../features/card-browser/CardBrowserPage.tsx";
-import LoginPage from "../features/auth/LoginPage.tsx";
-import AuthCallbackPage from "../features/auth/AuthCallbackPage.tsx";
 import RequireAuth from "../features/auth/RequireAuth.tsx";
-import ScanPage from "../features/scan/ScanPage.tsx";
-import { Home, Favorites, Binder, Decks } from "./App.tsx";
+import { Home } from "./App.tsx";
+import { lazyPages, lazyRoute } from "./lazyPages.ts";
 import RouteErrorPage from "./RouteErrorPage.tsx";
 
 const router = createBrowserRouter([ // be aware of the capitals
@@ -36,11 +34,11 @@ const router = createBrowserRouter([ // be aware of the capitals
       },
       {
         path: "login",
-        element: <LoginPage />,
+        lazy: lazyRoute(lazyPages.login),
       },
       {
         path: "auth/callback",
-        element: <AuthCallbackPage />,
+        lazy: lazyRoute(lazyPages.authCallback),
       },
       {
         path: "search/advanced",
@@ -57,7 +55,7 @@ const router = createBrowserRouter([ // be aware of the capitals
       {
         // Public: Identify works signed out; Add checks the session itself (D-061).
         path: "scan",
-        element: <ScanPage />,
+        lazy: lazyRoute(lazyPages.scan),
       },
       // Development-only OCR benchmark for the scanner (D-062 follow-up). In a
       // production build import.meta.env.DEV is false, so the route and its
@@ -84,15 +82,15 @@ const router = createBrowserRouter([ // be aware of the capitals
         children: [
           {
             path: "favorites",
-            element: <Favorites />,
+            lazy: lazyRoute(lazyPages.favorites),
           },
           {
             path: "binder",
-            element: <Binder />,
+            lazy: lazyRoute(lazyPages.binder),
           },
           {
             path: "decks",
-            element: <Decks />,
+            lazy: lazyRoute(lazyPages.decks),
           },
         ],
       },

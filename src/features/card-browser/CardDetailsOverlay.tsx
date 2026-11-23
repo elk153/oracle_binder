@@ -11,6 +11,7 @@ import type { BinderCopy } from "../binder/useBinderCopies.ts";
 import type { Binder } from "../binder/useBinders.ts";
 import type { CopyFormValues } from "../binder/BinderCopyForm.tsx";
 import type { DeckActions } from "../decks/useDeckManagement.ts";
+import type { DeckEntryActions } from "../decks/deckEntryActions.ts";
 import type { CardAction, CardBrowserCard, CardBrowserFace } from "./types.ts";
 import { isCardBrowserCard } from "./types.ts";
 import "./CardDetailsOverlay.css";
@@ -34,6 +35,8 @@ type CardDetailsOverlayProps = {
   onRestoreBinderCopy: (copy: BinderCopy) => void;
   onDeleteBinderCopy: (copy: BinderCopy) => void;
   deckActions: DeckActions;
+  /** D-079 take-out actions for the deck popover. */
+  deckEntryActions?: DeckEntryActions;
   canManageDeck: boolean;
   /** Opens another card in this overlay (used by meld cards); optional. */
   onOpenCard?: (cardId: string) => void;
@@ -59,6 +62,7 @@ export default function CardDetailsOverlay({
   onRestoreBinderCopy,
   onDeleteBinderCopy,
   deckActions,
+  deckEntryActions,
   canManageDeck,
   onOpenCard,
   onClose,
@@ -324,6 +328,7 @@ export default function CardDetailsOverlay({
                       onRestoreBinderCopy={onRestoreBinderCopy}
                       onDeleteBinderCopy={onDeleteBinderCopy}
                       deckActions={deckActions}
+                      deckEntryActions={deckEntryActions}
                       canManageDeck={canManageDeck}
                       popoverPortalTarget={popoverPortalTarget}
                     />

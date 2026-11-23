@@ -3,8 +3,12 @@ import type { CardBrowserCard } from "../card-browser/types.ts";
 import type { CopyFormValues } from "./BinderCopyForm.tsx";
 import useBinderCopies, { type BinderCopy } from "./useBinderCopies.ts";
 import useBinders from "./useBinders.ts";
-
-type Notify = (message: string) => void;
+import { useNotify } from "../notifications/NotificationContext.ts";
+import {
+  countText,
+  disposalLabel,
+  runUndoable,
+} from "../selection/selectionActions.ts";
 
 function isDisposalStatus(
   status: string,
@@ -18,7 +22,10 @@ function confirmDeckConversion(action: string): boolean {
   );
 }
 
-export default function useBinderManagement(notify: Notify) {
+// Messages go to the app-wide notification stack (D-080): confirmations as
+// info, failures as errors that stay until dismissed.
+export default function useBinderManagement() {
+  const notify = useNotify();
   const [cardToAdd, setCardToAdd] = useState<CardBrowserCard | null>(null);
   const copies = useBinderCopies();
   const bindersQuery = useBinders();
@@ -29,26 +36,31 @@ export default function useBinderManagement(notify: Notify) {
 
   async function addCopy(values: CopyFormValues) {
     if (!cardToAdd) return;
+    const card = cardToAdd;
+    // Optimistic (D-071): the new copy gets its id here, shows up at once,
+    // and the dialog closes without waiting for the server. A failure takes
+    // the copy away again and explains why in the notice.
+    setCardToAdd(null);
     try {
       const { deck_id: deckId, ...copyValues } = values;
       const copy = {
         ...copyValues,
+        id: crypto.randomUUID(),
         binder_id: deckId ? null : copyValues.binder_id ?? null,
         status: values.status ?? "owned",
-        scryfall_id: cardToAdd.id,
-        rarity: cardToAdd.rarity,
+        scryfall_id: card.id,
+        rarity: card.rarity,
       };
       if (deckId) {
         await copies.addCopyToDeck.mutateAsync({ copy, deckId });
-        notify(`Added ${cardToAdd.name} to the selected deck.`);
+        notify.info(`Added ${card.name} to the selected deck.`);
       } else {
         await copies.addCopy.mutateAsync(copy);
-        notify(`Added ${cardToAdd.name} to your Binder.`);
+        notify.info(`Added ${card.name} to your Binder.`);
       }
-      setCardToAdd(null);
     } catch (error) {
-      notify(
-        `Could not add ${cardToAdd.name}: ${
+      notify.error(
+        `Could not add ${card.name}: ${
           error instanceof Error ? error.message : "The request failed."
         }`,
       );
@@ -73,7 +85,7 @@ export default function useBinderManagement(notify: Notify) {
           status: nextStatus,
           changes: disposalChanges,
         });
-        notify("Binder copy updated.");
+        notify.info("Binder copy updated.");
         return true;
       }
 
@@ -99,10 +111,10 @@ export default function useBinderManagement(notify: Notify) {
       } else {
         await copies.updateCopy.mutateAsync({ id: copy.id, changes });
       }
-      notify("Binder copy updated.");
+      notify.info("Binder copy updated.");
       return true;
     } catch (error) {
-      notify(
+      notify.error(
         `Could not update binder copy: ${
           error instanceof Error ? error.message : "The request failed."
         }`,
@@ -111,30 +123,16 @@ export default function useBinderManagement(notify: Notify) {
     }
   }
 
-  async function disposeCopy(
-    copyId: string,
-    status: "sold" | "lost" | "given_away",
-  ) {
-    if (
-      !confirmDeckConversion(
-        `Mark this copy as ${status.replaceAll("_", " ")}?`,
-      )
-    ) {
-      return;
-    }
-    try {
-      await copies.removeOrDisposeCopy.mutateAsync({
-        id: copyId,
-        status,
-      });
-      notify(`Copy marked ${status.replaceAll("_", " ")}.`);
-    } catch (error) {
-      notify(
-        `Could not update binder copy: ${
-          error instanceof Error ? error.message : "The request failed."
-        }`,
-      );
-    }
+  // D-079: one copy from the Binder popover goes through the same bulk
+  // functions as the selection bar, with the 8-second Undo instead of a
+  // confirm dialog. A deck entry using the copy turns virtual (D-034).
+  function disposeCopy(copyId: string, status: "sold" | "lost" | "given_away") {
+    void runUndoable(
+      notify,
+      `Disposed ${countText(1, "copy", "copies")} as ${disposalLabel(status).toLowerCase()}.`,
+      "Could not dispose the copy",
+      (undoWindow) => copies.disposeCopies.mutateAsync({ ids: [copyId], status, undoWindow }),
+    );
   }
 
   async function restoreCopy(copyId: string) {
@@ -147,9 +145,9 @@ export default function useBinderManagement(notify: Notify) {
           disposal_price: null,
         },
       });
-      notify("Copy restored to owned.");
+      notify.info("Copy restored to owned.");
     } catch (error) {
-      notify(
+      notify.error(
         `Could not restore binder copy: ${
           error instanceof Error ? error.message : "The request failed."
         }`,
@@ -157,27 +155,13 @@ export default function useBinderManagement(notify: Notify) {
     }
   }
 
-  async function deleteCopy(copyId: string) {
-    if (
-      !confirmDeckConversion(
-        "Delete this binder copy permanently?",
-      )
-    ) {
-      return;
-    }
-    try {
-      await copies.removeOrDisposeCopy.mutateAsync({
-        id: copyId,
-        status: null,
-      });
-      notify("Binder copy deleted.");
-    } catch (error) {
-      notify(
-        `Could not delete binder copy: ${
-          error instanceof Error ? error.message : "The request failed."
-        }`,
-      );
-    }
+  function deleteCopy(copyId: string) {
+    void runUndoable(
+      notify,
+      "Deleted 1 copy.",
+      "Could not delete the copy",
+      (undoWindow) => copies.deleteCopies.mutateAsync({ ids: [copyId], undoWindow }),
+    );
   }
 
   const isPending =

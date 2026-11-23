@@ -2,29 +2,9 @@
 
 This file holds standing policies and open, evaluating or deferred decisions. Implemented and superseded decisions are in [DECISIONS_HISTORY.md](./DECISIONS_HISTORY.md).
 
-## D-004: Supabase project and security baseline
-
-- Status: Accepted
-- Date: 2026-10-27
-- Decision: Use one Supabase project in an EU region for local development and the Netlify site. Only the publishable key reaches the browser (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`). The auth redirect allow-list holds `http://localhost:5173/**` and the Netlify URL. Unused auth providers are off, and the Data API exposes only the `public` schema.
-- Why: This is a solo learning app, so one project keeps setup small. A publishable key in a bundle is only safe because RLS restricts every row.
-- Alternatives considered: Separate dev and production projects (safer, double the setup, can be added later). Any use of the secret/service-role key in the app (rejected: it bypasses RLS).
-- Consequences: Dev and production share data. Free projects can pause after inactivity (verify current rules). Keys never go in chat or the repo, and Netlify holds the production values. New projects expose no tables to the Data API by default, so every migration must grant access explicitly. Legacy anon/service_role keys are not used. The enabled providers become GitHub and Discord, and Email is turned off at the end of D-070 (D-067). The production redirect entry is tightened to the callback route in D-008. Status: implemented once the checks above pass. Checked in code on 2026-11-21: `src/services/supabaseClient.ts` reads only `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`, and no `service_role` key appears in `src/`; the dashboard settings (region, redirect allow-list, providers, exposed schemas) cannot be checked from the repository.
-- Source: "[Supabase] Auth and favorites plan"
-
-## D-005: Supabase MCP is read-only
-
-- Status: Accepted
-- Date: 2026-10-27
-- Decision: Connect the Supabase MCP server to VS Code Copilot, scoped to this project with `read_only=true`. Schema changes are tracked and applied through the migration workflow in D-014.
-- Why: Database content can carry prompt-injection text, so a write-enabled agent is a risk. Read-only still lets Copilot inspect schema, logs and advisors.
-- Alternatives considered: Write-enabled MCP (faster, riskier). No MCP (loses the inspection help).
-- Consequences: The workspace MCP entry is in the gitignored `.vscode/mcp.json`; first-time OAuth authentication in VS Code is still required. Copilot cannot apply migrations. To enable writes later, remove the flag, keep the project scope and per-call approvals, then record a superseding decision.
-- Source: "[Supabase] Auth and favorites plan"
-
 ## D-015: Supabase GitHub integration deploys migrations from main
 
-- Status: Evaluating
+- Status: Deferred (2026-11-22)
 - Date: 2026-10-27
 - Decision: After `favorites` is merged, connect the Supabase GitHub integration to this repository only, with the working directory at the repo root, "Deploy to production" on for `main`, and automatic branching off.
 - Why: Merging to `main` then applies pending migrations, and no database password or access token is stored in GitHub. Deploying from GitHub works on any plan.
@@ -36,6 +16,7 @@ This file holds standing policies and open, evaluating or deferred decisions. Im
 
 - Status: Deferred (2026-11-21)
 - Date: 2026-11-05
+- Issue: #30 (closed as deferred on 2026-11-22; reopen it if this decision is picked up)
 - Decision: Use a dedicated realm (e.g. `oracle-binder`) on the existing Pikapod Keycloak server, with one confidential client that Supabase uses to sign users in. Supabase's built-in `keycloak` OAuth provider is used; Keycloak is not a Supabase third-party auth issuer.
 - Why: A realm isolates users, clients and sessions, so the other app on the same server is unaffected. Supabase needs a client ID, a client secret and the realm URL, so Keycloak is configured first. The Pikapod is publicly reachable, which hosted Supabase requires.
 - Alternatives considered: The `master` realm (reserved for administering Keycloak). Reusing the other app's realm (mixes users). A second Keycloak server (more cost and upkeep). Supabase third-party auth (its supported list is Clerk, Firebase Auth, Auth0, AWS Cognito and WorkOS, not Keycloak). Google/GitHub login through Supabase, or custom SMTP, which are lighter but were not chosen.
@@ -127,195 +108,142 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
 9. Add a `ProtectedRoute` layout: render `<Outlet />` with a session, nothing while `isLoading`, otherwise `<Navigate to="/v2/home" replace />`. Wrap `/v2/favorites`, `/v2/collection` and `/v2/decks` in `router.tsx`. AGENTS.md requires route-relative navigation inside the layouts; confirm the absolute redirect is acceptable for this V2-only guard before changing it.
 10. Run `npm run typecheck` and `npm run build`; both should pass. `npm run lint` still has the 19 existing errors, so compare against that baseline. Then test manually: sign in through Keycloak and return to the app, reload and stay signed in, open `/v2/favorites` signed out (redirects) and signed in (shows), then sign out and confirm the guard works again.
 
-## D-061: Card scanning feature: scope, route and modes
+## D-071: App performance audit: fast first screen, the rest in the background
 
-- Status: Accepted (2026-11-21). The route, navbar item, mode choice, Add-mode sign-in check, rear camera with error messages, and guide frame are implemented in `src/features/scan/`. It stays in this list until recognition (D-062), Identify (D-063) and Add (D-064) are built on it.
-- Date: 2026-11-21
-- Decision: Add a card scanning feature on a new route `/v2/scan`, reached from a new navbar item (Scan). The page first asks for a mode:
-  - **Identify** finds a card and opens its details (D-063). It works signed out, like search.
-  - **Add** adds recognized cards one after another to a binder or a deck (D-064). It requires sign-in, because binders and decks belong to a user.
-
-  Input is the live rear camera with automatic detection: a card is recognized as soon as it is held steady in the frame, with no capture button. Recognition must find the exact printing (set and collector number), because binder copies and deck entries store a Scryfall card id. When the printing can't be read, the app falls back to the recognized name and lets the user pick from that card's printings. The design targets phones first (portrait layout, one-handed controls) and must work in both iOS Safari and Chrome on Android. How recognition works is decided in D-062.
-
-  **Guide frame (visual cue in the camera view):** *changed by D-065: one wide box for the code only, with the name fallback read in the same box.* Originally: a card-shaped outline (the 63 × 88 mm card ratio) is drawn over the camera picture, and the area outside it is dimmed. Two zones are marked inside the outline:
-  - the **collector zone**, a box at the bottom left where the set code and collector number must sit;
-  - the **title zone**, a box along the top where the card name must sit.
-
-  A short line of text under the frame tells the user what to do, for example "Fit the card in the frame. Set and number in the lower box." While a zone is being read, it is highlighted. When the app falls back to the name (D-062 step 3), the title zone is highlighted and the text says so. When a card is found, the frame briefly turns to a success color.
-
-  The zones are fixed positions in the frame, and the OCR reads exactly those areas, so the guide is what makes the user scan the right part of the card. The outline and zones use the theme tokens, stay visible on both light and dark cards (a light line with a dark edge), and the instructions are also given as text for screen readers (`aria-live`).
-- Why: Adding a collection one card at a time through search is too slow. A camera flow that keeps running between cards makes rapid addition possible. One route for both modes shares the camera and recognition code.
-- Alternatives considered:
-  - Inputs: tap-to-capture, photo upload, or upload only. Each is slower than auto-detect; upload can be added later.
-  - Precision: recognizing only the name and then always choosing a printing, or using a default printing. Both are simpler but slower or less accurate.
-  - Entry points: camera buttons on Search, Binder and Decks instead of, or in addition to, a route. Rejected for now to keep a single entry point.
+- Status: Evaluating (steps 2–5 implemented and released in v2026.11.8; Netlify and real-phone recordings and a signed-in Binder/Deck check still open)
+- Date: 2026-11-22
+- Issue: #35
+- Decision: Audit the app's loading time from the user's point of view, then fix what the audit finds. The rule for the result: **startup loads only what Home needs to show the hand of the day (D-073)**. Everything else loads in the background ("shadow time") while the user already sees Home: other pages' code, the Scryfall symbol, set and card-name catalogs, the user's collection for the value dashboard (D-076), and so on.
+  1. **Measure first.** Record on a phone (Netlify build, normal 4G and a slow-network profile) and on desktop: time to first content, time until the hand of the day is visible, JavaScript downloaded before that, and the number of requests before that. Lighthouse and the browser's Performance panel give the numbers. Keep the figures in this decision as the baseline.
+  2. **Split the code by route.** Today only the development scan bench is lazy-loaded; every page is in one main chunk (about 810 kB minified in the last local build, which also prints Vite's >500 kB warning). Load Search, Favorites, Binder, Decks, Scan and the card details overlay with React Router's `lazy`, so startup downloads only the shell and Home.
+  3. **Move startup fetches out of the first screen.** `App.tsx` prefetches `/symbology`, `/sets` and the card-name catalog (about 687 kB, not persisted) on every start. Start them only after Home has rendered (for example after the first paint or when the browser is idle) and keep the cached ones from `localStorage`.
+  4. **Prefetch the next step.** After Home is visible, preload the code of the most likely next pages (Search, Binder, Decks) in idle time, and prefetch on hover/focus of a nav item.
+  5. **Make actions feel instant.** Optimistic updates for the favorites heart, then Binder/Deck icons if they still feel slow (issue #35's original ask; see the options in `docs/issue-decision-plan.md`).
+- Why: The user judges speed by how soon something useful is on screen and how fast taps respond, not by when every download is done. Home is the first screen for everyone, signed in or not, so it is the one to optimize.
+- Alternatives considered: Optimistic updates only (the original issue; fixes taps but not startup). A service worker for caching (helps repeat visits, belongs to the offline work, issue #32, kept out of decisions for now). Server-side rendering (needs a server; the app is a static SPA on Netlify).
 - Consequences:
-  - A new public route and navbar item. The Add mode checks the session inside the page rather than protecting the whole route.
-  - A new feature folder `src/features/scan/`. AGENTS.md (routes, source layout) and the architecture docs must be updated when this is implemented.
-  - Camera access needs HTTPS (Netlify and `localhost` qualify) and a permission prompt. Denied permission must show a clear message.
-  - No data model change: the feature reuses the binder copy and deck entry tables (D-064).
-  - Out of scope: scanning several cards in one frame, binder proxies, price or collection valuation.
-- Source: "[Scan] Visual card recognition plan"
+  - Route-level `lazy` changes how pages load; a chunk that fails after a deploy is already handled by `RouteErrorPage` (D-060).
+  - Each step is a separate, small change with its own before/after measurement. Steps touching more than two files need a plan and approval (AGENTS.md).
+  - Background loading must stay gentle with Scryfall: no bursts, the existing staggered batching (`fetchScryfallCardsForIds`) is kept.
+- Measurements: baseline and after figures for steps 2, 3, the first half of 4, and favorites in step 5 are in `docs/perf/d-071-measurements.md` (23 Nov 2026). Step 1 (Lighthouse 12.8.2, local `vite preview`, emulated phone, cold start, medians of 3, second recording after the fixes), before → after: hand-of-the-day data ready on mobile 4G 1,789 → 1,651 ms, slow 4G 5,753 → 4,978 ms, desktop 1,217 → 935 ms; hand visible on slow 4G 10,067 → 9,294 ms, desktop 1,935 → 1,621 ms; FCP unchanged; bytes before the hand data 691 → 436 kB. A first recording showed a slow-4G FCP regression (splash logo waiting behind JS files on HTTP/1.1) and background work overlapping the card images; both were fixed (inlined splash logo, background waits for on-screen images). Step 4 hover/focus preload of nav items: click on Scan to page shown, mobile 4G 211 → 27 ms, slow 4G 1,110 → 796 ms (300 ms hover first). Step 5 Binder/Deck: every copy and deck mutation except create deck is optimistic; the screen changes after 0 round trips instead of 1–2 (≈225–450 ms on 4G), buttons unlock after 1 instead of up to 2; covered by `tests/binder/optimisticCache.test.ts`, not yet tried signed in. Still open: Netlify and real-phone recording (parked), a signed-in check of the Binder/Deck actions.
+- Source: "[Issues] Decision plan review" (`docs/issue-decision-plan.md`)
 
-## D-062: Card recognition technology
+## D-072: Share link that shows the same cards to anyone
 
 - Status: Evaluating
-- Date: 2026-11-21
-- Decision (recommended, to be confirmed by a prototype): a staged pipeline that runs in the browser first and uses a cloud service only as a fallback.
-  1. **Steady frame (no library):** draw camera frames on a canvas a few times per second and compare them. When the picture stops changing, take that frame. This avoids recognizing a card while it is still moving.
-  2. **Collector line by in-browser OCR:** cut the small info line at the bottom left of the card (collector number and set code, printed on cards since Magic 2015 in 2014) out of the frame and read only that strip with tesseract.js (see "OCR library evaluation" below). The strip is cut out at the position of the guide frame's collector zone (D-061). tesseract.js runs in a Web Worker and is loaded only on `/v2/scan`. Look the printing up with Scryfall's `/cards/:code/:number`, which returns exactly one printing.
-  3. **Name fallback:** if the line can't be read (older cards, glare, foreign language), OCR the title (cut out at the guide frame's title zone) and match it, allowing small errors, against the Scryfall card-name catalog the app already prefetches. Then show that card's printings to pick from (D-061).
-  4. **Optional cloud fallback:** only if steps 2 and 3 fail, send that one still frame to a cloud vision service through a Supabase Edge Function, which keeps the API key secret. Never send video frames continuously.
+- Date: 2026-11-22
+- Issue: #5
+- Decision: Add a Share action that creates a deep link to **the cards currently shown**: a search result, a card's details, a Binder view or a deck. Anyone who opens the link sees those cards, **including people without an account**. On phones the action opens the system share sheet (Web Share API); elsewhere it copies the link and shows a notice.
 
-  Since D-065, steps 2 and 3 read one guide box that the user fills with the info line, or with the name for the fallback, instead of zones of a card outline.
+  How the link carries the cards depends on the view:
+  - **Public views** (Scryfall search, Home, a card's details): the current URL already holds the state (`q`, `s_` parameters, `?card=`). Share that URL.
+  - **Private views** (collection search, Binder, Decks): their data is protected by RLS, so the URL alone shows nothing to someone else. Options, to settle in fine-tuning:
 
-  Before this decision is accepted, a prototype on one iPhone (Safari) and one Android phone (Chrome) measures how often steps 2 and 3 succeed and how long they take. Based on that, the cloud step is either kept, with a chosen service and budget, or dropped. The prototype also settles the OCR library (see "OCR library evaluation" below).
-- Why:
-  - In-browser recognition is free, private and needs no backend. The app has only Supabase today.
-  - Reading set and number gives the exact printing in one lookup, which recognizing the art or name can't do for reprints.
-  - The cloud step covers the hard cases while its cost stays limited to failed scans.
-- Alternatives considered:
-  - **Browser built-in text detection (Shape Detection API `TextDetector`):** no library to add, but Chrome documents it as available only behind a flag or on some platforms, and no support in iOS Safari was found. Usable at most as an optional speed-up where it exists.
-  - **Cloud vision for every scan (Google Cloud Vision, an LLM with vision, Azure as used by MTGScan):** most accurate, but needs an Edge Function and a secret. It costs money per image: Google Cloud Vision lists the first 1,000 text-detection units a month as free, then $1.50 per 1,000 (to verify on the official page when choosing). It also adds network delay to every card.
-  - **Image matching (perceptual hash of the art):** used by open-source recognizers. It needs a reference hash for every printing, so a large download or a server. Reprints that share art can't be told apart without reading the set.
-  - **Native app (VisionKit, ML Kit):** best camera and OCR quality, but leaves the web stack. Rejected.
+  | Option | How | Pros | Cons |
+  | --- | --- | --- | --- |
+  | A. Card list in the URL | A public route (e.g. `/v2/shared?ids=…`) with the shown Scryfall ids; the page hydrates them from Scryfall | No database change, nothing stored, works forever | Long links; a practical limit of a few dozen cards; shows no quantities or kinds unless encoded too |
+  | B. Snapshot in Supabase | Share saves the shown list (ids, quantity, kind, title) in a `shared_lists` row with a random token; `/v2/shared/<token>` reads it with an anon-readable RLS policy limited to that row | Any size, short link, can be deleted (revoked) | Migration, rollback, RLS for anonymous read, pgTAP; a frozen copy, not live |
+  | C. Live public deck/binder | A deck or binder gets a "public" switch; the link always shows its current content | Always up to date | Exposes live user data; widest RLS change |
+
+  Recommendation: public views share their URL; private views use **B** (snapshot), because it has no size limit and shares nothing beyond the chosen cards.
+- Why: The issue asks for a link to "the results of a query (multiple cards) or a card's details". The URL-first design (nuqs) already makes public views shareable; private views need their own answer because of RLS.
+- Alternatives considered: See the table. Link previews with a card image when pasted in chats (Open Graph) need a Netlify function per link; possible later, not in scope.
 - Consequences:
-  - tesseract.js is a new dependency, chosen by the developer in this decision. It must be lazy-loaded so it doesn't grow the main bundle.
-  - Scryfall limits: about 10 requests per second overall (2 per second for search and named lookups), and HTTP 429 must not be ignored. One lookup per steady frame, plus caching of recognized printings, stays well below this.
-  - The cloud step, if kept, adds an Edge Function, a secret, a monthly cost limit, and image data leaving the device. It needs its own follow-up decision.
-  - Camera quirks to handle: iOS may pick the ultra-wide lens for `facingMode: "environment"`, and camera streams have failed in iOS home-screen apps on some versions. The flashlight (torch) must be feature-detected, not assumed. Everything is tested on real devices.
-- Source: "[Scan] Visual card recognition plan". Research references: Chrome Shape Detection docs (developer.chrome.com/docs/capabilities/shape-detection), Google Cloud Vision pricing (cloud.google.com/vision/pricing), Scryfall rate limits (scryfall.com/docs/api/rate-limits), MTGScan (github.com/fortierq/mtgscan), Yet Another Magic Card Recognizer (github.com/ForOhForError/Yet-Another-Magic-Card-Recognizer), WebKit bugs 252560 and 253186 (rear camera selection) and 273938 (camera in home-screen apps).
+  - A new public route is part of the public contract (AGENTS.md "Versioning").
+  - The shared page shows cards only: no user name, email, purchase prices or notes.
+  - With option B the snapshot table needs least-privilege grants, an anon `select` policy by token, and a way for the owner to list and delete their shares.
+- Source: "[Issues] Decision plan review"
 
-### OCR library evaluation
-
-What the OCR has to do: read very short text from a region the app has already cut out of a steady frame. That text is a collector number (digits), a set code (three to five letters or digits) and, in the fallback, a card title (one line). It does not need page layout, document handling or many languages. What matters is accuracy on phone photos, speed per strip, download size (loaded only on `/v2/scan`), support in iOS Safari and Chrome on Android, the license and maintenance.
-
-Package versions, licenses and dates below were read from the npm registry on 2026-11-21. "Unpacked size" is the npm package on disk, which contains several builds. It is not what a phone downloads, which the prototype measures.
-
-| Library | Version, license, last publish | Engine and size | Fit for this task |
-| --- | --- | --- | --- |
-| **tesseract.js** | 7.0.0, Apache-2.0, Dec 2025 | Tesseract compiled to WebAssembly, runs in a worker, caches the language data in IndexedDB. English data is a separate download (`@tesseract.js-data/eng`). | Most widely used browser OCR. Can be limited to given characters (`tessedit_char_whitelist`), told to expect one text line (page segmentation mode 7), and given a rectangle to read. All three suit a fixed, pre-cut strip. Weak on raw photos, curved text and perspective (reviews), so the strip must be straightened, enlarged and turned to black and white first. Version 7 reports 15–35% faster runs than version 6. |
-| **ppu-paddle-ocr** (+ `onnxruntime-web`) | 6.7.1, MIT, Nov 2026 (`onnxruntime-web` 1.31.1, MIT, Nov 2026) | PaddleOCR models run with ONNX Runtime Web, using WebGPU where available and WebAssembly otherwise. Default "tiny" model about 6 MB (multilingual); English mobile model about 12 MB. | PaddleOCR is described as clearly better than Tesseract on scene text and photos. The project's own receipt test reports 99.5% character accuracy, but there are no published phone or iOS timings. Two dependencies, a larger first download, and no documented character whitelist (a custom dictionary option exists). Accuracy drops with more than a few degrees of skew, so straightening is needed here too. Actively maintained. |
-| **@paddleocr/paddleocr-js** (official) | 0.4.2, Apache-2.0, Jun 2026 | Official PaddleOCR browser SDK, 23.8 MB unpacked. | A 2026 comparison called the official JS SDK immature and based on older models. The June 2026 release may have changed that, but it is less proven than the community port above. Not recommended now. |
-| **tesseract-wasm** | 0.11.0, BSD-2-Clause, Oct 2025 | Smaller Tesseract WebAssembly build: about 2.1 MB for the library plus English data, and uses SIMD (Safari 16.4+). | Smallest download, but a lower-level API, far fewer users, and character whitelisting is not confirmed. A fallback if tesseract.js turns out too heavy. |
-| **Scribe.js** | (fork of tesseract.js) | Tesseract with an improved model and PDF support. | Aimed at documents and PDFs. Files must be served from the same origin. No benefit for short strips. Rejected. |
-| **Transformers.js with TrOCR** | — | Transformer models of tens to hundreds of MB, best with WebGPU. | Accurate on hard text, but far too large and slow for scanning card after card on a phone. Rejected. |
-| **ocrad.js** | 0.0.1, GPL-3.0, 2022 | Old pure-JavaScript OCR. | Unmaintained, low accuracy, and a GPL license that doesn't fit the app. Rejected. |
-| **Browser `TextDetector`** | built in | Shape Detection API. | No library at all, but behind a flag or limited to some platforms in Chrome, and not found in iOS Safari. Only an optional speed-up. |
-
-Decision (developer choice, 2026-11-21): **use tesseract.js** (version 7) as the OCR library of the card scanner.
-
-- Why tesseract.js: it is the most proven and documented option, and it is one dependency with a permissive license (Apache-2.0). Its character whitelist, single-line mode and rectangle options fit the pre-cut strips exactly: digits and letters for the collector line, one line of text for the title. The guide frame in the camera view (D-061) makes the user place those strips where the app cuts them out, which avoids Tesseract's weak point: finding text in a busy photo.
-- How it is used:
-  - It is loaded with a dynamic `import()` only on `/v2/scan`, so the main bundle doesn't grow.
-  - One worker with the English data is created when the scanner opens and reused for every card.
-  - Each strip is straightened, enlarged and turned to black and white before it is read.
-  - It sits behind one small interface in `src/features/scan/` (for example `readText(image, { characters })`), so the library can be swapped later without touching the camera or confirm code.
-- The prototype (above) runs on 30–50 photos of real cards from the collection, covering new and old cards, foils, and normal and poor light, on both phones. It records:
-  - how often the set and number are read correctly;
-  - how often the title alone is read well enough to find the card;
-  - time per strip, first time and later;
-  - the download size on first use.
-- Package: `tesseract.js` (with its English data) is added to `package.json` when implementation starts.
-
-The other libraries in the table are kept as references. If the prototype shows tesseract.js reads too few cards, even with the guide frame, try them in this order:
-
-1. ppu-paddle-ocr: reported to be better on photos, at the cost of two dependencies and a larger download.
-2. tesseract-wasm: the same engine in a smaller build.
-
-Switching would need a new or amended decision and approval for the new dependency.
-
-Research references for this section: npm registry entries for each package (2026-11-21), "PaddleOCR vs Tesseract vs TrOCR: OCR in the Browser" (lofttools.com/blog/on-device-ocr-reviewed, June 2026), the ppu-paddle-ocr README (github.com/PT-Perkasa-Pilar-Utama/ppu-paddle-ocr), the tesseract.js 7.0.0 release notes, the tesseract-wasm README, the Scribe.js README, and "Deterministic OCR in JavaScript: PaddleOCR for Node, Bun, Deno, and the Browser" (dev.to).
-
-## D-063: Scan Identify mode
+## D-074: Cards in other languages in search, Binder and Decks
 
 - Status: Evaluating
-- Date: 2026-11-21
-- Decision: When a card is recognized in Identify mode, the app stops the camera and navigates to `/v2/search?q=<card name>&card=<scryfall id>`. This pushes a normal browser history entry: the search runs for that name and the existing details overlay opens on the recognized printing. If only the name was recognized and the user picked a printing (D-061), that printing's id is used. No scan history is stored.
-- Why: It reuses the existing search page and overlay (`?card=` already opens the overlay without replacing the search URL). Back returns to the scanner, and the URL can be shared.
-- Alternatives considered: a stored list of recent scans (local or Supabase), alone or in addition. It needs new storage and UI, and was not wanted.
+- Date: 2026-11-22
+- Issue: #12 (with D-075)
+- Decision: Let the user find and manage **non-English printings** of a card.
+  - **Search:** a language filter (Scryfall's `lang:` search syntax) in advanced search, and printing lists that include other languages (Scryfall's `include_multilingual` option), so a French printing can be found and opened. Cards show their printed name and text (`printed_name`, `printed_type_line`, `printed_text`) when present, with the English (oracle) text available as well.
+  - **Binder:** today a copy stores the English printing's `scryfall_id` plus a free `language` text. To settle in fine-tuning:
+    - A. Keep the English id and the language text (no data change; the copy still shows the English image).
+    - B. Store the foreign printing's own `scryfall_id` when Scryfall has one, so the copy shows the right image and name; keep `language` as the user's statement and fall back to A when Scryfall has no such printing.
+  - **Decks:** deck entries have no language today. With B, a Binder entry follows its copy; proxy/virtual entries could pick a printing in any language.
+  - **Scanner:** Add mode already reads the printed language (D-066); with B it could look up that language's printing.
+  - Recommendation: B, because it shows the card the user actually owns, and it needs no schema change (a foreign printing is just another Scryfall id).
+- Why: The collection holds French and other non-English cards (the scanner already detects them), but the app only shows English printings.
+- Alternatives considered: A only (simplest, but the binder shows the wrong image). Translating card text in the app (Scryfall already has printed text where it exists).
 - Consequences:
-  - Works signed out. The overlay's favorite, binder and deck actions behave as on search, so they need sign-in.
-  - Going back to `/v2/scan` restarts the camera, which asks for permission again only if the browser forgot it.
-- Source: "[Scan] Visual card recognition plan"
+  - Scryfall has fewer images and texts for non-English printings; every view needs an English fallback.
+  - `normalizeCard.ts` and the renderer types gain the `printed_*` fields; the raw → normalized pipeline is kept.
+  - Filters and sorting by name must decide between printed and English names (English stays the default for matching).
+  - Existing copies keep working; moving them to foreign ids (option B) is optional and per copy.
+- Source: "[Issues] Decision plan review"
 
-## D-067: Account system: Supabase social sign-in only
+## D-075: App interface in several languages
 
-- Status: Accepted
+- Status: Evaluating
 - Date: 2026-11-22
-- Decision: Accounts use Supabase Auth with two OAuth providers: GitHub and Discord. Google was planned as a third provider and dropped on 2026-11-22 at the developer's request; it is not enabled in Supabase. Anyone can sign up, with no invite or allow-list. Email and password sign-up and sign-in are removed once the existing accounts are linked (D-070). Supabase stays the session issuer, so `auth.uid()`, RLS, `RequireAuth` (D-009) and every user table are unchanged. Keycloak (D-038 to D-040) stays deferred.
-- Why: The goals are simplicity, security and no extra cost, using only services already in use (Supabase free, Netlify free, the Keycloak Pikapod). There is no mailbox or domain for sending email. Supabase's built-in mailer delivers only to members of the project team, at about 2 emails an hour, so today's sign-up confirmation emails never reach anyone else. Social sign-in sends no email: the provider confirms the address and handles forgotten passwords. That gives self-service sign-up and recovery for free. The app then stores no passwords, so there are none to leak, guess or reset.
-- Users and requirements (answered on 2026-11-22): the developer plus a few people, open self-service sign-up, users must recover access on their own, no personal mailbox may send app email, and users have GitHub or Discord accounts.
-- Alternatives considered:
-  - Social sign-in plus email/password with "Confirm email" off. No mailbox needed, but password users without a linked social account cannot reset their password themselves. An unconfirmed password account could also be auto-linked to a social account that uses the same email. Rejected in favour of no passwords.
-  - The same, plus a new Gmail used only by the app as custom SMTP. Gives full confirmation and reset emails, but adds an account to look after and sends from a `@gmail.com` address. Rejected.
-  - Keycloak broker (D-038 to D-040). Keycloak needs its own SMTP for verification and reset, so it doesn't solve email. It adds a second admin console and a client secret, and makes sign-in depend on the shared Pikapod. Kept deferred.
-  - Firebase Auth, Clerk or Auth0. They send email from their own domain on free tiers, but each is a new service to subscribe to. Rejected by the no-new-services rule.
-  - Custom SMTP through a free email provider (Brevo, Resend, Mailgun). Each needs a verified sender mailbox or an owned domain. Not possible today.
+- Issue: #12 (with D-074)
+- Decision: Make the app's own text (buttons, labels, messages, page titles) translatable, starting with **English and French**, with a language switch next to the theme toggle. The first visit follows the browser's language when it is supported, otherwise English; the choice is remembered on the device. `<html lang>` follows the chosen language. Card data is not translated by this decision (that is D-074).
+
+  To settle in fine-tuning:
+  - A. A translation library (react-i18next or similar): standard, handles plurals and formatting, a new dependency (approval needed).
+  - B. A small own solution: a React context like `ThemeContext` with one dictionary file per language. No dependency, a good way to learn the concept, but plurals and interpolation are hand-made.
+
+  Numbers, dates and prices use the browser's `Intl` formatting for the chosen language in both options.
+- Why: The issue title is French ("Versions autres langues"); French-speaking users should be able to use the app in French.
+- Alternatives considered: Browser auto-translation (unreliable for card terms, breaks on dynamic content). Translating only some pages (mixed-language UI).
 - Consequences:
-  - Each user needs a GitHub or Discord account. Someone without one cannot sign up. Google can be added later with a new provider step in D-068 and one entry in `SOCIAL_PROVIDERS`.
-  - A user who signs in with two providers that report the same verified email gets one account (Supabase automatic identity linking). Different emails give separate accounts, each with its own data.
-  - The provider apps (GitHub OAuth app, Discord application) are free. Their client secrets live only in the Supabase dashboard (D-068).
-  - D-004's "Unused auth providers are off" still holds: these three are the providers in use, and Email is turned off at the end of D-070.
-  - When implemented, D-008 and D-017 in `DECISIONS_HISTORY.md` get `Superseded by D-067`, and `AGENTS.md` ("App at a glance", Routes) is updated.
-  - If the app ever has a domain and a mailbox, email sign-in can come back as a new decision.
-- Source: "[Auth] Account management selection"
+  - Every user-facing string moves into translation files: a large but mechanical change, done page by page.
+  - New text must be added in all languages from then on; AGENTS.md conventions get a rule for it.
+  - The remembered language is a new `localStorage` key, part of the public contract (persisted browser data).
+- Source: "[Issues] Decision plan review"
 
-## D-068: GitHub and Discord provider configuration
+## D-076: Collection value dashboard on Home, Binder and Decks
 
-- Status: Accepted
+- Status: Evaluating
 - Date: 2026-11-22
-- Decision: Register one free OAuth app with each provider, then enable each provider in Supabase with that app's client ID and secret. Every provider app uses Supabase's callback, `https://<project-ref>.supabase.co/auth/v1/callback`, as its only redirect URI. The app's own `/v2/auth/callback` stays in the Supabase redirect allow-list (D-004, D-008).
-- Why: Supabase finishes the OAuth exchange and then returns to the app, so the providers only ever see Supabase's address. The secrets never reach the browser, the repo or Netlify.
-- Alternatives considered: Also enabling Google (planned, then dropped on 2026-11-22 at the developer's request; its console setup is the heaviest of the three, with a consent screen and publishing step).
-- Consequences: Dashboard work only, with no code change. Labels and requirements in the provider consoles change over time, so check each step against the console and the Supabase provider guide when doing it.
-- Source: "[Auth] Account management selection"
-
-### Instructions (one provider at a time)
-
-1. Note the Supabase callback URL from Authentication → Sign In / Providers → (provider). It is `https://<project-ref>.supabase.co/auth/v1/callback`.
-2. **GitHub**: Settings → Developer settings → OAuth Apps → New. Set Homepage URL to `https://oraclebinder.netlify.app` and the authorization callback URL to the Supabase callback. Generate a client secret.
-3. **Discord**: Developer Portal → New Application → OAuth2. Add the Supabase callback as a redirect and copy the client ID and secret.
-4. In Supabase, enable each provider and paste its client ID and secret. Copy secrets straight from the provider console into the dashboard, never into a chat, the repo or `.env`.
-5. Under Authentication → URL Configuration, confirm that the Site URL is `https://oraclebinder.netlify.app` and that the redirect URLs include the Netlify callback and `http://localhost:5173/**`.
-
-Check: each provider shows as enabled. The sign-in test happens in D-069.
-
-## D-069: App-side social sign-in
-
-- Status: Accepted
-- Date: 2026-11-22
-- Decision: `/v2/login` shows one button per provider ("Continue with GitHub / Discord"). Each calls `supabase.auth.signInWithOAuth({ provider, options: { redirectTo: getAuthCallbackUrl(nextPath) } })`. The page carries the safe `next` path through to `/v2/auth/callback` exactly as today. `AuthCallbackPage` keeps its logic, and its wording changes from "Email confirmation" to a general sign-in message. The email/password form was removed in D-070 step 4.
-- Why: The client already uses `flowType: "pkce"` with `detectSessionInUrl: true` (`src/services/supabaseClient.ts`). The callback page already waits for `AuthProvider` to pick up the session and then follows `getSafeNextPath`. So the OAuth return needs no new route and no new dependency.
-- Alternatives considered: A Supabase auth UI package (new dependency, less control). Going straight to Supabase without a login page (loses the provider choice and the `next` handling).
+- Issue: #29 (with D-077, D-078)
+- Decision: Show the **current value** of the user's cards, using the Scryfall EUR prices the app already receives, split into three figures: **owned**, **proxies** and **virtual**.
+  - **Home:** a small dashboard **above the hand of the day** (D-073), for signed-in users only: the three totals for the whole collection (owned Binder copies including Loose and deck copies; proxy deck entries; virtual deck entries).
+  - **Binder list:** under each binder cover (and Loose), the same dashboard for that binder's cards. Binders hold only owned copies, so it shows the owned value; the layout stays the same so the lists look alike.
+  - **Deck list:** under each deck cover, the three figures for that deck's entries.
+  - Prices: a foil or etched copy uses `eur_foil` (falling back to `eur`), a non-foil copy `eur`. Cards without a EUR price are counted and shown as "n without price", not as 0 €. Disposed copies and favorites are not counted.
+- Why: Issue #29 asks for value at every level, with Home as the summary. Scryfall prices are already in every card the app loads, so a first version needs no new data source and no database change.
+- Alternatives considered: One total instead of three (mixes cards owned with cards not owned). Including purchase price and profit/loss (useful, possible next step; not asked for now). Waiting for better prices (D-077) before showing anything.
 - Consequences:
-  - Touches `LoginPage.tsx`, `AuthCallbackPage.tsx` and `AuthPages.css`, so it needs a short plan and approval before coding (AGENTS.md).
-  - Provider buttons use the existing tokens and BEM classes. Provider logos are optional, and any logo must follow the provider's brand rules.
-  - Check: `npm run typecheck`, `npm run build` and `npm run lint` (against the existing baseline) pass. Then test each provider locally and on Netlify: sign in, return to the `next` page, reload and stay signed in, sign out.
-  - Progress (2026-11-22, branch `claude/account-management-selection-85da20`): coded. `npm run typecheck`, `npm run build`, `npm run lint` and `npm run lint:css` pass with no errors; the build keeps the existing >500 kB chunk warning. On 2026-11-22 the developer signed in on `http://localhost:5173` with both GitHub and Discord using their existing app account: both returned through the callback to the app, signed in to that account. The Google button was then removed. Not yet tested: the Netlify site, and reload and sign-out after a social sign-in.
-- Source: "[Auth] Account management selection"
+  - Home needs the whole collection hydrated from Scryfall. It must load in the background after Home is visible (D-071), using the cached batch requests (`useScryfallCardsForIds`), and show a placeholder until then.
+  - Scryfall's prices are a daily reference, not a market quote; the dashboard labels them as "Scryfall price (EUR)" with the date. D-077 may replace the source.
+  - The binder/deck covers and Home get a new shared component (e.g. `ValueSummary`).
+- Source: "[Issues] Decision plan review"
 
-## D-070: Moving existing password accounts to social sign-in
+## D-077: More accurate card prices: compare data sources
 
-- Status: Accepted
+- Status: Evaluating
 - Date: 2026-11-22
-- Decision: Keep each existing email/password account and its data by attaching a social identity to it. Then remove password sign-in from the app and turn off the Email provider in Supabase.
-- Why: All user data references `auth.users.id`. Linking keeps that id, so favorites, Binder and Decks need no data migration.
-- Alternatives considered: Keeping password sign-in for existing accounts (keeps passwords in the app; rejected). Recreating the accounts (loses their data).
-- Consequences: Not every existing account email is known to match an email on GitHub or Discord. A matching account links automatically; a mismatched one needs one of the manual paths below. Until step 4 is done, the old password sign-up stays reachable and its confirmation emails still fail.
-- Source: "[Auth] Account management selection"
+- Issue: #29 (with D-076, D-078)
+- Decision: Evaluate replacing the Scryfall prices used by D-076 with a more accurate source, and pick one. Candidates:
+  - **A daily JSON dump** downloaded by a scheduled job, for example MTGJSON's `AllPricesToday` / `AllPrices` files (MTGJSON documents providers Cardmarket, TCGplayer, Card Kingdom and Cardsphere, and 90 days of history in `AllPrices`), or Scryfall's own daily bulk files.
+  - **A price API** such as cardbase.dev ("MTG Price History API"), called by a Supabase Edge Function.
 
-### Instructions (in order)
+  The comparison checks, for each candidate: sources and markets (Cardmarket EUR trend/low/average), foil and etched prices, how cards map to Scryfall ids, update frequency, history depth, size or rate limits, cost and free tier, license and terms (may the data be shown in a public web app?), and whether calls must go through a server to keep a key secret. Result: a table in this decision and a chosen source.
+- Why: Scryfall shows one daily price per finish taken from its partners; the user wants values closer to what the cards actually sell for.
+- Alternatives considered: Keep Scryfall prices (free, already there; the fallback if no candidate is clearly better). Cardmarket's or TCGplayer's own APIs (access for new developers is restricted; to verify during the evaluation).
+- Consequences:
+  - Not verified yet (22 Nov 2026): cardbase.dev's site renders with JavaScript and its pricing, limits and terms could not be read; Scryfall's bulk-data page refused the automated fetch; MTGJSON file sizes, license and Scryfall id mapping were not checked. The evaluation does this first.
+  - A dump or a keyed API means a server-side part (Supabase Edge Function or scheduled job) and a table for prices, with migration, rollback, RLS and pgTAP.
+  - Whatever is chosen, D-076's dashboard switches source without changing its layout.
+- Source: "[Issues] Decision plan review"
 
-1. Ship D-069 with the password form still in place.
-2. For each existing account, list its email in Supabase (Authentication → Users) and choose a path:
-   - **Email matches a GitHub or Discord account**: the user signs in once with that provider. Supabase links the new identity to the existing user automatically. Check that the user now shows two identities and that their data is still visible. Done on 2026-11-22 for the developer's own account with both GitHub and Discord.
-   - **No match**: change the account's email in Supabase to the email of the user's social account, then sign in with that provider. First check whether the dashboard lets you edit a user's email. If it doesn't, ask before choosing another way, because the Admin API needs the secret key and must never run from the app.
-   - **Test accounts not worth keeping**: delete them in the dashboard. Their rows in `favorites`, `binders`, `binder_cards`, `decks` and `deck_cards` are removed by the existing `on delete cascade` foreign keys to `auth.users`.
-3. Confirm every remaining account has a social identity.
-4. Remove the email/password form and the sign-up mode from `LoginPage.tsx` (approval first). Then turn off the Email provider in Supabase.
-5. Mark D-008 and D-017 as superseded by D-067 in `DECISIONS_HISTORY.md` and update `AGENTS.md`.
+## D-078: Value history jobs (only if the price source has no history)
 
-Check: signed-out password sign-up is no longer offered, and every user reaches their existing data through a provider.
+- Status: Evaluating
+- Date: 2026-11-22
+- Issue: #29 (with D-076, D-077)
+- Decision: After D-077 picks a price source, check whether it already provides price history (for example MTGJSON's `AllPrices` documents 90 days). **Only if it does not**, evaluate building the history with scheduled jobs:
+  - a daily Supabase job (pg_cron calling an Edge Function) that stores the day's prices for the cards users own, or only the day's totals per user, binder and deck;
+  - retention of at least 30 days (issue #29 asks for "a month value history"), older rows deleted by the same job;
+  - a value-over-time chart on Home under the D-076 dashboard.
 
-Progress (2026-11-22, branch `claude/account-management-selection-85da20`): steps 1–3 done for the developer's account, which is linked to GitHub and Discord. Step 4, code part: the email/password form, the sign-up mode and their styles are removed from `LoginPage.tsx` and `AuthPages.css`. Still open: turning off the Email provider in the Supabase dashboard. Step 5: D-008 and D-017 are marked superseded and `AGENTS.md` is updated.
+  To settle: store totals per day (small, enough for the chart) or a price per card per day (bigger, shows which card moved); how the job stays within the source's rate limits; and which chart approach (a library needs approval, or a hand-drawn SVG).
+- Why: Issue #29 asks for a value evolution chart and a month of history. Jobs are only worth building when the data source does not already keep history.
+- Alternatives considered: Computing history in the browser from snapshots saved on each visit (gaps on days without a visit). No history (drops the chart).
+- Consequences: A job, a table, migration with rollback, RLS, pgTAP, and a free-tier check (Supabase scheduled functions and database size). Depends on D-077.
+- Source: "[Issues] Decision plan review"

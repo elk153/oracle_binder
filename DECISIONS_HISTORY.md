@@ -64,6 +64,28 @@ Implemented and superseded decisions are retained here with their original IDs. 
   the field.
 - Source: "[V2 Card Browser](./docs/card-browser-v2.md)"
 
+## D-004: Supabase project and security baseline
+
+- Status: Implemented. Standing policy that still applies. Archived 2026-11-22.
+- Release: v2026.11.0
+- Date: 2026-10-27
+- Decision: Use one Supabase project in an EU region for local development and the Netlify site. Only the publishable key reaches the browser (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`). The auth redirect allow-list holds `http://localhost:5173/**` and the Netlify URL. Unused auth providers are off, and the Data API exposes only the `public` schema.
+- Why: This is a solo learning app, so one project keeps setup small. A publishable key in a bundle is only safe because RLS restricts every row.
+- Alternatives considered: Separate dev and production projects (safer, double the setup, can be added later). Any use of the secret/service-role key in the app (rejected: it bypasses RLS).
+- Consequences: Dev and production share data. Free projects can pause after inactivity (verify current rules). Keys never go in chat or the repo, and Netlify holds the production values. New projects expose no tables to the Data API by default, so every migration must grant access explicitly. Legacy anon/service_role keys are not used. The enabled providers become GitHub and Discord, and Email is turned off at the end of D-070 (D-067). The production redirect entry is tightened to the callback route in D-008. Status: implemented once the checks above pass. Checked in code on 2026-11-21: `src/services/supabaseClient.ts` reads only `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`, and no `service_role` key appears in `src/`; the dashboard settings (region, redirect allow-list, providers, exposed schemas) cannot be checked from the repository.
+- Source: "[Supabase] Auth and favorites plan"
+
+## D-005: Supabase MCP is read-only
+
+- Status: Implemented. Standing policy that still applies. Archived 2026-11-22.
+- Release: none (developer tooling, not part of the app)
+- Date: 2026-10-27
+- Decision: Connect the Supabase MCP server to VS Code Copilot, scoped to this project with `read_only=true`. Schema changes are tracked and applied through the migration workflow in D-014.
+- Why: Database content can carry prompt-injection text, so a write-enabled agent is a risk. Read-only still lets Copilot inspect schema, logs and advisors.
+- Alternatives considered: Write-enabled MCP (faster, riskier). No MCP (loses the inspection help).
+- Consequences: The workspace MCP entry is in the gitignored `.vscode/mcp.json`; first-time OAuth authentication in VS Code is still required. Copilot cannot apply migrations. To enable writes later, remove the flag, keep the project scope and per-call approvals, then record a superseding decision.
+- Source: "[Supabase] Auth and favorites plan"
+
 ## D-006: Favorites table keyed to a card printing, with owner-only RLS
 
 - Status: Implemented
@@ -643,6 +665,121 @@ Implemented and superseded decisions are retained here with their original IDs. 
 - Consequences: The 500 kB warning remains and is understood. Building in a folder without `.env.local` (for example a fresh worktree) now fails with a message naming the missing variable; set the variables first. The error page replaces the whole `/v2` layout, navbar included. Checked: with `.env.local` the build passes (778 kB main file); without either variable it exits with code 1 and names the missing one; with both set only in the environment it builds the full bundle; the dev server still starts. The error page was rendered on the server for every case (three chunk wordings, another error, unknown `/v2` and top-level paths) with the expected title and action, and without details in a production build. In the developer's first browser check, `/v2/nope` stayed on the pulsing splash logo: the splash was hidden by an effect in `App.tsx`, which the error page replaces. That effect moved into a `useDismissSplash` hook that both `App.tsx` and `RouteErrorPage` call (calling it again after the splash is gone changes nothing). The server-side render check could not catch this, because effects do not run there.
 - Source: "[Build] Chunk size warning"
 
+## D-061: Card scanning feature: scope, route and modes
+
+- Status: Implemented. Route, navbar item, mode choice, Add-mode sign-in check, rear camera with error messages and guide are in `src/features/scan/`; recognition, Identify and Add are built on it (D-062 to D-066). Archived 2026-11-22.
+- Release: v2026.11.3
+- Date: 2026-11-21
+- Decision: Add a card scanning feature on a new route `/v2/scan`, reached from a new navbar item (Scan). The page first asks for a mode:
+  - **Identify** finds a card and opens its details (D-063). It works signed out, like search.
+  - **Add** adds recognized cards one after another to a binder or a deck (D-064). It requires sign-in, because binders and decks belong to a user.
+
+  Input is the live rear camera with automatic detection: a card is recognized as soon as it is held steady in the frame, with no capture button. Recognition must find the exact printing (set and collector number), because binder copies and deck entries store a Scryfall card id. When the printing can't be read, the app falls back to the recognized name and lets the user pick from that card's printings. The design targets phones first (portrait layout, one-handed controls) and must work in both iOS Safari and Chrome on Android. How recognition works is decided in D-062.
+
+  **Guide frame (visual cue in the camera view):** *changed by D-065: one wide box for the code only, with the name fallback read in the same box.* Originally: a card-shaped outline (the 63 × 88 mm card ratio) is drawn over the camera picture, and the area outside it is dimmed. Two zones are marked inside the outline:
+  - the **collector zone**, a box at the bottom left where the set code and collector number must sit;
+  - the **title zone**, a box along the top where the card name must sit.
+
+  A short line of text under the frame tells the user what to do, for example "Fit the card in the frame. Set and number in the lower box." While a zone is being read, it is highlighted. When the app falls back to the name (D-062 step 3), the title zone is highlighted and the text says so. When a card is found, the frame briefly turns to a success color.
+
+  The zones are fixed positions in the frame, and the OCR reads exactly those areas, so the guide is what makes the user scan the right part of the card. The outline and zones use the theme tokens, stay visible on both light and dark cards (a light line with a dark edge), and the instructions are also given as text for screen readers (`aria-live`).
+- Why: Adding a collection one card at a time through search is too slow. A camera flow that keeps running between cards makes rapid addition possible. One route for both modes shares the camera and recognition code.
+- Alternatives considered:
+  - Inputs: tap-to-capture, photo upload, or upload only. Each is slower than auto-detect; upload can be added later.
+  - Precision: recognizing only the name and then always choosing a printing, or using a default printing. Both are simpler but slower or less accurate.
+  - Entry points: camera buttons on Search, Binder and Decks instead of, or in addition to, a route. Rejected for now to keep a single entry point.
+- Consequences:
+  - A new public route and navbar item. The Add mode checks the session inside the page rather than protecting the whole route.
+  - A new feature folder `src/features/scan/`. AGENTS.md (routes, source layout) and the architecture docs must be updated when this is implemented.
+  - Camera access needs HTTPS (Netlify and `localhost` qualify) and a permission prompt. Denied permission must show a clear message.
+  - No data model change: the feature reuses the binder copy and deck entry tables (D-064).
+  - Out of scope: scanning several cards in one frame, binder proxies, price or collection valuation.
+- Source: "[Scan] Visual card recognition plan"
+
+## D-062: Card recognition technology
+
+- Status: Implemented with tesseract.js: steady frame, collector-line OCR and name fallback (steps 1–3; guide changed by D-065). Not implemented: the optional cloud fallback (step 4). Archived 2026-11-22.
+- Release: v2026.11.3 (name fallback in v2026.11.4)
+- Date: 2026-11-21
+- Decision (recommended, to be confirmed by a prototype): a staged pipeline that runs in the browser first and uses a cloud service only as a fallback.
+  1. **Steady frame (no library):** draw camera frames on a canvas a few times per second and compare them. When the picture stops changing, take that frame. This avoids recognizing a card while it is still moving.
+  2. **Collector line by in-browser OCR:** cut the small info line at the bottom left of the card (collector number and set code, printed on cards since Magic 2015 in 2014) out of the frame and read only that strip with tesseract.js (see "OCR library evaluation" below). The strip is cut out at the position of the guide frame's collector zone (D-061). tesseract.js runs in a Web Worker and is loaded only on `/v2/scan`. Look the printing up with Scryfall's `/cards/:code/:number`, which returns exactly one printing.
+  3. **Name fallback:** if the line can't be read (older cards, glare, foreign language), OCR the title (cut out at the guide frame's title zone) and match it, allowing small errors, against the Scryfall card-name catalog the app already prefetches. Then show that card's printings to pick from (D-061).
+  4. **Optional cloud fallback:** only if steps 2 and 3 fail, send that one still frame to a cloud vision service through a Supabase Edge Function, which keeps the API key secret. Never send video frames continuously.
+
+  Since D-065, steps 2 and 3 read one guide box that the user fills with the info line, or with the name for the fallback, instead of zones of a card outline.
+
+  Before this decision is accepted, a prototype on one iPhone (Safari) and one Android phone (Chrome) measures how often steps 2 and 3 succeed and how long they take. Based on that, the cloud step is either kept, with a chosen service and budget, or dropped. The prototype also settles the OCR library (see "OCR library evaluation" below).
+- Why:
+  - In-browser recognition is free, private and needs no backend. The app has only Supabase today.
+  - Reading set and number gives the exact printing in one lookup, which recognizing the art or name can't do for reprints.
+  - The cloud step covers the hard cases while its cost stays limited to failed scans.
+- Alternatives considered:
+  - **Browser built-in text detection (Shape Detection API `TextDetector`):** no library to add, but Chrome documents it as available only behind a flag or on some platforms, and no support in iOS Safari was found. Usable at most as an optional speed-up where it exists.
+  - **Cloud vision for every scan (Google Cloud Vision, an LLM with vision, Azure as used by MTGScan):** most accurate, but needs an Edge Function and a secret. It costs money per image: Google Cloud Vision lists the first 1,000 text-detection units a month as free, then $1.50 per 1,000 (to verify on the official page when choosing). It also adds network delay to every card.
+  - **Image matching (perceptual hash of the art):** used by open-source recognizers. It needs a reference hash for every printing, so a large download or a server. Reprints that share art can't be told apart without reading the set.
+  - **Native app (VisionKit, ML Kit):** best camera and OCR quality, but leaves the web stack. Rejected.
+- Consequences:
+  - tesseract.js is a new dependency, chosen by the developer in this decision. It must be lazy-loaded so it doesn't grow the main bundle.
+  - Scryfall limits: about 10 requests per second overall (2 per second for search and named lookups), and HTTP 429 must not be ignored. One lookup per steady frame, plus caching of recognized printings, stays well below this.
+  - The cloud step, if kept, adds an Edge Function, a secret, a monthly cost limit, and image data leaving the device. It needs its own follow-up decision.
+  - Camera quirks to handle: iOS may pick the ultra-wide lens for `facingMode: "environment"`, and camera streams have failed in iOS home-screen apps on some versions. The flashlight (torch) must be feature-detected, not assumed. Everything is tested on real devices.
+- Source: "[Scan] Visual card recognition plan". Research references: Chrome Shape Detection docs (developer.chrome.com/docs/capabilities/shape-detection), Google Cloud Vision pricing (cloud.google.com/vision/pricing), Scryfall rate limits (scryfall.com/docs/api/rate-limits), MTGScan (github.com/fortierq/mtgscan), Yet Another Magic Card Recognizer (github.com/ForOhForError/Yet-Another-Magic-Card-Recognizer), WebKit bugs 252560 and 253186 (rear camera selection) and 273938 (camera in home-screen apps).
+
+### OCR library evaluation
+
+What the OCR has to do: read very short text from a region the app has already cut out of a steady frame. That text is a collector number (digits), a set code (three to five letters or digits) and, in the fallback, a card title (one line). It does not need page layout, document handling or many languages. What matters is accuracy on phone photos, speed per strip, download size (loaded only on `/v2/scan`), support in iOS Safari and Chrome on Android, the license and maintenance.
+
+Package versions, licenses and dates below were read from the npm registry on 2026-11-21. "Unpacked size" is the npm package on disk, which contains several builds. It is not what a phone downloads, which the prototype measures.
+
+| Library | Version, license, last publish | Engine and size | Fit for this task |
+| --- | --- | --- | --- |
+| **tesseract.js** | 7.0.0, Apache-2.0, Dec 2025 | Tesseract compiled to WebAssembly, runs in a worker, caches the language data in IndexedDB. English data is a separate download (`@tesseract.js-data/eng`). | Most widely used browser OCR. Can be limited to given characters (`tessedit_char_whitelist`), told to expect one text line (page segmentation mode 7), and given a rectangle to read. All three suit a fixed, pre-cut strip. Weak on raw photos, curved text and perspective (reviews), so the strip must be straightened, enlarged and turned to black and white first. Version 7 reports 15–35% faster runs than version 6. |
+| **ppu-paddle-ocr** (+ `onnxruntime-web`) | 6.7.1, MIT, Nov 2026 (`onnxruntime-web` 1.31.1, MIT, Nov 2026) | PaddleOCR models run with ONNX Runtime Web, using WebGPU where available and WebAssembly otherwise. Default "tiny" model about 6 MB (multilingual); English mobile model about 12 MB. | PaddleOCR is described as clearly better than Tesseract on scene text and photos. The project's own receipt test reports 99.5% character accuracy, but there are no published phone or iOS timings. Two dependencies, a larger first download, and no documented character whitelist (a custom dictionary option exists). Accuracy drops with more than a few degrees of skew, so straightening is needed here too. Actively maintained. |
+| **@paddleocr/paddleocr-js** (official) | 0.4.2, Apache-2.0, Jun 2026 | Official PaddleOCR browser SDK, 23.8 MB unpacked. | A 2026 comparison called the official JS SDK immature and based on older models. The June 2026 release may have changed that, but it is less proven than the community port above. Not recommended now. |
+| **tesseract-wasm** | 0.11.0, BSD-2-Clause, Oct 2025 | Smaller Tesseract WebAssembly build: about 2.1 MB for the library plus English data, and uses SIMD (Safari 16.4+). | Smallest download, but a lower-level API, far fewer users, and character whitelisting is not confirmed. A fallback if tesseract.js turns out too heavy. |
+| **Scribe.js** | (fork of tesseract.js) | Tesseract with an improved model and PDF support. | Aimed at documents and PDFs. Files must be served from the same origin. No benefit for short strips. Rejected. |
+| **Transformers.js with TrOCR** | — | Transformer models of tens to hundreds of MB, best with WebGPU. | Accurate on hard text, but far too large and slow for scanning card after card on a phone. Rejected. |
+| **ocrad.js** | 0.0.1, GPL-3.0, 2022 | Old pure-JavaScript OCR. | Unmaintained, low accuracy, and a GPL license that doesn't fit the app. Rejected. |
+| **Browser `TextDetector`** | built in | Shape Detection API. | No library at all, but behind a flag or limited to some platforms in Chrome, and not found in iOS Safari. Only an optional speed-up. |
+
+Decision (developer choice, 2026-11-21): **use tesseract.js** (version 7) as the OCR library of the card scanner.
+
+- Why tesseract.js: it is the most proven and documented option, and it is one dependency with a permissive license (Apache-2.0). Its character whitelist, single-line mode and rectangle options fit the pre-cut strips exactly: digits and letters for the collector line, one line of text for the title. The guide frame in the camera view (D-061) makes the user place those strips where the app cuts them out, which avoids Tesseract's weak point: finding text in a busy photo.
+- How it is used:
+  - It is loaded with a dynamic `import()` only on `/v2/scan`, so the main bundle doesn't grow.
+  - One worker with the English data is created when the scanner opens and reused for every card.
+  - Each strip is straightened, enlarged and turned to black and white before it is read.
+  - It sits behind one small interface in `src/features/scan/` (for example `readText(image, { characters })`), so the library can be swapped later without touching the camera or confirm code.
+- The prototype (above) runs on 30–50 photos of real cards from the collection, covering new and old cards, foils, and normal and poor light, on both phones. It records:
+  - how often the set and number are read correctly;
+  - how often the title alone is read well enough to find the card;
+  - time per strip, first time and later;
+  - the download size on first use.
+- Package: `tesseract.js` (with its English data) is added to `package.json` when implementation starts.
+
+The other libraries in the table are kept as references. If the prototype shows tesseract.js reads too few cards, even with the guide frame, try them in this order:
+
+1. ppu-paddle-ocr: reported to be better on photos, at the cost of two dependencies and a larger download.
+2. tesseract-wasm: the same engine in a smaller build.
+
+Switching would need a new or amended decision and approval for the new dependency.
+
+Research references for this section: npm registry entries for each package (2026-11-21), "PaddleOCR vs Tesseract vs TrOCR: OCR in the Browser" (lofttools.com/blog/on-device-ocr-reviewed, June 2026), the ppu-paddle-ocr README (github.com/PT-Perkasa-Pilar-Utama/ppu-paddle-ocr), the tesseract.js 7.0.0 release notes, the tesseract-wasm README, the Scribe.js README, and "Deterministic OCR in JavaScript: PaddleOCR for Node, Bun, Deno, and the Browser" (dev.to).
+
+## D-063: Scan Identify mode
+
+- Status: Implemented. Archived 2026-11-22.
+- Release: v2026.11.3
+- Date: 2026-11-21
+- Decision: When a card is recognized in Identify mode, the app stops the camera and navigates to `/v2/search?q=<card name>&card=<scryfall id>`. This pushes a normal browser history entry: the search runs for that name and the existing details overlay opens on the recognized printing. If only the name was recognized and the user picked a printing (D-061), that printing's id is used. No scan history is stored.
+- Why: It reuses the existing search page and overlay (`?card=` already opens the overlay without replacing the search URL). Back returns to the scanner, and the URL can be shared.
+- Alternatives considered: a stored list of recent scans (local or Supabase), alone or in addition. It needs new storage and UI, and was not wanted.
+- Consequences:
+  - Works signed out. The overlay's favorite, binder and deck actions behave as on search, so they need sign-in.
+  - Going back to `/v2/scan` restarts the camera, which asks for permission again only if the browser forgot it.
+- Source: "[Scan] Visual card recognition plan"
+
 ## D-064: Scan Add mode (rapid addition)
 
 - Status: Implemented
@@ -733,3 +870,186 @@ Implemented and superseded decisions are retained here with their original IDs. 
   - `CardBrowserCard` gains the Scryfall `finishes` list, used by the confirm step.
   - The app's language list has only six languages. Printed codes without a match are ignored until that list grows (a separate change).
 - Sources: "How to Identify an Exact MTG Printing" (scanmtg.com/guides/how-to-identify-mtg-printing, star vs dot example), mtg.wiki "Parts of a card" and "Information below the text box" (seen in search results only; the pages refused automated reading), 2026-11-21.
+
+## D-067: Account system: Supabase social sign-in only
+
+- Status: Implemented. Archived 2026-11-22.
+- Release: v2026.11.7
+- Date: 2026-11-22
+- Decision: Accounts use Supabase Auth with two OAuth providers: GitHub and Discord. Google was planned as a third provider and dropped on 2026-11-22 at the developer's request; it is not enabled in Supabase. Anyone can sign up, with no invite or allow-list. Email and password sign-up and sign-in are removed once the existing accounts are linked (D-070). Supabase stays the session issuer, so `auth.uid()`, RLS, `RequireAuth` (D-009) and every user table are unchanged. Keycloak (D-038 to D-040) stays deferred.
+- Why: The goals are simplicity, security and no extra cost, using only services already in use (Supabase free, Netlify free, the Keycloak Pikapod). There is no mailbox or domain for sending email. Supabase's built-in mailer delivers only to members of the project team, at about 2 emails an hour, so today's sign-up confirmation emails never reach anyone else. Social sign-in sends no email: the provider confirms the address and handles forgotten passwords. That gives self-service sign-up and recovery for free. The app then stores no passwords, so there are none to leak, guess or reset.
+- Users and requirements (answered on 2026-11-22): the developer plus a few people, open self-service sign-up, users must recover access on their own, no personal mailbox may send app email, and users have GitHub or Discord accounts.
+- Alternatives considered:
+  - Social sign-in plus email/password with "Confirm email" off. No mailbox needed, but password users without a linked social account cannot reset their password themselves. An unconfirmed password account could also be auto-linked to a social account that uses the same email. Rejected in favour of no passwords.
+  - The same, plus a new Gmail used only by the app as custom SMTP. Gives full confirmation and reset emails, but adds an account to look after and sends from a `@gmail.com` address. Rejected.
+  - Keycloak broker (D-038 to D-040). Keycloak needs its own SMTP for verification and reset, so it doesn't solve email. It adds a second admin console and a client secret, and makes sign-in depend on the shared Pikapod. Kept deferred.
+  - Firebase Auth, Clerk or Auth0. They send email from their own domain on free tiers, but each is a new service to subscribe to. Rejected by the no-new-services rule.
+  - Custom SMTP through a free email provider (Brevo, Resend, Mailgun). Each needs a verified sender mailbox or an owned domain. Not possible today.
+- Consequences:
+  - Each user needs a GitHub or Discord account. Someone without one cannot sign up. Google can be added later with a new provider step in D-068 and one entry in `SOCIAL_PROVIDERS`.
+  - A user who signs in with two providers that report the same verified email gets one account (Supabase automatic identity linking). Different emails give separate accounts, each with its own data.
+  - The provider apps (GitHub OAuth app, Discord application) are free. Their client secrets live only in the Supabase dashboard (D-068).
+  - D-004's "Unused auth providers are off" still holds: these three are the providers in use, and Email is turned off at the end of D-070.
+  - When implemented, D-008 and D-017 in `DECISIONS_HISTORY.md` get `Superseded by D-067`, and `AGENTS.md` ("App at a glance", Routes) is updated.
+  - If the app ever has a domain and a mailbox, email sign-in can come back as a new decision.
+- Source: "[Auth] Account management selection"
+
+## D-068: GitHub and Discord provider configuration
+
+- Status: Implemented: GitHub and Discord are enabled in Supabase. Archived 2026-11-22.
+- Release: v2026.11.7
+- Date: 2026-11-22
+- Decision: Register one free OAuth app with each provider, then enable each provider in Supabase with that app's client ID and secret. Every provider app uses Supabase's callback, `https://<project-ref>.supabase.co/auth/v1/callback`, as its only redirect URI. The app's own `/v2/auth/callback` stays in the Supabase redirect allow-list (D-004, D-008).
+- Why: Supabase finishes the OAuth exchange and then returns to the app, so the providers only ever see Supabase's address. The secrets never reach the browser, the repo or Netlify.
+- Alternatives considered: Also enabling Google (planned, then dropped on 2026-11-22 at the developer's request; its console setup is the heaviest of the three, with a consent screen and publishing step).
+- Consequences: Dashboard work only, with no code change. Labels and requirements in the provider consoles change over time, so check each step against the console and the Supabase provider guide when doing it.
+- Source: "[Auth] Account management selection"
+
+### Instructions (one provider at a time)
+
+1. Note the Supabase callback URL from Authentication → Sign In / Providers → (provider). It is `https://<project-ref>.supabase.co/auth/v1/callback`.
+2. **GitHub**: Settings → Developer settings → OAuth Apps → New. Set Homepage URL to `https://oraclebinder.netlify.app` and the authorization callback URL to the Supabase callback. Generate a client secret.
+3. **Discord**: Developer Portal → New Application → OAuth2. Add the Supabase callback as a redirect and copy the client ID and secret.
+4. In Supabase, enable each provider and paste its client ID and secret. Copy secrets straight from the provider console into the dashboard, never into a chat, the repo or `.env`.
+5. Under Authentication → URL Configuration, confirm that the Site URL is `https://oraclebinder.netlify.app` and that the redirect URLs include the Netlify callback and `http://localhost:5173/**`.
+
+Check: each provider shows as enabled. The sign-in test happens in D-069.
+
+## D-069: App-side social sign-in
+
+- Status: Implemented. Archived 2026-11-22.
+- Release: v2026.11.7
+- Date: 2026-11-22
+- Decision: `/v2/login` shows one button per provider ("Continue with GitHub / Discord"). Each calls `supabase.auth.signInWithOAuth({ provider, options: { redirectTo: getAuthCallbackUrl(nextPath) } })`. The page carries the safe `next` path through to `/v2/auth/callback` exactly as today. `AuthCallbackPage` keeps its logic, and its wording changes from "Email confirmation" to a general sign-in message. The email/password form was removed in D-070 step 4.
+- Why: The client already uses `flowType: "pkce"` with `detectSessionInUrl: true` (`src/services/supabaseClient.ts`). The callback page already waits for `AuthProvider` to pick up the session and then follows `getSafeNextPath`. So the OAuth return needs no new route and no new dependency.
+- Alternatives considered: A Supabase auth UI package (new dependency, less control). Going straight to Supabase without a login page (loses the provider choice and the `next` handling).
+- Consequences:
+  - Touches `LoginPage.tsx`, `AuthCallbackPage.tsx` and `AuthPages.css`, so it needs a short plan and approval before coding (AGENTS.md).
+  - Provider buttons use the existing tokens and BEM classes. Provider logos are optional, and any logo must follow the provider's brand rules.
+  - Check: `npm run typecheck`, `npm run build` and `npm run lint` (against the existing baseline) pass. Then test each provider locally and on Netlify: sign in, return to the `next` page, reload and stay signed in, sign out.
+  - Progress (2026-11-22, branch `claude/account-management-selection-85da20`): coded. `npm run typecheck`, `npm run build`, `npm run lint` and `npm run lint:css` pass with no errors; the build keeps the existing >500 kB chunk warning. On 2026-11-22 the developer signed in on `http://localhost:5173` with both GitHub and Discord using their existing app account: both returned through the callback to the app, signed in to that account. The Google button was then removed. Not yet tested: the Netlify site, and reload and sign-out after a social sign-in.
+- Source: "[Auth] Account management selection"
+
+## D-070: Moving existing password accounts to social sign-in
+
+- Status: Implemented in the app (steps 1–5). Still open in the Supabase dashboard: turning off the Email provider (step 4). Archived 2026-11-22.
+- Release: v2026.11.7
+- Date: 2026-11-22
+- Decision: Keep each existing email/password account and its data by attaching a social identity to it. Then remove password sign-in from the app and turn off the Email provider in Supabase.
+- Why: All user data references `auth.users.id`. Linking keeps that id, so favorites, Binder and Decks need no data migration.
+- Alternatives considered: Keeping password sign-in for existing accounts (keeps passwords in the app; rejected). Recreating the accounts (loses their data).
+- Consequences: Not every existing account email is known to match an email on GitHub or Discord. A matching account links automatically; a mismatched one needs one of the manual paths below. Until step 4 is done, the old password sign-up stays reachable and its confirmation emails still fail.
+- Source: "[Auth] Account management selection"
+
+### Instructions (in order)
+
+1. Ship D-069 with the password form still in place.
+2. For each existing account, list its email in Supabase (Authentication → Users) and choose a path:
+   - **Email matches a GitHub or Discord account**: the user signs in once with that provider. Supabase links the new identity to the existing user automatically. Check that the user now shows two identities and that their data is still visible. Done on 2026-11-22 for the developer's own account with both GitHub and Discord.
+   - **No match**: change the account's email in Supabase to the email of the user's social account, then sign in with that provider. First check whether the dashboard lets you edit a user's email. If it doesn't, ask before choosing another way, because the Admin API needs the secret key and must never run from the app.
+   - **Test accounts not worth keeping**: delete them in the dashboard. Their rows in `favorites`, `binders`, `binder_cards`, `decks` and `deck_cards` are removed by the existing `on delete cascade` foreign keys to `auth.users`.
+3. Confirm every remaining account has a social identity.
+4. Remove the email/password form and the sign-up mode from `LoginPage.tsx` (approval first). Then turn off the Email provider in Supabase.
+5. Mark D-008 and D-017 as superseded by D-067 in `DECISIONS_HISTORY.md` and update `AGENTS.md`.
+
+Check: signed-out password sign-up is no longer offered, and every user reaches their existing data through a provider.
+
+Progress (2026-11-22, branch `claude/account-management-selection-85da20`): steps 1–3 done for the developer's account, which is linked to GitHub and Discord. Step 4, code part: the email/password form, the sign-up mode and their styles are removed from `LoginPage.tsx` and `AuthPages.css`. Still open: turning off the Email provider in the Supabase dashboard. Step 5: D-008 and D-017 are marked superseded and `AGENTS.md` is updated.
+
+## D-079: Delete, dispose and remove cards in Binder and Decks, one by one or in bulk
+
+- Status: Implemented (2026-11-23, branch `feature/d-079-card-removal`; migration applied to the linked project; pgTAP 39/39 passed there)
+- Release: v2026.11.8
+- Date: 2026-11-23
+- Requires: D-071 (optimistic Binder and Deck actions), because D-079 changes the same hooks (`useBinderCopies`, `useDeckManagement`) and reuses its helpers in `src/features/optimisticCache.ts`. Met on 2026-11-23: D-071 was merged into `dev` (PR #38), and D-079 is built on `feature/d-079-card-removal` from there.
+- Decision: Give Binder and Decks the same three ways to take cards out, each available for one card (in the card's popover) and for a selection (in a shared selection bar). The three actions have different meanings and keep distinct labels everywhere:
+
+  | Action (label) | Where | What happens to the data | Undo |
+  | --- | --- | --- | --- |
+  | **Delete** | Binder (owned and history views) and Decks | The record is removed from the database. Binder: the `binder_cards` row is deleted; a deck entry linked to it turns virtual (D-034). In the history view this permanently forgets a disposed copy. Decks: the `deck_cards` entry is deleted; for an owned (Binder-kind) entry the physical copy is deleted too, because "delete" means the card is no longer in the collection at all. Proxy and virtual entries only have the entry. | 8 s undo buffer, no confirm dialog (dropped 2026-11-23: Undo covers a mistake); permanent after that |
+  | **Dispose** (sold, lost, given away) | Binder and Decks (owned entries only) | The copy keeps its row with `status` set and appears under the Binder history filter, where Restore is available. A linked deck entry stays in the deck as virtual (D-034, existing `remove_or_dispose_binder_copy`). In Decks it applies only to Binder-kind entries; proxy and virtual entries in a selection are left untouched and the notice says how many were skipped. | 8 s undo buffer; later, Restore in the history view |
+  | **Remove from deck** | Decks | The deck entry is deleted. An owned copy goes back to the Binder: the action always asks where it goes (a Binder folder or Loose), with no destination preselected; in bulk, one destination applies to all selected copies. Proxy and virtual entries are simply removed, and the question is skipped when the selection holds no owned copy. | 8 s undo buffer |
+
+  Interface, the same on both pages:
+  1. **Selection.** Each card tile in a Binder view and in the Decks views (All cards and a selected deck) gets the selection checkbox the Binder already has. Above the grid, a shared `SelectionBar` component shows the count, "Select all shown", "Clear", and the actions that apply to the page: Binder → Move to…, Dispose…, Delete; Binder history view → Delete (the checkbox, hidden there today, is shown); Decks → Remove from deck…, Dispose…, Delete. Without a selection the bar shows only "Select all shown"; the summary, Clear and the actions appear once something is selected. Binder selection stays per card (all of that card's copies in the current view); deck selection is per entry, since the All cards view already shows each entry as its own tile. Choosing individual copies of the same card stays in the popover.
+  2. **One card.** The Binder copy popover and `DeckCardPopover` list the same actions per copy or entry, with the same labels and the same 8-second Undo as the bulk bar.
+  3. **Feedback.** One notice per action, for example "Disposed 4 copies as sold." or "Removed 3 cards from Burn; 2 copies back to Loose." and an Undo button for 8 seconds. A newer action replaces the notice and sends the older action at once. (Replaced by D-080: notices go to an app-wide stack where every undo notice keeps its own Undo.) Partial failures are not possible because each bulk action is one transaction (see below).
+
+  Database (one migration with rollback and pgTAP, as for D-034):
+  - `delete_binder_copies(p_copy_ids uuid[])` and `dispose_binder_copies(p_copy_ids uuid[], p_status text)`: the bulk form of `remove_or_dispose_binder_copy`, all-or-nothing, ownership checked for every id, linked deck entries turned virtual in the same transaction. The single-copy RPC stays and may call the bulk one with one id.
+  - Dispose from Decks uses `dispose_binder_copies` with the copy ids of the selected Binder-kind entries; no separate deck function.
+  - `remove_deck_entries(p_entry_ids uuid[], p_binder_id uuid)`: deletes the entries and puts each owned copy in `p_binder_id` (null = Loose, chosen explicitly by the user) in the same transaction. Without it the `deck_cards_sync_binder_copy_location` trigger sends the copy to Loose and a second call would be needed to file it, which can leave it half-done.
+  - `delete_deck_entries(p_entry_ids uuid[])`: deletes the entries and, for Binder-kind ones, their copies.
+  - All `SECURITY INVOKER`, authenticated only, least-privilege grants, as the existing functions.
+
+  Client: the mutations follow the D-071 optimistic pattern (`patchLists`/`restoreLists`, Realtime echo marking of the touched copy ids, refetch in `onSettled`).
+
+  **Undo buffer (added 2026-11-23).** Every D-079 action, one card or bulk, gets an 8-second undo buffer: the screen changes at once, but the request to the database waits 8 seconds. Undo in that time cancels the request, so nothing reaches the database, and the cached lists go back. When the time runs out, the request is sent. `src/features/undoWindow.ts` (`createUndoWindow`, tested in `tests/binder/undoWindow.test.ts`) holds the timer; the page passes the window with the mutation (`deleteCopies`, `disposeCopies`, `removeDeckEntries`, `deleteDeckEntries` accept `undoWindow`), and the mutation awaits it before the request. Undo rejects with `UndoneError`, which the page shows as "Undone." rather than as an error. Open windows are sent early only when the page is closed or left (`pagehide`); a page that is merely hidden (tab switched, phone locked) keeps its Undo. If closing the tab cuts the request off, or a hidden page is frozen and never comes back, the change simply does not happen, which is the safe side for the data. (Changed 2026-11-23: the first version also sent on `visibilitychange` to hidden; in testing, a browser pane that hides itself in the background sent a delete at once and the Undo never showed.) The Realtime echo marks are set when the request is sent, and both lists are refetched after it, because a refetch during the window can bring the old rows back. The two deck actions are not counted in `isPending`, so buttons are not locked for 8 seconds.
+
+  Settled on 2026-11-23:
+  - Decks also offer **Dispose** for owned entries (a card sold straight out of a deck); the entry stays as virtual.
+  - **Delete** from a deck also deletes the owned copy. Taking a card out of a deck while keeping it is **Remove from deck**, which moves the copy back to the Binder.
+  - Remove from deck **asks every time** where the copy goes (a Binder folder or Loose). No default and no remembered previous folder, so no new column.
+  - **Delete** is available in the Binder history view too, through the same `delete_binder_copies`.
+- Why: Today the Binder can dispose, restore and delete one copy at a time and move copies in bulk, while Decks can only delete a whole deck or change an entry's kind; there is no way to take a card out of a deck back into a folder in one step, and no bulk version of any of this. Three clearly named actions, offered the same way on both pages, match what a collector actually does (throw away a mistaken entry, record a sale, rebuild a deck) without mixing them up.
+- Alternatives considered: One "Remove" action with a follow-up question (delete, dispose, or back to the Binder): fewer buttons, but an extra step every time and easy to pick the wrong branch. Delete in Decks removing only the entry (the copy to Loose): rejected, it would make Delete and Remove from deck almost the same. Remove from deck defaulting to Loose or to the copy's previous folder: rejected in favor of asking, so a copy never lands somewhere the user did not choose; the previous folder would also need a new column. Bulk actions as a loop of the existing single-copy calls: no migration, but slower, and a failure halfway leaves a partial result (the reason D-034 used one transaction). Soft delete with a trash bin instead of real deletion: safer, but the history filter already covers "keep a record"; Delete is meant to forget.
+- Consequences:
+  - A new migration with matching rollback in `supabase/rollback/` and pgTAP tests (ownership, all-or-nothing on a bad id, deck entries turning virtual, copies landing in the chosen folder). It must be applied before the app version that uses it is deployed.
+  - `SelectionBar` is a new shared component used by `BinderPage` and `DecksPage`; it reuses `.page__toolbar`/`.page__control` styles from `layout.css` rather than new page-wide rules (D-053 Phase 4a). Tiles in Decks gain the Binder's checkbox, so the checkbox moves to a shared place instead of being copied.
+  - The existing single-copy actions in the Binder popover keep working; their labels are aligned with the table.
+  - Touches more than two files: built in small steps (migration, hooks, `SelectionBar` on Binder, then Decks, then popovers), each with a plan and approval (AGENTS.md).
+- Source: "[Binder & Decks] Delete, dispose and remove"
+- Verification (2026-11-23): `supabase/tests/card_removal_test.sql` passed 39 of 39 on the linked project. Docker is not available, so `supabase test db` could not run; the file was run through `supabase db query --remote` in one transaction that installed pgTAP, collected each test's output in a temporary table and ended with a deliberate error, so the extension and all test rows were rolled back (checked afterwards: no pgTAP, no test users, binders or decks). Browser-checked signed in on Binder and Decks (bulk and popover actions, Undo, phone width); actions that really sent requests were tried on throwaway data only.
+
+## D-080: App-wide notification stack
+
+- Status: Implemented (2026-11-23, branch `feature/d-079-card-removal`)
+- Release: v2026.11.8
+- Date: 2026-11-23
+- Related: D-079 (the 8-second undo buffer, `useUndoNotice`, `UndoNotice`)
+- Decision: Replace the single notice that each page keeps today (Search, Binder, Decks, Favorites, the deck card popover and scanner Add mode) with one notification collection for the whole app. All of them move to the new stack in the same change.
+
+  | Kind | How long it stays | Actions | Role |
+  | --- | --- | --- | --- |
+  | **Info** (confirmations such as "Moved 3 copies.") | 5 s | Dismiss | `status` |
+  | **Undo** (D-079 delete, dispose, remove; scanner Add mode "Added N × name") | 8 s, the length of its undo window | Undo, Dismiss | `status` |
+  | **Error** | Until the user dismisses it | Dismiss | `alert` |
+
+  Behavior:
+  1. **One stack for the app.** One provider in the app layout holds the stack, and every page adds to it. Notifications stay visible when the user moves to another page.
+  2. **Order.** The newest notification is at the bottom; older ones move up.
+  3. **Position.** The stack follows the navigation bar, not the viewport size: while the desktop navbar is shown it is fixed in the bottom-right corner; while the mobile navbar is shown it is fixed at the bottom center, above that bar. It has no breakpoint of its own, so if the navbar's breakpoint changes, the stack follows. (Changed 2026-11-23; the first version used `max-width: 480px`.)
+  4. **Each one ends on its own timer.** A notification goes away when its own time runs out.
+  5. **Every undo notice keeps its Undo.** Several undo windows can be open at once. Each Undo cancels only its own action, until its own 8 s end. This replaces D-079's rule that a newer action sends the older one at once. Scanner Add mode's Undo follows the same rules.
+  6. **After Undo.** The notification's text changes to "Undone." in place, and it then counts as a 5 s info notice.
+  7. **Dismiss.** Dismiss removes the notification. On an undo notice it also keeps the action: the request is sent at once instead of after 8 s, as in D-079 today.
+  8. **Pause.** While the pointer is over a notification or it has keyboard focus, its countdown pauses. For an undo notice, the undo window pauses too.
+  9. **At most 5 visible.** When a 6th arrives, the oldest non-error notification is removed at once. If that one is an undo notice, its action is sent. Errors are pushed out only when all 5 are errors.
+- Why: Several commands show a message, and in bulk work several messages often show at once. With one notice per page, a newer message replaces an older one. The older undo action is then forced through, and errors can vanish before anyone reads them.
+- Alternatives considered: Clearing the stack when the user changes page (rejected: the stack stays across navigation). Only the newest notice keeping Undo (rejected: each notice keeps its own). Errors disappearing by themselves (rejected: they stay until dismissed). No limit on visible notifications (rejected: the limit is 5). Moving Binder and Decks first and the other pages later (rejected: all pages move together).
+- Consequences:
+  - `useUndoNotice` and `UndoNotice` (D-079) are replaced by the app-wide provider.
+  - Each page's `notice`/`setNotice` and each `.page__notice` block moves to the provider: `CardBrowserPage`, `BinderPage`, `DecksPage`, `FavoritesPage`, `DeckCardPopover` and `AddScanner`.
+  - Scanner Add mode's own 8 s timer is removed, and its Undo goes through the stack.
+  - `createUndoWindow` needs a pause and resume so that hovering can stop the 8 s window; the tests in `tests/binder/undoWindow.test.ts` grow to cover them.
+  - Several undo windows can be open at once. Each one's request is sent separately when its time runs out, and every open window is still sent at once when the page is closed or left (`pagehide`); a page that is merely hidden keeps its Undo (D-079, changed 2026-11-23).
+  - Touches more than two files: built in small steps, each with a plan and approval (AGENTS.md).
+- Source: "[App] Notification collection"
+- Verification (2026-11-23): stack rules tested in `tests/notifications/notificationList.test.ts`, undo-window pause/resume in `tests/binder/undoWindow.test.ts`, overlapping undo windows in `tests/binder/optimisticCache.test.ts`. Browser-checked: order and roles, Undo to "Undone.", 5 s info and 8 s undo timers, hover and focus pause, the limit of 5, placement above the mobile navbar and bottom-right with the desktop navbar, a notice surviving a page change, and two overlapping Undos. The stack uses its own layer, `--z-notifications` (115), above popovers and the card-details overlay and below dialogs. Not tried in the browser: the Search "Sign in" link (needs a signed-out session) and scanner Add mode (needs the camera).
+
+## D-073: Home layout: "Hand of the day"
+
+- Status: Implemented (2026-11-23, branch `feature/d-073-hand-of-the-day`, PR #40)
+- Release: v2026.11.8
+- Date: 2026-11-22
+- Issue: #28
+- Decision: Restyle the daily seven-card set on Home so it **looks like a hand of cards** and has the title **"Hand of the day"** (with the day's set name as a subtitle). The cards overlap in a slight fan, as if held, instead of the current grid of tiles. The data stays the same: up to seven cards from the booster-focused set chosen per UTC day (`mulliganSets.ts`, `CardBrowserPage` in mulligan mode).
+  - Desktop: a fan of seven overlapping cards; hovering or focusing a card lifts it a little (no transform when `prefers-reduced-motion` is set; `base.css` rule plus the local block AGENTS.md asks for).
+  - Phone: a tighter fan or a horizontal row that scrolls, so all seven stay reachable without horizontal page overflow at 390 px.
+  - A tap/click still opens the card details overlay. The card action icons (favorite, binder, deck) stay available, for example on the lifted card or in the details.
+  - The value dashboard (D-076) sits above the hand for signed-in users.
+- Why: The issue asks to "simulate a hand of cards". The cards already form a daily hand; presenting them as one makes the page read as that instead of as a search result.
+- Alternatives considered: A Mulligan button that redraws the hand (from the plan document; not asked for now, can be added on top later). A sample hand drawn from one of the user's decks (a different feature, on the Decks page).
+- Consequences: Mostly CSS and the Home part of `CardBrowserPage`; tokens only, no new colors, radii or z-index values (`npm run lint:css`). `CardTile` is reused; if the fan needs a variant, add it as a modifier class rather than a copy.
+- Source: "[Issues] Decision plan review"
+- Implementation (2026-11-23): `CardBrowserPage` in mulligan mode (Home and `/v2/search/random`) shows a "Hand of the day" heading with the set name and renders the cards as an `<ol class="hand">` of `CardTile`s; the filter bar is not shown on the hand (seven cards need no filters). Each card gets `--hand-offset` (distance from the middle card); `CardBrowserPage.css` turns it into a `rotate` and an arc `translate`. Hover or keyboard focus (`:focus-within`) brings a card to the front (local `z-index` inside `isolation: isolate`) and lifts it, so its action icons are reachable; the lift is cancelled under `prefers-reduced-motion`. Card width follows the window (`clamp(6rem, 18vw, var(--card-image-width))`); at 540 px and below the hand is a sideways-scrolling row with a lighter fan. Browser-checked at 1440 px and 390 px (seven cards, no page overflow, click opens the details). The D-076 dashboard slot is not added, because D-076 is not built yet.

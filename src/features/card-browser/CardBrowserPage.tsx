@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, type CSSProperties } from "react";
 import { Link, useLocation, useSearchParams } from "react-router";
 import CardFilters from "../card-filters/CardFilters.tsx";
 import { useCardsTable } from "../card-filters/useCardsTable.ts";
@@ -11,6 +11,8 @@ import useBinderManagement from "../binder/useBinderManagement.ts";
 import AddBinderCopyDialog from "../binder/AddBinderCopyDialog.tsx";
 import type { BinderCopy } from "../binder/useBinderCopies.ts";
 import useDeckManagement from "../decks/useDeckManagement.ts";
+import { useNotify } from "../notifications/NotificationContext.ts";
+import { createDeckEntryActions } from "../decks/deckEntryActions.ts";
 import useCardBrowserResults from "./useCardBrowserResults.ts";
 import SearchControls from "../search/SearchControls.tsx";
 import type { CardPlaceEntry, CardPlaces } from "../card-filters/types.ts";
@@ -47,9 +49,9 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
     error: favoritesError,
     realtimeError: favoritesRealtimeError,
   } = favorites;
-  const [notice, setNotice] = useState("");
-  const [signInPath, setSignInPath] = useState<string | null>(null);
-  const binder = useBinderManagement(setNotice);
+  // Messages go to the app-wide notification stack (D-080).
+  const notify = useNotify();
+  const binder = useBinderManagement();
   const decks = useDeckManagement();
   const cardId = searchParams.get("card");
   const {
@@ -175,47 +177,42 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
   }, [searchParams, setSearchParams]);
 
   function showActionNotice(action: CardAction, card: CardBrowserCard) {
-    setSignInPath(null);
+    const nextPath = `${location.pathname}${location.search}${location.hash}`;
+    const signIn = { link: { label: "Sign in", to: `/v2/login?next=${encodeURIComponent(nextPath)}` } };
 
     if (action === "binder") {
       if (!user) {
-        const nextPath = `${location.pathname}${location.search}${location.hash}`;
-        setNotice("Sign in to manage your Binder.");
-        setSignInPath(`/v2/login?next=${encodeURIComponent(nextPath)}`);
+        notify.info("Sign in to manage your Binder.", signIn);
       }
       return;
     }
 
     if (action === "deck") {
       if (!user) {
-        const nextPath = `${location.pathname}${location.search}${location.hash}`;
-        setNotice("Sign in to manage decks.");
-        setSignInPath(`/v2/login?next=${encodeURIComponent(nextPath)}`);
+        notify.info("Sign in to manage decks.", signIn);
       }
       return;
     }
 
     if (action !== "favorite") {
-      setNotice(`${ACTION_LABELS[action]} for ${card.name} is under construction.`);
+      notify.info(`${ACTION_LABELS[action]} for ${card.name} is under construction.`);
       return;
     }
 
     if (!user) {
-      const nextPath = `${location.pathname}${location.search}${location.hash}`;
-      setNotice(`Sign in to save ${card.name} to Favorites.`);
-      setSignInPath(`/v2/login?next=${encodeURIComponent(nextPath)}`);
+      notify.info(`Sign in to save ${card.name} to Favorites.`, signIn);
       return;
     }
 
     favorites.toggleCardFavorite(card, user.id, {
       onSuccess: (wasFavorite) =>
-        setNotice(
+        notify.info(
           wasFavorite
             ? `Removed ${card.name} from Favorites.`
             : `Added ${card.name} to Favorites.`,
         ),
       onError: (error) =>
-        setNotice(
+        notify.error(
           `Could not update Favorites for ${card.name}: ${
             error.message
           }`,
@@ -251,6 +248,13 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
   };
   const deckActionProps = {
     deckActions: decks,
+    // D-079 take-out actions in the deck popover, with Undo in this notice.
+    deckEntryActions: createDeckEntryActions({
+      decks,
+      binders: binder.binders,
+      disposeCopies: binder.copies.disposeCopies.mutateAsync,
+      notify,
+    }),
     canManageDeck: Boolean(user),
   };
 
@@ -271,6 +275,13 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
                 : "Sign in to search your personal collection."}
             </p>
           )}
+        </header>
+      )}
+
+      {isRandomRoute && (
+        <header className="page__heading hand__heading">
+          <h1 className="page__title">Hand of the day</h1>
+          {mulliganSet && <p className="hand__set">{mulliganSet.name}</p>}
         </header>
       )}
 
@@ -370,7 +381,31 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
         <p className="page__message card-browser__message">No cards found.</p>
       )}
 
-      {cards.length > 0 && (
+      {isRandomRoute && cards.length > 0 && (
+        <ol className="hand" aria-label="Hand of the day">
+          {cards.map((card, index) => (
+            <li
+              key={card.id}
+              className="hand__card"
+              // Distance from the middle card (-3 … 3 for seven cards); the CSS turns it into the fan angle and arc.
+              style={{ "--hand-offset": index - (cards.length - 1) / 2 } as CSSProperties}
+            >
+              <CardTile
+                card={card}
+                onSelect={openCard}
+                onAction={showActionNotice}
+                isFavorite={favoriteIds.has(card.id)}
+                isFavoritePending={favoriteActionDisabled}
+                binderCopies={binder.copies.copiesByScryfallId.get(card.id) ?? []}
+                {...binderCopyProps}
+                {...deckActionProps}
+              />
+            </li>
+          ))}
+        </ol>
+      )}
+
+      {!isRandomRoute && cards.length > 0 && (
         <>
           <CardFilters
             filters={filters}
@@ -400,7 +435,7 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
           {rows.length === 0 && (
             <p className="page__message card-browser__message">No cards match these filters.</p>
           )}
-          {!isRandomRoute && cardSource.hasNextPage && (
+          {cardSource.hasNextPage && (
             <div className="pagination">
               <button
                 type="button"
@@ -419,22 +454,6 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
         </>
       )}
 
-      {notice && (
-        <div className="page__notice" role="status">
-          <span>{notice}</span>
-          {signInPath && <Link className="page__notice-action" to={signInPath}>Sign in</Link>}
-          <button
-            type="button"
-            className="page__notice-action"
-            onClick={() => {
-              setNotice("");
-              setSignInPath(null);
-            }}
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
       {cardId && (
         <CardDetailsOverlay
           key={cardId}

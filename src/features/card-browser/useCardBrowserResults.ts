@@ -85,9 +85,12 @@ export default function useCardBrowserResults({
     "scryfallSets",
     "https://api.scryfall.com/sets",
   );
+  // Name suggestions are only shown by the search box, which Home (the
+  // random/mulligan view) does not have. Skipping the ~250 kB catalog there
+  // keeps it off the first screen; App prefetches it later (D-071).
   const cardNamesQuery = useFetchUrl(
     "cardNames",
-    "https://api.scryfall.com/catalog/card-names",
+    isRandomRoute ? null : "https://api.scryfall.com/catalog/card-names",
     getSecondsUntilNextLocalFour,
   );
   const rawSets = setsQuery.data ?? NO_DATA;
