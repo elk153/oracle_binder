@@ -8,6 +8,7 @@ import getSecondsUntilNextLocalFour from "../hooks/getSecondsUntilNextLocalFour.
 import useDismissSplash from "../hooks/useDismissSplash.ts";
 import useBackgroundReady from "../hooks/useBackgroundReady.ts";
 import { preloadLikelyPages } from "./lazyPages.ts";
+import NotificationProvider from "../features/notifications/NotificationProvider.tsx";
 
 export default function App() {
   const isBackgroundReady = useBackgroundReady();
@@ -16,12 +17,16 @@ export default function App() {
 
   return (
     <div className="App AppV2">
-      <NavBar />
-      <main className="app-v2__main">
-        <Outlet />
-      </main>
-      {/* Mounted only after the first screen is done (D-071). */}
-      {isBackgroundReady && <BackgroundWork />}
+      {/* One notification stack for the whole app; it stays while the
+          user changes page (D-080). */}
+      <NotificationProvider>
+        <NavBar />
+        <main className="app-v2__main">
+          <Outlet />
+        </main>
+        {/* Mounted only after the first screen is done (D-071). */}
+        {isBackgroundReady && <BackgroundWork />}
+      </NotificationProvider>
     </div>
   );
 }

@@ -89,7 +89,7 @@ export default function AddConfirm({
           {!isChoosingPrinting && (
             <button
               type="button"
-              className="page__notice-action scan-confirm__change"
+              className="scan-confirm__change"
               onClick={() => setIsChoosingPrinting(true)}
             >
               Change printing

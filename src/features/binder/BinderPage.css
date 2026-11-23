@@ -74,20 +74,6 @@
   position: relative;
 }
 
-.binder-page__select {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 0.35rem;
-  min-height: 1.8rem;
-  color: var(--text-secondary);
-  font: 0.72rem var(--font-ui);
-}
-
-.binder-page__select-input {
-  accent-color: var(--text-accent);
-}
-
 @media (max-width: 540px) {
   .binder-page__binder-cover {
     width: min(var(--card-image-width), calc(100vw - 2.95rem));

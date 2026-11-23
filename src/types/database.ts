@@ -252,6 +252,44 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      delete_binder_copies: {
+        Args: { p_copy_ids: string[] }
+        Returns: undefined
+      }
+      delete_deck_entries: {
+        Args: { p_entry_ids: string[] }
+        Returns: undefined
+      }
+      dispose_binder_copies: {
+        Args: { p_copy_ids: string[]; p_disposal_status: string }
+        Returns: {
+          acquired_at: string | null
+          acquisition_format: string | null
+          acquisition_type: string | null
+          binder_id: string | null
+          condition: string | null
+          created_at: string
+          disposal_price: number | null
+          disposed_at: string | null
+          finish: string | null
+          id: string
+          language: string | null
+          location: string | null
+          notes: string | null
+          purchase_price: number | null
+          rarity: string
+          scryfall_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "binder_cards"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       move_binder_copy_to_location: {
         Args: {
           p_binder_id: string | null
@@ -259,6 +297,36 @@ export type Database = {
           p_copy_id: string
           p_deck_id: string | null
         }
+        Returns: {
+          acquired_at: string | null
+          acquisition_format: string | null
+          acquisition_type: string | null
+          binder_id: string | null
+          condition: string | null
+          created_at: string
+          disposal_price: number | null
+          disposed_at: string | null
+          finish: string | null
+          id: string
+          language: string | null
+          location: string | null
+          notes: string | null
+          purchase_price: number | null
+          rarity: string
+          scryfall_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "binder_cards"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      remove_deck_entries: {
+        Args: { p_binder_id: string | null; p_entry_ids: string[] }
         Returns: {
           acquired_at: string | null
           acquisition_format: string | null

@@ -1,0 +1,23 @@
+/* D-079 selection: the checkbox above a card tile and the bulk-action bar.
+   The bar reuses .page__toolbar, .page__control and .page__button from
+   layout.css; only what differs is here. */
+
+.selection-checkbox {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 1.8rem;
+  color: var(--text-secondary);
+  font: 0.72rem var(--font-ui);
+}
+
+.selection-checkbox__input {
+  accent-color: var(--text-accent);
+}
+
+.selection-bar__summary {
+  align-self: center;
+  color: var(--text-primary);
+  font: 600 0.85rem var(--font-ui);
+}

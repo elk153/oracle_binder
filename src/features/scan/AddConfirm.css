@@ -44,9 +44,17 @@
   font-size: 0.9rem;
 }
 
+/* A text-style button (it used to borrow .page__notice-action, removed in
+   D-080). */
 .scan-confirm__change {
   justify-self: start;
   padding: 0;
+  border: 0;
+  color: var(--text-accent);
+  background: transparent;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .scan-confirm__slider {
