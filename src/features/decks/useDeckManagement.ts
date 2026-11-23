@@ -23,6 +23,7 @@ import {
   updateById,
   type ListSnapshot,
 } from "../optimisticCache.ts";
+import { isUndoneError, type UndoWindow } from "../undoWindow.ts";
 export { deckCardsQueryKey } from "../queryKeys.ts";
 
 export type Deck = Tables<"decks">;
@@ -40,6 +41,9 @@ type BinderCopyRow = Tables<"binder_cards">;
 
 // Context for mutations whose database triggers also change Binder copies.
 type MarkedContext = { copyIds: string[]; snapshots: ListSnapshot[] };
+
+// Input of the D-079 entry actions; `copyIds` is filled in by `withCopyIds`.
+type DeferredEntryAction = { ids: string[]; copyIds: string[]; undoWindow?: UndoWindow };
 
 // A copy used by a Binder deck entry has no folder (D-034 exclusive storage).
 function clearFolderOf(copyIds: string[]) {
@@ -296,15 +300,25 @@ export default function useDeckManagement() {
   // D-079 "Remove from deck": the entries leave the deck, and their owned
   // copies go to the folder the user chose (null = Loose), in one database
   // transaction (remove_deck_entries). Returns the moved copies.
+  // D-079 "Delete" in Decks: the entries are deleted, and so are the owned
+  // copies they use: the card leaves the collection (delete_deck_entries).
+  //
+  // Both take an optional `undoWindow` (undoWindow.ts): the screen changes at
+  // once, the request waits 8 s, and Undo restores the lists unsent. The
+  // copy ids are worked out by the wrappers returned below, *before* the
+  // optimistic patch removes the entries, and marked for the Realtime echo
+  // filter only when the request is sent (the marks last 10 s).
   const removeDeckEntries = useMutation<
     BinderCopyRow[],
     Error,
-    { ids: string[]; binderId: string | null },
+    DeferredEntryAction & { binderId: string | null },
     MarkedContext
   >({
-    mutationFn: async ({ ids, binderId }) => {
+    mutationFn: async ({ ids, binderId, copyIds, undoWindow }) => {
       if (!user) throw new Error("Sign in to remove cards from a deck.");
       if (ids.length === 0) return [];
+      await undoWindow?.wait;
+      markLocalRealtimeChange("binder_cards", user.id, copyIds);
       const { data, error } = await supabase.rpc("remove_deck_entries", {
         p_entry_ids: ids,
         p_binder_id: binderId,
@@ -312,38 +326,50 @@ export default function useDeckManagement() {
       if (error) throw error;
       return data;
     },
-    onMutate: ({ ids, binderId }) => {
+    onMutate: async ({ ids, binderId, copyIds }) => {
       const removed = new Set(ids);
-      const copyIds = copyIdsOfEntries((entry) => removed.has(entry.id));
-      return markAndPatch(copyIds, [
-        [deckCardsKey, (current: DeckCard[]) => current.filter((entry) => !removed.has(entry.id))],
-        [copiesKey, updateById<BinderCopyRow>(copyIds, (copy) => ({ ...copy, binder_id: binderId }))],
-      ]);
+      return {
+        copyIds,
+        snapshots: await patchLists(queryClient, [
+          [deckCardsKey, (current: DeckCard[]) => current.filter((entry) => !removed.has(entry.id))],
+          [copiesKey, updateById<BinderCopyRow>(copyIds, (copy) => ({ ...copy, binder_id: binderId }))],
+        ]),
+      };
     },
     onError: (_error, _input, context) => undoMarkAndPatch(context),
     onSuccess: (moved) => replaceBinderCopies(moved),
+    onSettled: (_data, error) => refetchAfterDeferred(error),
   });
 
-  // D-079 "Delete" in Decks: the entries are deleted, and so are the owned
-  // copies they use: the card leaves the collection (delete_deck_entries).
-  const deleteDeckEntries = useMutation<void, Error, { ids: string[] }, MarkedContext>({
-    mutationFn: async ({ ids }) => {
+  const deleteDeckEntries = useMutation<void, Error, DeferredEntryAction, MarkedContext>({
+    mutationFn: async ({ ids, copyIds, undoWindow }) => {
       if (!user) throw new Error("Sign in to delete deck cards.");
       if (ids.length === 0) return;
+      await undoWindow?.wait;
+      markLocalRealtimeChange("binder_cards", user.id, copyIds);
       const { error } = await supabase.rpc("delete_deck_entries", { p_entry_ids: ids });
       if (error) throw error;
     },
-    onMutate: ({ ids }) => {
+    onMutate: async ({ ids, copyIds }) => {
       const deleted = new Set(ids);
-      const copyIds = copyIdsOfEntries((entry) => deleted.has(entry.id));
       const deletedCopies = new Set(copyIds);
-      return markAndPatch(copyIds, [
-        [deckCardsKey, (current: DeckCard[]) => current.filter((entry) => !deleted.has(entry.id))],
-        [copiesKey, (current: BinderCopyRow[]) => current.filter((copy) => !deletedCopies.has(copy.id))],
-      ]);
+      return {
+        copyIds,
+        snapshots: await patchLists(queryClient, [
+          [deckCardsKey, (current: DeckCard[]) => current.filter((entry) => !deleted.has(entry.id))],
+          [copiesKey, (current: BinderCopyRow[]) => current.filter((copy) => !deletedCopies.has(copy.id))],
+        ]),
+      };
     },
     onError: (_error, _input, context) => undoMarkAndPatch(context),
+    onSettled: (_data, error) => refetchAfterDeferred(error),
   });
+
+  // The copies used by these entries, read from the cache before the patch.
+  function withCopyIds<T extends { ids: string[] }>(input: T): T & { copyIds: string[] } {
+    const ids = new Set(input.ids);
+    return { ...input, copyIds: copyIdsOfEntries((entry) => ids.has(entry.id)) };
+  }
 
   // Binder copies used by the cached deck entries that match `test`. Read
   // in onMutate, *before* the optimistic patch changes the entries.
@@ -394,6 +420,15 @@ export default function useDeckManagement() {
     void queryClient.invalidateQueries({ queryKey: copiesKey });
   }
 
+  // After a deferred (undo window) request: nothing to do when it was undone,
+  // otherwise refetch both lists (a refetch during the window may have
+  // brought the old rows back).
+  function refetchAfterDeferred(error: Error | null) {
+    if (isUndoneError(error)) return;
+    void queryClient.invalidateQueries({ queryKey: deckCardsKey });
+    refetchBinderCopies();
+  }
+
   return {
     decks: decksQuery.data ?? [],
     deckCards: deckCardsQuery.data ?? [],
@@ -405,17 +440,20 @@ export default function useDeckManagement() {
       deleteDeck.isPending ||
       addDeckCard.isPending ||
       updateDeckCard.isPending ||
-      deleteDeckCards.isPending ||
-      removeDeckEntries.isPending ||
-      deleteDeckEntries.isPending,
+      deleteDeckCards.isPending,
+    // removeDeckEntries and deleteDeckEntries are left out of isPending on
+    // purpose: with an undo window they stay pending for 8 s, and the page's
+    // buttons must not be locked that long.
     createDeck: createDeck.mutateAsync,
     renameDeck: renameDeck.mutateAsync,
     deleteDeck: deleteDeck.mutateAsync,
     addDeckCard: addDeckCard.mutateAsync,
     updateDeckCard: updateDeckCard.mutateAsync,
     deleteDeckCards: deleteDeckCards.mutateAsync,
-    removeDeckEntries: removeDeckEntries.mutateAsync,
-    deleteDeckEntries: deleteDeckEntries.mutateAsync,
+    removeDeckEntries: (input: { ids: string[]; binderId: string | null; undoWindow?: UndoWindow }) =>
+      removeDeckEntries.mutateAsync(withCopyIds(input)),
+    deleteDeckEntries: (input: { ids: string[]; undoWindow?: UndoWindow }) =>
+      deleteDeckEntries.mutateAsync(withCopyIds(input)),
   };
 }
 

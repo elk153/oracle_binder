@@ -16,6 +16,7 @@ import {
   type DeckEntry,
   type ListSnapshot,
 } from "../optimisticCache.ts";
+import { isUndoneError, type UndoWindow } from "../undoWindow.ts";
 import {
   binderCopiesQueryKey,
   deckCardsQueryKey,
@@ -290,10 +291,21 @@ export default function useBinderCopies() {
   // D-079 bulk actions. One request for the whole list: the database
   // function changes all copies or none (delete_binder_copies,
   // dispose_binder_copies). Deck entries using the copies become virtual.
-  const deleteCopies = useMutation<void, Error, { ids: string[] }, ListSnapshot[]>({
-    mutationFn: async ({ ids }) => {
+  // With an `undoWindow`, the screen changes at once but the request waits
+  // for it (8 s); Undo rejects the wait and onError restores the lists. The
+  // Realtime echo marks are set only when the request is sent (they last
+  // 10 s). After the request, both lists are refetched: a refetch during the
+  // window may have brought the old rows back.
+  const deleteCopies = useMutation<
+    void,
+    Error,
+    { ids: string[]; undoWindow?: UndoWindow },
+    ListSnapshot[]
+  >({
+    mutationFn: async ({ ids, undoWindow }) => {
       if (!user) throw new Error("Sign in to delete binder copies.");
       if (ids.length === 0) return;
+      await undoWindow?.wait;
       markLocalRealtimeChange("binder_cards", user.id, ids);
       try {
         const { error } = await supabase.rpc("delete_binder_copies", { p_copy_ids: ids });
@@ -311,18 +323,19 @@ export default function useBinderCopies() {
       ]);
     },
     onError: (_error, _input, snapshots) => restoreLists(queryClient, snapshots),
-    onSettled: () => refetchDeckEntries(),
+    onSettled: (_data, error) => refetchAfterDeferred(error),
   });
 
   const disposeCopies = useMutation<
     BinderCopy[],
     Error,
-    { ids: string[]; status: "sold" | "lost" | "given_away" },
+    { ids: string[]; status: "sold" | "lost" | "given_away"; undoWindow?: UndoWindow },
     ListSnapshot[]
   >({
-    mutationFn: async ({ ids, status }) => {
+    mutationFn: async ({ ids, status, undoWindow }) => {
       if (!user) throw new Error("Sign in to dispose binder copies.");
       if (ids.length === 0) return [];
+      await undoWindow?.wait;
       markLocalRealtimeChange("binder_cards", user.id, ids);
       try {
         const { data, error } = await supabase.rpc("dispose_binder_copies", {
@@ -348,7 +361,7 @@ export default function useBinderCopies() {
     },
     onError: (_error, _input, snapshots) => restoreLists(queryClient, snapshots),
     onSuccess: (updated) => replaceCopies(updated),
-    onSettled: () => refetchDeckEntries(),
+    onSettled: (_data, error) => refetchAfterDeferred(error),
   });
 
   const moveCopies = useMutation<
@@ -466,6 +479,14 @@ export default function useBinderCopies() {
   // Background refetch (not awaited, see above).
   function refetchDeckEntries() {
     void queryClient.invalidateQueries({ queryKey: deckKey });
+  }
+
+  // After a deferred (undo window) request: nothing to do when it was undone,
+  // otherwise refetch both lists in the background.
+  function refetchAfterDeferred(error: Error | null) {
+    if (isUndoneError(error)) return;
+    void queryClient.invalidateQueries({ queryKey });
+    refetchDeckEntries();
   }
 
   return {
