@@ -18,6 +18,17 @@ import type { BinderCopy } from "../binder/useBinderCopies.ts";
 import type { Deck, DeckCard } from "./useDeckManagement.ts";
 import useDeckManagement from "./useDeckManagement.ts";
 import useFavoriteCardAction from "../favorites/useFavoriteCardAction.ts";
+import SelectionBar from "../selection/SelectionBar.tsx";
+import SelectionCheckbox from "../selection/SelectionCheckbox.tsx";
+import UndoNotice from "../selection/UndoNotice.tsx";
+import useUndoNotice from "../selection/useUndoNotice.ts";
+import {
+  DISPOSAL_STATUSES,
+  countText,
+  disposalLabel,
+  runUndoable,
+  type DisposalStatus,
+} from "../selection/selectionActions.ts";
 import "./DecksPage.css";
 
 const DECK_VIEWS = ["all", "decks"] as const;
@@ -58,7 +69,14 @@ export default function DecksPage() {
   const { user } = useAuth();
   const [cardId, setCardId] = useState<string | null>(null);
   const [newDeckName, setNewDeckName] = useState("");
-  const [notice, setNotice] = useState("");
+  // D-079: the notice offers Undo for 8 s after a remove, dispose or delete.
+  const undoNotice = useUndoNotice();
+  const setNotice = undoNotice.show;
+  // Selected deck entries (D-079). Unlike the Binder, every tile here is one
+  // entry, so the selection holds entry ids.
+  const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(() => new Set());
+  const [removeDestination, setRemoveDestination] = useState("");
+  const [disposeStatus, setDisposeStatus] = useState<DisposalStatus | "">("");
   const decks = useDeckManagement();
   const binder = useBinderManagement(setNotice);
   const favorites = useFavoriteCardAction();
@@ -77,6 +95,8 @@ export default function DecksPage() {
     "decks-page",
     cardIds,
     Boolean(user) && !decks.isLoading,
+    // A removal changes the id list; keep the grid on screen.
+    { keepPrevious: true },
   );
   const invalidCardData =
     cardsQuery.data?.some((card) => !isCardBrowserCard(card)) ?? false;
@@ -129,10 +149,26 @@ export default function DecksPage() {
     const card = entry ? cardsById.get(entry.scryfall_id) : undefined;
     return entry && card ? [{ entry, card }] : [];
   });
-  const cardsMissingFromScryfall = visibleEntries.length - tableCards.length;
+  // With keepPrevious, the previous cards stay on screen while a changed list
+  // loads; it only counts as loading when cards for this view are missing.
+  const cardsLoading =
+    cardsQuery.isLoading ||
+    (cardsQuery.isPlaceholderData &&
+      visibleEntries.some((entry) => !cardsById.has(entry.scryfall_id)));
+  const cardsMissingFromScryfall = cardsQuery.isPlaceholderData
+    ? 0
+    : visibleEntries.length - tableCards.length;
+  const deckNames = new Map(decks.decks.map((deck) => [deck.id, deck.name]));
+
+  // The selection counts only entries that are still in this view.
+  const selectionEntries = visibleEntries.filter((entry) => selectedEntryIds.has(entry.id));
+  const ownedSelection = selectionEntries.filter(
+    (entry) => entry.kind === "binder" && entry.binder_card_id,
+  );
   const selectedCard = cardId ? cardsById.get(cardId) : undefined;
 
   function chooseDeck(deckId: string) {
+    setSelectedEntryIds(new Set());
     void setSelectedDeckId(deckId);
     void setView("all");
   }
@@ -194,6 +230,74 @@ export default function DecksPage() {
     }
   }
 
+  function toggleEntrySelection(id: string) {
+    setSelectedEntryIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  // Where the selected entries are: one deck's name, or "decks".
+  function fromText() {
+    const deckIds = new Set(selectionEntries.map((entry) => entry.deck_id));
+    const [only] = deckIds;
+    return deckIds.size === 1 ? (deckNames.get(only) ?? "the deck") : "decks";
+  }
+
+  // D-079 bulk actions with an 8-second undo buffer (runUndoable).
+  function removeSelectedEntries() {
+    const ids = selectionEntries.map((entry) => entry.id);
+    if (ids.length === 0) return;
+    const owned = ownedSelection.length;
+    if (owned > 0 && !removeDestination) return;
+    const binderId = removeDestination && removeDestination !== "loose" ? removeDestination : null;
+    const destination = binderId
+      ? (binder.binders.find((target) => target.id === binderId)?.name ?? "the binder")
+      : "Loose";
+    const text =
+      `Removed ${countText(ids.length, "card")} from ${fromText()}` +
+      (owned > 0 ? `; ${countText(owned, "copy", "copies")} to ${destination}.` : ".");
+    setSelectedEntryIds(new Set());
+    setRemoveDestination("");
+    void runUndoable(setNotice, text, "Could not remove the selected cards", (undoWindow) =>
+      decks.removeDeckEntries({ ids, binderId, undoWindow }),
+    );
+  }
+
+  // Dispose applies to owned copies only; proxy and virtual entries are
+  // left as they are, and the notice says how many were skipped.
+  function disposeSelectedCopies() {
+    const status = disposeStatus;
+    const ids = ownedSelection.flatMap((entry) =>
+      entry.binder_card_id ? [entry.binder_card_id] : [],
+    );
+    if (!status || ids.length === 0) return;
+    const skipped = selectionEntries.length - ids.length;
+    const text =
+      `Disposed ${countText(ids.length, "copy", "copies")} as ${disposalLabel(status).toLowerCase()}` +
+      (skipped > 0 ? `; ${countText(skipped, "proxy or virtual card", "proxy or virtual cards")} skipped.` : ".");
+    setSelectedEntryIds(new Set());
+    setDisposeStatus("");
+    void runUndoable(setNotice, text, "Could not dispose the selected copies", (undoWindow) =>
+      binder.copies.disposeCopies.mutateAsync({ ids, status, undoWindow }),
+    );
+  }
+
+  function deleteSelectedEntries() {
+    const ids = selectionEntries.map((entry) => entry.id);
+    if (ids.length === 0) return;
+    const owned = ownedSelection.length;
+    const text =
+      `Deleted ${countText(ids.length, "card")} from ${fromText()}` +
+      (owned > 0 ? `, including ${countText(owned, "owned copy", "owned copies")}.` : ".");
+    setSelectedEntryIds(new Set());
+    void runUndoable(setNotice, text, "Could not delete the selected cards", (undoWindow) =>
+      decks.deleteDeckEntries({ ids, undoWindow }),
+    );
+  }
+
   function handleCardAction(action: CardAction, card: CardBrowserCard) {
     if (action !== "favorite" || !user) return;
     favorites.toggleCardFavorite(card, user.id, {
@@ -241,7 +345,7 @@ export default function DecksPage() {
       ),
     );
   }
-  const isLoading = decks.isLoading || cardsQuery.isLoading;
+  const isLoading = decks.isLoading || cardsLoading;
 
   return (
     <section className="page deck-page">
@@ -401,9 +505,10 @@ export default function DecksPage() {
               <select
                 className="page__control"
                 value={selectedDeckId ?? ""}
-                onChange={(event) =>
-                  void setSelectedDeckId(event.currentTarget.value || null)
-                }
+                onChange={(event) => {
+                  setSelectedEntryIds(new Set());
+                  void setSelectedDeckId(event.currentTarget.value || null);
+                }}
               >
                 <option value="">All decks</option>
                 {decks.decks.map((deck) => (
@@ -419,6 +524,84 @@ export default function DecksPage() {
               </button>
             )}
           </div>
+
+          <SelectionBar
+            count={selectionEntries.length}
+            summary={
+              countText(selectionEntries.length, "card") +
+              (ownedSelection.length > 0
+                ? ` (${countText(ownedSelection.length, "owned copy", "owned copies")})`
+                : "")
+            }
+            shownCount={filteredEntries.length}
+            onSelectAll={() =>
+              setSelectedEntryIds(new Set(filteredEntries.map(({ entry }) => entry.id)))
+            }
+            onClear={() => setSelectedEntryIds(new Set())}
+          >
+            {ownedSelection.length > 0 && (
+              <label className="page__label">
+                Owned copies go to
+                <select
+                  className="page__control"
+                  value={removeDestination}
+                  onChange={(event) => setRemoveDestination(event.currentTarget.value)}
+                >
+                  <option value="">Choose destination</option>
+                  <option value="loose">Loose</option>
+                  {binder.binders.map((target) => (
+                    <option key={target.id} value={target.id}>
+                      {target.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            <button
+              type="button"
+              className="page__control page__button"
+              onClick={removeSelectedEntries}
+              disabled={ownedSelection.length > 0 && !removeDestination}
+            >
+              Remove from deck
+            </button>
+            {ownedSelection.length > 0 && (
+              <>
+                <label className="page__label">
+                  Dispose as
+                  <select
+                    className="page__control"
+                    value={disposeStatus}
+                    onChange={(event) =>
+                      setDisposeStatus(event.currentTarget.value as DisposalStatus | "")
+                    }
+                  >
+                    <option value="">Choose reason</option>
+                    {DISPOSAL_STATUSES.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  className="page__control page__button"
+                  onClick={disposeSelectedCopies}
+                  disabled={!disposeStatus}
+                >
+                  Dispose
+                </button>
+              </>
+            )}
+            <button
+              type="button"
+              className="page__control page__button"
+              onClick={deleteSelectedEntries}
+            >
+              Delete
+            </button>
+          </SelectionBar>
 
           {tableCards.length > 0 && (
             <CardFilters
@@ -453,6 +636,14 @@ export default function DecksPage() {
                       : "Virtual";
                 return (
                   <article className="deck-page__entry" key={entry.id}>
+                    <SelectionCheckbox
+                      checked={selectedEntryIds.has(entry.id)}
+                      onChange={() => toggleEntrySelection(entry.id)}
+                      label="Select"
+                      ariaLabel={`Select ${card.name} (${kindLabel}) in ${
+                        deckNames.get(entry.deck_id) ?? "its deck"
+                      }`}
+                    />
                     <CardTile
                       card={card}
                       deckEntryKind={entry.kind}
@@ -508,12 +699,11 @@ export default function DecksPage() {
         </>
       )}
 
-      {notice && (
-        <p className="page__notice" role="status">
-          <span>{notice}</span>
-          <button type="button" className="page__notice-action" onClick={() => setNotice("")}>Dismiss</button>
-        </p>
-      )}
+      <UndoNotice
+        notice={undoNotice.notice}
+        onUndo={undoNotice.undo}
+        onDismiss={undoNotice.dismiss}
+      />
 
       {/* Any card id can be shown: a card outside this page (e.g. a meld
           partner) has no fallbackCard, so the overlay fetches it. */}

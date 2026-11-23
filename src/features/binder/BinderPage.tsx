@@ -25,25 +25,20 @@ import SelectionBar from "../selection/SelectionBar.tsx";
 import SelectionCheckbox from "../selection/SelectionCheckbox.tsx";
 import UndoNotice from "../selection/UndoNotice.tsx";
 import useUndoNotice from "../selection/useUndoNotice.ts";
-import { createUndoWindow, isUndoneError, type UndoWindow } from "../undoWindow.ts";
+import {
+  DISPOSAL_STATUSES,
+  countText,
+  disposalLabel,
+  runUndoable,
+  type DisposalStatus,
+} from "../selection/selectionActions.ts";
 import "./BinderPage.css";
 
 const BINDER_VIEWS = ["all", "binders"] as const;
 const HISTORY_FILTER = "history";
 
-const DISPOSAL_STATUSES = [
-  { value: "sold", label: "Sold" },
-  { value: "lost", label: "Lost" },
-  { value: "given_away", label: "Given away" },
-] as const;
-type DisposalStatus = (typeof DISPOSAL_STATUSES)[number]["value"];
-
 function copiesText(count: number) {
-  return `${count} ${count === 1 ? "copy" : "copies"}`;
-}
-
-function errorText(error: unknown) {
-  return error instanceof Error ? error.message : "The request failed.";
+  return countText(count, "copy", "copies");
 }
 
 type BinderDialogState =
@@ -253,33 +248,17 @@ export default function BinderPage() {
     }
   }
 
-  // D-079 bulk actions with an 8-second undo buffer: the cards leave the
-  // view at once, the request waits for the undo window, and Undo in the
-  // notice cancels it. An undone action is not an error.
-  async function runUndoable(
-    text: string,
-    failure: string,
-    run: (undoWindow: UndoWindow) => Promise<unknown>,
-  ) {
-    const undoWindow = createUndoWindow();
-    setSelectedCardIds(new Set());
-    setNotice(text, undoWindow);
-    try {
-      await run(undoWindow);
-    } catch (error) {
-      if (isUndoneError(error)) return;
-      setNotice(`${failure}: ${errorText(error)}`);
-    }
-  }
-
+  // D-079 bulk actions with an 8-second undo buffer (runUndoable): the
+  // cards leave the view at once, and Undo in the notice cancels the request.
   function disposeSelectedCopies() {
     const status = disposeStatus;
     const ids = selectionCopies.map((copy) => copy.id);
     if (!status || ids.length === 0) return;
-    const label = DISPOSAL_STATUSES.find((option) => option.value === status)?.label ?? status;
     setDisposeStatus("");
+    setSelectedCardIds(new Set());
     void runUndoable(
-      `Disposed ${copiesText(ids.length)} as ${label.toLowerCase()}.`,
+      setNotice,
+      `Disposed ${copiesText(ids.length)} as ${disposalLabel(status).toLowerCase()}.`,
       "Could not dispose the selected copies",
       (undoWindow) => binder.copies.disposeCopies.mutateAsync({ ids, status, undoWindow }),
     );
@@ -288,7 +267,9 @@ export default function BinderPage() {
   function deleteSelectedCopies() {
     const ids = selectionCopies.map((copy) => copy.id);
     if (ids.length === 0) return;
+    setSelectedCardIds(new Set());
     void runUndoable(
+      setNotice,
       `Deleted ${copiesText(ids.length)}.`,
       "Could not delete the selected copies",
       (undoWindow) => binder.copies.deleteCopies.mutateAsync({ ids, undoWindow }),
