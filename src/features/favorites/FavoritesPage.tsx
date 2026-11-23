@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router";
 import CardFilters from "../card-filters/CardFilters.tsx";
 import { useCardsTable } from "../card-filters/useCardsTable.ts";
@@ -13,6 +13,8 @@ import useBinderManagement from "../binder/useBinderManagement.ts";
 import AddBinderCopyDialog from "../binder/AddBinderCopyDialog.tsx";
 import type { BinderCopy } from "../binder/useBinderCopies.ts";
 import useDeckManagement from "../decks/useDeckManagement.ts";
+import { useNotify } from "../notifications/NotificationContext.ts";
+import { createDeckEntryActions } from "../decks/deckEntryActions.ts";
 import "./FavoritesPage.css";
 
 const ACTION_LABELS: Record<CardAction, string> = {
@@ -32,9 +34,17 @@ export default function FavoritesPage() {
     realtimeError: favoritesRealtimeError,
   } = useFavoriteIds();
   const toggleFavorite = useToggleFavorite();
-  const [notice, setNotice] = useState("");
-  const binder = useBinderManagement(setNotice);
+  // Messages go to the app-wide notification stack (D-080).
+  const notify = useNotify();
+  const binder = useBinderManagement();
   const decks = useDeckManagement();
+  // D-079 take-out actions in the deck popover, with Undo in this notice.
+  const deckEntryActions = createDeckEntryActions({
+    decks,
+    binders: binder.binders,
+    disposeCopies: binder.copies.disposeCopies.mutateAsync,
+    notify,
+  });
   const cardId = searchParams.get("card");
   const invalidCardData = favoriteSource.cards.some(
     (card) => !isCardBrowserCard(card),
@@ -91,17 +101,17 @@ export default function FavoritesPage() {
 
   function handleAction(action: CardAction, card: CardBrowserCard) {
     if (action === "deck") {
-      if (!user) setNotice("Sign in to manage decks.");
+      if (!user) notify.info("Sign in to manage decks.");
       return;
     }
 
     if (action !== "favorite") {
-      setNotice(`${ACTION_LABELS[action]} for ${card.name} is under construction.`);
+      notify.info(`${ACTION_LABELS[action]} for ${card.name} is under construction.`);
       return;
     }
 
     if (!user) {
-      setNotice("Sign in to manage your favorites.");
+      notify.info("Sign in to manage your favorites.");
       return;
     }
 
@@ -110,13 +120,13 @@ export default function FavoritesPage() {
       { userId: user.id, scryfallId: card.id, isFavorite: wasFavorite },
       {
         onSuccess: () =>
-          setNotice(
+          notify.info(
             wasFavorite
               ? `Removed ${card.name} from Favorites.`
               : `Added ${card.name} to Favorites.`,
           ),
         onError: (error) =>
-          setNotice(`Could not update Favorites for ${card.name}: ${error.message}`),
+          notify.error(`Could not update Favorites for ${card.name}: ${error.message}`),
       },
     );
   }
@@ -223,6 +233,7 @@ export default function FavoritesPage() {
                   binder.deleteCopy(copy.id)
                 }
                 deckActions={decks}
+                deckEntryActions={deckEntryActions}
                 canManageDeck={Boolean(user)}
               />
             ))}
@@ -252,14 +263,6 @@ export default function FavoritesPage() {
         </div>
       )}
 
-      {notice && (
-        <div className="page__notice" role="status">
-          <span>{notice}</span>
-          <button type="button" className="page__notice-action" onClick={() => setNotice("")}>
-            Dismiss
-          </button>
-        </div>
-      )}
 
       {cardId && (
         <CardDetailsOverlay
@@ -283,6 +286,7 @@ export default function FavoritesPage() {
           onRestoreBinderCopy={(copy: BinderCopy) => binder.restoreCopy(copy.id)}
           onDeleteBinderCopy={(copy: BinderCopy) => binder.deleteCopy(copy.id)}
           deckActions={decks}
+                deckEntryActions={deckEntryActions}
           canManageDeck={Boolean(user)}
           onOpenCard={openCardById}
           onClose={closeDetails}

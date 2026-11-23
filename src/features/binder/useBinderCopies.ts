@@ -10,12 +10,14 @@ import {
   patchLists,
   releaseDeckEntriesOf,
   restoreLists,
+  restoreRows,
   toOptimisticCopy,
   toOptimisticDeckEntry,
   updateById,
   type DeckEntry,
   type ListSnapshot,
 } from "../optimisticCache.ts";
+import { isUndoneError, type UndoWindow } from "../undoWindow.ts";
 import {
   binderCopiesQueryKey,
   deckCardsQueryKey,
@@ -281,10 +283,90 @@ export default function useBinderCopies() {
                 disposed_at: new Date().toISOString(),
               })),
         ],
-        [deckKey, releaseDeckEntriesOf(id)],
+        [deckKey, releaseDeckEntriesOf([id])],
       ]),
     onError: (_error, _input, snapshots) => restoreLists(queryClient, snapshots),
     onSettled: () => refetchDeckEntries(),
+  });
+
+  // D-079 bulk actions. One request for the whole list: the database
+  // function changes all copies or none (delete_binder_copies,
+  // dispose_binder_copies). Deck entries using the copies become virtual.
+  // With an `undoWindow`, the screen changes at once but the request waits
+  // for it (8 s); Undo rejects the wait and onError restores the lists. The
+  // Realtime echo marks are set only when the request is sent (they last
+  // 10 s). After the request, both lists are refetched: a refetch during the
+  // window may have brought the old rows back.
+  const deleteCopies = useMutation<
+    void,
+    Error,
+    { ids: string[]; undoWindow?: UndoWindow },
+    ListSnapshot[]
+  >({
+    mutationFn: async ({ ids, undoWindow }) => {
+      if (!user) throw new Error("Sign in to delete binder copies.");
+      if (ids.length === 0) return;
+      await undoWindow?.wait;
+      markLocalRealtimeChange("binder_cards", user.id, ids);
+      try {
+        const { error } = await supabase.rpc("delete_binder_copies", { p_copy_ids: ids });
+        if (error) throw error;
+      } catch (error) {
+        clearLocalRealtimeChange("binder_cards", user.id, ids);
+        throw error;
+      }
+    },
+    onMutate: ({ ids }) => {
+      const deleted = new Set(ids);
+      return patchLists(queryClient, [
+        [queryKey, (current: BinderCopy[]) => current.filter((copy) => !deleted.has(copy.id))],
+        [deckKey, releaseDeckEntriesOf(ids)],
+      ]);
+    },
+    // Only these copies (and their deck entries) go back: other undo
+    // windows may be open at the same time (D-080).
+    onError: (_error, { ids }, snapshots) => restoreRows(queryClient, snapshots, ids),
+    onSettled: (_data, error) => refetchAfterDeferred(error),
+  });
+
+  const disposeCopies = useMutation<
+    BinderCopy[],
+    Error,
+    { ids: string[]; status: "sold" | "lost" | "given_away"; undoWindow?: UndoWindow },
+    ListSnapshot[]
+  >({
+    mutationFn: async ({ ids, status, undoWindow }) => {
+      if (!user) throw new Error("Sign in to dispose binder copies.");
+      if (ids.length === 0) return [];
+      await undoWindow?.wait;
+      markLocalRealtimeChange("binder_cards", user.id, ids);
+      try {
+        const { data, error } = await supabase.rpc("dispose_binder_copies", {
+          p_copy_ids: ids,
+          p_disposal_status: status,
+        });
+        if (error) throw error;
+        return data;
+      } catch (error) {
+        clearLocalRealtimeChange("binder_cards", user.id, ids);
+        throw error;
+      }
+    },
+    onMutate: ({ ids, status }) => {
+      const disposedAt = new Date().toISOString();
+      return patchLists(queryClient, [
+        [
+          queryKey,
+          updateById<BinderCopy>(ids, (copy) => ({ ...copy, status, disposed_at: disposedAt })),
+        ],
+        [deckKey, releaseDeckEntriesOf(ids)],
+      ]);
+    },
+    // Only these copies (and their deck entries) go back: other undo
+    // windows may be open at the same time (D-080).
+    onError: (_error, { ids }, snapshots) => restoreRows(queryClient, snapshots, ids),
+    onSuccess: (updated) => replaceCopies(updated),
+    onSettled: (_data, error) => refetchAfterDeferred(error),
   });
 
   const moveCopies = useMutation<
@@ -357,7 +439,7 @@ export default function useBinderCopies() {
         const existing = current.find(
           (entry) => entry.binder_card_id === id && entry.kind === "binder",
         );
-        if (!deckId) return releaseDeckEntriesOf(id)(current);
+        if (!deckId) return releaseDeckEntriesOf([id])(current);
         if (existing) {
           return updateById<DeckEntry>([existing.id], (entry) => ({ ...entry, deck_id: deckId }))(current);
         }
@@ -404,6 +486,14 @@ export default function useBinderCopies() {
     void queryClient.invalidateQueries({ queryKey: deckKey });
   }
 
+  // After a deferred (undo window) request: nothing to do when it was undone,
+  // otherwise refetch both lists in the background.
+  function refetchAfterDeferred(error: Error | null) {
+    if (isUndoneError(error)) return;
+    void queryClient.invalidateQueries({ queryKey });
+    refetchDeckEntries();
+  }
+
   return {
     ...query,
     realtimeError,
@@ -413,6 +503,8 @@ export default function useBinderCopies() {
     addCopyToDeck,
     updateCopy,
     removeOrDisposeCopy,
+    deleteCopies,
+    disposeCopies,
     moveCopies,
     moveCopyToLocation,
   };
