@@ -21,10 +21,30 @@ import { LOOSE_BINDER_COLOR } from "./binderColors.ts";
 import type { BinderCopy } from "./useBinderCopies.ts";
 import type { Binder, BinderValues } from "./useBinders.ts";
 import useDeckManagement from "../decks/useDeckManagement.ts";
+import SelectionBar from "../selection/SelectionBar.tsx";
+import SelectionCheckbox from "../selection/SelectionCheckbox.tsx";
+import UndoNotice from "../selection/UndoNotice.tsx";
+import useUndoNotice from "../selection/useUndoNotice.ts";
+import { createUndoWindow, isUndoneError, type UndoWindow } from "../undoWindow.ts";
 import "./BinderPage.css";
 
 const BINDER_VIEWS = ["all", "binders"] as const;
 const HISTORY_FILTER = "history";
+
+const DISPOSAL_STATUSES = [
+  { value: "sold", label: "Sold" },
+  { value: "lost", label: "Lost" },
+  { value: "given_away", label: "Given away" },
+] as const;
+type DisposalStatus = (typeof DISPOSAL_STATUSES)[number]["value"];
+
+function copiesText(count: number) {
+  return `${count} ${count === 1 ? "copy" : "copies"}`;
+}
+
+function errorText(error: unknown) {
+  return error instanceof Error ? error.message : "The request failed.";
+}
 
 type BinderDialogState =
   | { mode: "create" }
@@ -53,7 +73,9 @@ export default function BinderPage() {
     parseAsString,
   );
   const { user } = useAuth();
-  const [notice, setNotice] = useState("");
+  // D-079: the notice offers Undo for 8 s after a delete or dispose.
+  const undoNotice = useUndoNotice();
+  const setNotice = undoNotice.show;
   const [cardId, setCardId] = useState<string | null>(null);
   const [binderDialog, setBinderDialog] = useState<BinderDialogState | null>(
     null,
@@ -62,6 +84,7 @@ export default function BinderPage() {
     () => new Set(),
   );
   const [moveDestination, setMoveDestination] = useState("");
+  const [disposeStatus, setDisposeStatus] = useState<DisposalStatus | "">("");
   const binder = useBinderManagement(setNotice);
   const decks = useDeckManagement();
   const favorites = useFavoriteCardAction();
@@ -100,6 +123,8 @@ export default function BinderPage() {
     "binder-page",
     selectedBinderId === HISTORY_FILTER ? historyCardIds : ownedCardIds,
     Boolean(user) && !binder.copies.isLoading && !decks.isLoading,
+    // A delete or dispose changes the id list; keep the grid on screen.
+    { keepPrevious: true },
   );
   const invalidCardData =
     cardsQuery.data?.some((card) => !isCardBrowserCard(card)) ?? false;
@@ -127,8 +152,20 @@ export default function BinderPage() {
               (copy) => copy.binder_id === selectedBinderId,
             )
         : unallocatedOwnedCopies;
+  // The copies a bulk action works on: those of the selected cards in the
+  // current view (D-079). A card can have several copies here.
+  const selectionCopies = selectedCopies.filter((copy) =>
+    selectedCardIds.has(copy.scryfall_id),
+  );
+  const isHistory = selectedBinderId === HISTORY_FILTER;
   const selectedIds = new Set(selectedCopies.map((copy) => copy.scryfall_id));
   const viewCards = cards.filter((card) => selectedIds.has(card.id));
+  // With keepPrevious, the previous list stays on screen while a changed one
+  // loads. After a delete nothing is missing, so the grid stays; after a view
+  // switch (e.g. to History) cards are missing, so the page shows Loading.
+  const cardsLoading =
+    cardsQuery.isLoading ||
+    (cardsQuery.isPlaceholderData && viewCards.length < selectedIds.size);
   const { table, filters, setFilters, resetFilters } = useCardsTable(viewCards);
   const rows = table.getRowModel().rows;
   const orderedCards = rows.map((row) => {
@@ -200,9 +237,7 @@ export default function BinderPage() {
   async function moveSelectedCopies() {
     const destination =
       moveDestination === "loose" ? null : moveDestination || null;
-    const ids = unallocatedOwnedCopies
-      .filter((copy) => selectedCardIds.has(copy.scryfall_id))
-      .map((copy) => copy.id);
+    const ids = selectionCopies.map((copy) => copy.id);
     if (ids.length === 0) return;
 
     try {
@@ -216,6 +251,48 @@ export default function BinderPage() {
         }`,
       );
     }
+  }
+
+  // D-079 bulk actions with an 8-second undo buffer: the cards leave the
+  // view at once, the request waits for the undo window, and Undo in the
+  // notice cancels it. An undone action is not an error.
+  async function runUndoable(
+    text: string,
+    failure: string,
+    run: (undoWindow: UndoWindow) => Promise<unknown>,
+  ) {
+    const undoWindow = createUndoWindow();
+    setSelectedCardIds(new Set());
+    setNotice(text, undoWindow);
+    try {
+      await run(undoWindow);
+    } catch (error) {
+      if (isUndoneError(error)) return;
+      setNotice(`${failure}: ${errorText(error)}`);
+    }
+  }
+
+  function disposeSelectedCopies() {
+    const status = disposeStatus;
+    const ids = selectionCopies.map((copy) => copy.id);
+    if (!status || ids.length === 0) return;
+    const label = DISPOSAL_STATUSES.find((option) => option.value === status)?.label ?? status;
+    setDisposeStatus("");
+    void runUndoable(
+      `Disposed ${copiesText(ids.length)} as ${label.toLowerCase()}.`,
+      "Could not dispose the selected copies",
+      (undoWindow) => binder.copies.disposeCopies.mutateAsync({ ids, status, undoWindow }),
+    );
+  }
+
+  function deleteSelectedCopies() {
+    const ids = selectionCopies.map((copy) => copy.id);
+    if (ids.length === 0) return;
+    void runUndoable(
+      `Deleted ${copiesText(ids.length)}.`,
+      "Could not delete the selected copies",
+      (undoWindow) => binder.copies.deleteCopies.mutateAsync({ ids, undoWindow }),
+    );
   }
 
   function handleCardAction(action: CardAction, card: CardBrowserCard) {
@@ -391,10 +468,19 @@ export default function BinderPage() {
                 <option value={HISTORY_FILTER}>History (sold, lost, given away)</option>
               </select>
             </label>
-            {selectedBinderId !== HISTORY_FILTER && (
+          </div>
+
+          <SelectionBar
+            count={selectedCardIds.size}
+            summary={`${selectedCardIds.size} ${selectedCardIds.size === 1 ? "card" : "cards"} (${copiesText(selectionCopies.length)})`}
+            shownCount={orderedCards.length}
+            onSelectAll={() => setSelectedCardIds(new Set(orderedCards.map((card) => card.id)))}
+            onClear={() => setSelectedCardIds(new Set())}
+          >
+            {!isHistory && (
               <>
                 <label className="page__label">
-                  Move selected copies to
+                  Move to
                   <select
                     className="page__control"
                     value={moveDestination}
@@ -413,13 +499,45 @@ export default function BinderPage() {
                   type="button"
                   className="page__control page__button"
                   onClick={() => void moveSelectedCopies()}
-                  disabled={!moveDestination || selectedCardIds.size === 0 || binder.isPending}
+                  disabled={!moveDestination || binder.isPending}
                 >
-                  Move selected
+                  Move
+                </button>
+                <label className="page__label">
+                  Dispose as
+                  <select
+                    className="page__control"
+                    value={disposeStatus}
+                    onChange={(event) =>
+                      setDisposeStatus(event.currentTarget.value as DisposalStatus | "")
+                    }
+                  >
+                    <option value="">Choose reason</option>
+                    {DISPOSAL_STATUSES.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  className="page__control page__button"
+                  onClick={disposeSelectedCopies}
+                  disabled={!disposeStatus}
+                >
+                  Dispose
                 </button>
               </>
             )}
-          </div>
+            <button
+              type="button"
+              className="page__control page__button"
+              onClick={deleteSelectedCopies}
+            >
+              Delete
+            </button>
+          </SelectionBar>
 
           {cards.length > 0 && (
             <CardFilters
@@ -433,24 +551,18 @@ export default function BinderPage() {
             />
           )}
 
-          {binder.copies.isLoading || decks.isLoading || cardsQuery.isLoading ? (
+          {binder.copies.isLoading || decks.isLoading || cardsLoading ? (
             <p className="page__message" role="status">Loading Binder…</p>
           ) : orderedCards.length > 0 ? (
             <div className="card-grid" aria-label="Binder cards">
               {orderedCards.map((card) => (
                 <article className="binder-page__card" key={card.id}>
-                  {selectedBinderId !== HISTORY_FILTER && (
-                    <label className="binder-page__select">
-                      <input
-                        type="checkbox"
-                        className="binder-page__select-input"
-                        checked={selectedCardIds.has(card.id)}
-                        onChange={() => toggleCardSelection(card.id)}
-                        aria-label={`Select all owned copies of ${card.name}`}
-                      />
-                      Select copies
-                    </label>
-                  )}
+                  <SelectionCheckbox
+                    checked={selectedCardIds.has(card.id)}
+                    onChange={() => toggleCardSelection(card.id)}
+                    label="Select copies"
+                    ariaLabel={`Select all ${isHistory ? "disposed" : "owned"} copies of ${card.name} in this view`}
+                  />
                   <CardTile
                     card={card}
                     onSelect={() => setCardId(card.id)}
@@ -481,12 +593,11 @@ export default function BinderPage() {
         </>
       )}
 
-      {notice && (
-        <p className="page__notice" role="status">
-          <span>{notice}</span>
-          <button type="button" className="page__notice-action" onClick={() => setNotice("")}>Dismiss</button>
-        </p>
-      )}
+      <UndoNotice
+        notice={undoNotice.notice}
+        onUndo={undoNotice.undo}
+        onDismiss={undoNotice.dismiss}
+      />
 
       {/* Any card id can be shown: a card outside this page (e.g. a meld
           partner) has no fallbackCard, so the overlay fetches it. */}
