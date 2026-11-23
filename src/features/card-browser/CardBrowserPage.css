@@ -41,6 +41,7 @@
   --hand-lift: 1.5rem;
 
   display: flex;
+  box-sizing: border-box; /* the side padding stays inside the width, so the hand never overflows the page */
   justify-content: safe center;
   width: min(100%, 80rem);
   margin: 0 auto;
