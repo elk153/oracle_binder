@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, type CSSProperties } from "react";
 import { Link, useLocation, useSearchParams } from "react-router";
 import CardFilters from "../card-filters/CardFilters.tsx";
 import { useCardsTable } from "../card-filters/useCardsTable.ts";
@@ -274,6 +274,13 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
         </header>
       )}
 
+      {isRandomRoute && (
+        <header className="page__heading hand__heading">
+          <h1 className="page__title">Hand of the day</h1>
+          {mulliganSet && <p className="hand__set">{mulliganSet.name}</p>}
+        </header>
+      )}
+
       {isRandomRoute && setsQuery.isLoading && (
         <p className="page__message card-browser__message" role="status">
           Choosing today’s set…
@@ -370,7 +377,31 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
         <p className="page__message card-browser__message">No cards found.</p>
       )}
 
-      {cards.length > 0 && (
+      {isRandomRoute && cards.length > 0 && (
+        <ol className="hand" aria-label="Hand of the day">
+          {cards.map((card, index) => (
+            <li
+              key={card.id}
+              className="hand__card"
+              // Distance from the middle card (-3 … 3 for seven cards); the CSS turns it into the fan angle and arc.
+              style={{ "--hand-offset": index - (cards.length - 1) / 2 } as CSSProperties}
+            >
+              <CardTile
+                card={card}
+                onSelect={openCard}
+                onAction={showActionNotice}
+                isFavorite={favoriteIds.has(card.id)}
+                isFavoritePending={favoriteActionDisabled}
+                binderCopies={binder.copies.copiesByScryfallId.get(card.id) ?? []}
+                {...binderCopyProps}
+                {...deckActionProps}
+              />
+            </li>
+          ))}
+        </ol>
+      )}
+
+      {!isRandomRoute && cards.length > 0 && (
         <>
           <CardFilters
             filters={filters}
@@ -400,7 +431,7 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
           {rows.length === 0 && (
             <p className="page__message card-browser__message">No cards match these filters.</p>
           )}
-          {!isRandomRoute && cardSource.hasNextPage && (
+          {cardSource.hasNextPage && (
             <div className="pagination">
               <button
                 type="button"

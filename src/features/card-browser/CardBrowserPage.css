@@ -20,3 +20,84 @@
     gap: 1rem;
   }
 }
+
+/* D-073: Home shows the daily cards as a hand, fanned out as if held. */
+.hand__heading {
+  align-items: baseline;
+  justify-content: flex-start;
+}
+
+.hand__set {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.hand {
+  /* Card width shrinks with the window so seven overlapping cards fit (about 4.3 card widths). */
+  --hand-card-width: clamp(6rem, 18vw, var(--card-image-width));
+  --hand-overlap: calc(var(--hand-card-width) * -0.45);
+  --hand-angle: 5deg;
+  --hand-arc: 0.4rem;
+  --hand-lift: 1.5rem;
+
+  display: flex;
+  justify-content: safe center;
+  width: min(100%, 80rem);
+  margin: 0 auto;
+  padding: calc(var(--hand-lift) + 1rem) 1rem 3rem;
+  list-style: none;
+  isolation: isolate; /* keeps the lifted card's z-index inside the hand */
+}
+
+.hand__card {
+  position: relative;
+  flex: 0 0 var(--hand-card-width);
+  width: var(--hand-card-width);
+  transform-origin: 50% 100%;
+  rotate: calc(var(--hand-offset) * var(--hand-angle));
+  /* Outer cards sit lower, so the tops follow an arc. */
+  translate: 0 calc(var(--hand-offset) * var(--hand-offset) * var(--hand-arc));
+  transition: translate var(--duration-fast) ease;
+}
+
+.hand__card + .hand__card {
+  margin-left: var(--hand-overlap);
+}
+
+/* The card under the pointer or keyboard focus comes to the front and rises, so its action icons are reachable. */
+.hand__card:hover,
+.hand__card:focus-within {
+  z-index: 1;
+  translate: 0 calc(var(--hand-offset) * var(--hand-offset) * var(--hand-arc) - var(--hand-lift));
+}
+
+.hand__card .browser-card {
+  flex-basis: 100%;
+  width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hand__card:hover,
+  .hand__card:focus-within {
+    translate: 0 calc(var(--hand-offset) * var(--hand-offset) * var(--hand-arc));
+  }
+}
+
+/* Phone: a row that scrolls sideways, with a slighter fan, so every card stays reachable without page overflow. */
+@media (max-width: 540px) {
+  .hand {
+    --hand-card-width: min(58vw, var(--card-image-width));
+    --hand-overlap: calc(var(--hand-card-width) * -0.3);
+    --hand-angle: 2deg;
+    --hand-arc: 0.15rem;
+    --hand-lift: 0.75rem;
+
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+  }
+
+  .hand__card {
+    scroll-snap-align: center;
+  }
+}
