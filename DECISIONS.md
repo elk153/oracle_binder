@@ -110,7 +110,7 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
 
 ## D-071: App performance audit: fast first screen, the rest in the background
 
-- Status: Evaluating
+- Status: Evaluating (steps 2–5 implemented and released in v2026.11.8; Netlify and real-phone recordings and a signed-in Binder/Deck check still open)
 - Date: 2026-11-22
 - Issue: #35
 - Decision: Audit the app's loading time from the user's point of view, then fix what the audit finds. The rule for the result: **startup loads only what Home needs to show the hand of the day (D-073)**. Everything else loads in the background ("shadow time") while the user already sees Home: other pages' code, the Scryfall symbol, set and card-name catalogs, the user's collection for the value dashboard (D-076), and so on.
@@ -153,22 +153,6 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
   - The shared page shows cards only: no user name, email, purchase prices or notes.
   - With option B the snapshot table needs least-privilege grants, an anon `select` policy by token, and a way for the owner to list and delete their shares.
 - Source: "[Issues] Decision plan review"
-
-## D-073: Home layout: "Hand of the day"
-
-- Status: Implemented (2026-11-23, branch `feature/d-073-hand-of-the-day`)
-- Date: 2026-11-22
-- Issue: #28
-- Decision: Restyle the daily seven-card set on Home so it **looks like a hand of cards** and has the title **"Hand of the day"** (with the day's set name as a subtitle). The cards overlap in a slight fan, as if held, instead of the current grid of tiles. The data stays the same: up to seven cards from the booster-focused set chosen per UTC day (`mulliganSets.ts`, `CardBrowserPage` in mulligan mode).
-  - Desktop: a fan of seven overlapping cards; hovering or focusing a card lifts it a little (no transform when `prefers-reduced-motion` is set; `base.css` rule plus the local block AGENTS.md asks for).
-  - Phone: a tighter fan or a horizontal row that scrolls, so all seven stay reachable without horizontal page overflow at 390 px.
-  - A tap/click still opens the card details overlay. The card action icons (favorite, binder, deck) stay available, for example on the lifted card or in the details.
-  - The value dashboard (D-076) sits above the hand for signed-in users.
-- Why: The issue asks to "simulate a hand of cards". The cards already form a daily hand; presenting them as one makes the page read as that instead of as a search result.
-- Alternatives considered: A Mulligan button that redraws the hand (from the plan document; not asked for now, can be added on top later). A sample hand drawn from one of the user's decks (a different feature, on the Decks page).
-- Consequences: Mostly CSS and the Home part of `CardBrowserPage`; tokens only, no new colors, radii or z-index values (`npm run lint:css`). `CardTile` is reused; if the fan needs a variant, add it as a modifier class rather than a copy.
-- Source: "[Issues] Decision plan review"
-- Implementation (2026-11-23): `CardBrowserPage` in mulligan mode (Home and `/v2/search/random`) shows a "Hand of the day" heading with the set name and renders the cards as an `<ol class="hand">` of `CardTile`s; the filter bar is not shown on the hand (seven cards need no filters). Each card gets `--hand-offset` (distance from the middle card); `CardBrowserPage.css` turns it into a `rotate` and an arc `translate`. Hover or keyboard focus (`:focus-within`) brings a card to the front (local `z-index` inside `isolation: isolate`) and lifts it, so its action icons are reachable; the lift is cancelled under `prefers-reduced-motion`. Card width follows the window (`clamp(6rem, 18vw, var(--card-image-width))`); at 540 px and below the hand is a sideways-scrolling row with a lighter fan. Browser-checked at 1440 px and 390 px (seven cards, no page overflow, click opens the details). The D-076 dashboard slot is not added, because D-076 is not built yet.
 
 ## D-074: Cards in other languages in search, Binder and Decks
 
