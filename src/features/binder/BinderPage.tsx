@@ -21,6 +21,7 @@ import { LOOSE_BINDER_COLOR } from "./binderColors.ts";
 import type { BinderCopy } from "./useBinderCopies.ts";
 import type { Binder, BinderValues } from "./useBinders.ts";
 import useDeckManagement from "../decks/useDeckManagement.ts";
+import { createDeckEntryActions } from "../decks/deckEntryActions.ts";
 import SelectionBar from "../selection/SelectionBar.tsx";
 import SelectionCheckbox from "../selection/SelectionCheckbox.tsx";
 import UndoNotice from "../selection/UndoNotice.tsx";
@@ -311,6 +312,13 @@ export default function BinderPage() {
   };
   const deckActionProps = {
     deckActions: decks,
+    // D-079 take-out actions in the deck popover, with Undo in this notice.
+    deckEntryActions: createDeckEntryActions({
+      decks,
+      binders: binder.binders,
+      disposeCopies: binder.copies.disposeCopies.mutateAsync,
+      notify: setNotice,
+    }),
     canManageDeck: Boolean(user),
   };
   const selectedCard = cards.find((card) => card.id === cardId);

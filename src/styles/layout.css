@@ -206,6 +206,12 @@
   .page {
     padding: 1rem 0.75rem 12rem;
   }
+
+  /* The mobile nav bar sits at the bottom from this width down; keep the
+     notice (and its Undo, D-079) above it. */
+  .page__notice {
+    bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 @media (max-width: 540px) {
@@ -222,7 +228,6 @@
 
   .page__notice {
     right: 0.5rem;
-    bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
     left: 0.5rem;
     justify-content: space-between;
   }

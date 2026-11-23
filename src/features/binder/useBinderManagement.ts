@@ -3,8 +3,15 @@ import type { CardBrowserCard } from "../card-browser/types.ts";
 import type { CopyFormValues } from "./BinderCopyForm.tsx";
 import useBinderCopies, { type BinderCopy } from "./useBinderCopies.ts";
 import useBinders from "./useBinders.ts";
+import type { UndoWindow } from "../undoWindow.ts";
+import {
+  countText,
+  disposalLabel,
+  runUndoable,
+} from "../selection/selectionActions.ts";
 
-type Notify = (message: string) => void;
+// The page notice. With an undo window it shows Undo (useUndoNotice, D-079).
+export type Notify = (message: string, undoWindow?: UndoWindow) => void;
 
 function isDisposalStatus(
   status: string,
@@ -116,30 +123,16 @@ export default function useBinderManagement(notify: Notify) {
     }
   }
 
-  async function disposeCopy(
-    copyId: string,
-    status: "sold" | "lost" | "given_away",
-  ) {
-    if (
-      !confirmDeckConversion(
-        `Mark this copy as ${status.replaceAll("_", " ")}?`,
-      )
-    ) {
-      return;
-    }
-    try {
-      await copies.removeOrDisposeCopy.mutateAsync({
-        id: copyId,
-        status,
-      });
-      notify(`Copy marked ${status.replaceAll("_", " ")}.`);
-    } catch (error) {
-      notify(
-        `Could not update binder copy: ${
-          error instanceof Error ? error.message : "The request failed."
-        }`,
-      );
-    }
+  // D-079: one copy from the Binder popover goes through the same bulk
+  // functions as the selection bar, with the 8-second Undo instead of a
+  // confirm dialog. A deck entry using the copy turns virtual (D-034).
+  function disposeCopy(copyId: string, status: "sold" | "lost" | "given_away") {
+    void runUndoable(
+      notify,
+      `Disposed ${countText(1, "copy", "copies")} as ${disposalLabel(status).toLowerCase()}.`,
+      "Could not dispose the copy",
+      (undoWindow) => copies.disposeCopies.mutateAsync({ ids: [copyId], status, undoWindow }),
+    );
   }
 
   async function restoreCopy(copyId: string) {
@@ -162,27 +155,13 @@ export default function useBinderManagement(notify: Notify) {
     }
   }
 
-  async function deleteCopy(copyId: string) {
-    if (
-      !confirmDeckConversion(
-        "Delete this binder copy permanently?",
-      )
-    ) {
-      return;
-    }
-    try {
-      await copies.removeOrDisposeCopy.mutateAsync({
-        id: copyId,
-        status: null,
-      });
-      notify("Binder copy deleted.");
-    } catch (error) {
-      notify(
-        `Could not delete binder copy: ${
-          error instanceof Error ? error.message : "The request failed."
-        }`,
-      );
-    }
+  function deleteCopy(copyId: string) {
+    void runUndoable(
+      notify,
+      "Deleted 1 copy.",
+      "Could not delete the copy",
+      (undoWindow) => copies.deleteCopies.mutateAsync({ ids: [copyId], undoWindow }),
+    );
   }
 
   const isPending =

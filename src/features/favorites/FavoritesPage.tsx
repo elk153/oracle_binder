@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router";
 import CardFilters from "../card-filters/CardFilters.tsx";
 import { useCardsTable } from "../card-filters/useCardsTable.ts";
@@ -13,6 +13,9 @@ import useBinderManagement from "../binder/useBinderManagement.ts";
 import AddBinderCopyDialog from "../binder/AddBinderCopyDialog.tsx";
 import type { BinderCopy } from "../binder/useBinderCopies.ts";
 import useDeckManagement from "../decks/useDeckManagement.ts";
+import UndoNotice from "../selection/UndoNotice.tsx";
+import useUndoNotice from "../selection/useUndoNotice.ts";
+import { createDeckEntryActions } from "../decks/deckEntryActions.ts";
 import "./FavoritesPage.css";
 
 const ACTION_LABELS: Record<CardAction, string> = {
@@ -32,9 +35,18 @@ export default function FavoritesPage() {
     realtimeError: favoritesRealtimeError,
   } = useFavoriteIds();
   const toggleFavorite = useToggleFavorite();
-  const [notice, setNotice] = useState("");
+  // D-079: the notice offers Undo after a dispose or delete in a popover.
+  const undoNotice = useUndoNotice();
+  const setNotice = undoNotice.show;
   const binder = useBinderManagement(setNotice);
   const decks = useDeckManagement();
+  // D-079 take-out actions in the deck popover, with Undo in this notice.
+  const deckEntryActions = createDeckEntryActions({
+    decks,
+    binders: binder.binders,
+    disposeCopies: binder.copies.disposeCopies.mutateAsync,
+    notify: setNotice,
+  });
   const cardId = searchParams.get("card");
   const invalidCardData = favoriteSource.cards.some(
     (card) => !isCardBrowserCard(card),
@@ -223,6 +235,7 @@ export default function FavoritesPage() {
                   binder.deleteCopy(copy.id)
                 }
                 deckActions={decks}
+                deckEntryActions={deckEntryActions}
                 canManageDeck={Boolean(user)}
               />
             ))}
@@ -252,14 +265,11 @@ export default function FavoritesPage() {
         </div>
       )}
 
-      {notice && (
-        <div className="page__notice" role="status">
-          <span>{notice}</span>
-          <button type="button" className="page__notice-action" onClick={() => setNotice("")}>
-            Dismiss
-          </button>
-        </div>
-      )}
+      <UndoNotice
+        notice={undoNotice.notice}
+        onUndo={undoNotice.undo}
+        onDismiss={undoNotice.dismiss}
+      />
 
       {cardId && (
         <CardDetailsOverlay
@@ -283,6 +293,7 @@ export default function FavoritesPage() {
           onRestoreBinderCopy={(copy: BinderCopy) => binder.restoreCopy(copy.id)}
           onDeleteBinderCopy={(copy: BinderCopy) => binder.deleteCopy(copy.id)}
           deckActions={decks}
+                deckEntryActions={deckEntryActions}
           canManageDeck={Boolean(user)}
           onOpenCard={openCardById}
           onClose={closeDetails}

@@ -17,6 +17,7 @@ import AddBinderCopyDialog from "../binder/AddBinderCopyDialog.tsx";
 import type { BinderCopy } from "../binder/useBinderCopies.ts";
 import type { Deck, DeckCard } from "./useDeckManagement.ts";
 import useDeckManagement from "./useDeckManagement.ts";
+import { createDeckEntryActions } from "./deckEntryActions.ts";
 import useFavoriteCardAction from "../favorites/useFavoriteCardAction.ts";
 import SelectionBar from "../selection/SelectionBar.tsx";
 import SelectionCheckbox from "../selection/SelectionCheckbox.tsx";
@@ -333,6 +334,13 @@ export default function DecksPage() {
   };
   const deckActionProps = {
     deckActions: decks,
+    // D-079 take-out actions in the deck popover, with Undo in this notice.
+    deckEntryActions: createDeckEntryActions({
+      decks,
+      binders: binder.binders,
+      disposeCopies: binder.copies.disposeCopies.mutateAsync,
+      notify: setNotice,
+    }),
     canManageDeck: Boolean(user),
   };
   const deckCovers = new Map<string, DeckCard | undefined>();

@@ -104,3 +104,25 @@ test("a deferred mutation changes the list at once and Undo restores it unsent",
   assert.deepEqual(queryClient.getQueryData(key), [{ id: "c1" }, { id: "c2" }]);
   assert.equal(request.mock.callCount(), 0);
 });
+
+// Runs last: it gives Node a stand-in `window` and `document`, so the module
+// starts listening for page events (it only does so once).
+test("a hidden page keeps its Undo; closing the page sends the request", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const fakeWindow = new EventTarget();
+  const fakeDocument = Object.assign(new EventTarget(), { visibilityState: "visible" });
+  Object.assign(globalThis, { window: fakeWindow, document: fakeDocument });
+  try {
+    const undoWindow = createUndoWindow();
+
+    fakeDocument.visibilityState = "hidden";
+    fakeDocument.dispatchEvent(new Event("visibilitychange"));
+    assert.equal(await outcome(undoWindow), "waiting", "switching away does not send");
+
+    fakeWindow.dispatchEvent(new Event("pagehide"));
+    assert.equal(await outcome(undoWindow), "sent", "closing the page sends at once");
+  } finally {
+    Reflect.deleteProperty(globalThis, "window");
+    Reflect.deleteProperty(globalThis, "document");
+  }
+});

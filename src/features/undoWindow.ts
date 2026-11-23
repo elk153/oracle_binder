@@ -37,10 +37,14 @@ export type UndoWindow = {
   isOpen: () => boolean;
 };
 
-// Windows still waiting. When the page is hidden (tab switched, phone locked,
-// tab closing) they are sent at once, so an action is not lost when the page
-// goes away within the 8 seconds. Closing the tab can still cut the request
-// off; then the change simply does not happen.
+// Windows still waiting. They are sent at once only when the page is being
+// closed or left (`pagehide`), so an action is not lost when the tab closes
+// within the 8 seconds. A page that is merely hidden (tab switched, phone
+// locked, notification shade) keeps its Undo: sending on `visibilitychange`
+// removed Undo after a moment's switch, and sent a delete at once in a
+// browser pane that hides itself in the background (D-079, 23 Nov 2026).
+// If a hidden page is frozen and never comes back, the request is never
+// sent and the change simply does not happen: the safe side for the data.
 const openWindows = new Set<UndoWindow>();
 let listening = false;
 
@@ -48,12 +52,9 @@ function sendAllNow() {
   for (const pending of [...openWindows]) pending.sendNow();
 }
 
-function listenForPageHide() {
-  if (listening || typeof document === "undefined") return;
+function listenForPageClose() {
+  if (listening || typeof window === "undefined") return;
   listening = true;
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden") sendAllNow();
-  });
   window.addEventListener("pagehide", sendAllNow);
 }
 
@@ -95,6 +96,6 @@ export function createUndoWindow(ms: number = UNDO_WINDOW_MS): UndoWindow {
   // sendNow are called later), so declaring it here is safe.
   const timer = setTimeout(() => undoWindow.sendNow(), ms);
   openWindows.add(undoWindow);
-  listenForPageHide();
+  listenForPageClose();
   return undoWindow;
 }

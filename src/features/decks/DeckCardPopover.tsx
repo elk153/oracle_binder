@@ -1,17 +1,21 @@
 import { useMemo, useState } from "react";
 import type { BinderCopy } from "../binder/useBinderCopies.ts";
 import type { CardBrowserCard } from "../card-browser/types.ts";
+import { DISPOSAL_STATUSES } from "../selection/selectionActions.ts";
 import type {
   Deck,
   DeckActions,
   DeckCard,
   DeckCardChanges,
 } from "./useDeckManagement.ts";
+import type { DeckEntryActions } from "./deckEntryActions.ts";
 
 type DeckCardPopoverProps = {
   card: CardBrowserCard;
   copies: BinderCopy[];
   actions: DeckActions;
+  /** D-079 take-out actions (remove, dispose, delete); hidden without. */
+  entryActions?: DeckEntryActions;
   onClose: () => void;
 };
 
@@ -47,6 +51,7 @@ export default function DeckCardPopover({
   card,
   copies,
   actions,
+  entryActions,
   onClose,
 }: DeckCardPopoverProps) {
   const [deckId, setDeckId] = useState("");
@@ -54,6 +59,9 @@ export default function DeckCardPopover({
   const [binderCardId, setBinderCardId] = useState("");
   const [newDeckName, setNewDeckName] = useState("");
   const [drafts, setDrafts] = useState<Record<string, DeckCardDraft>>({});
+  // Where each owned entry's copy goes on "Remove from deck" ("" = not
+  // chosen yet, "loose" = Loose, otherwise a binder id). D-079 asks every time.
+  const [removeTo, setRemoveTo] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -403,6 +411,18 @@ export default function DeckCardPopover({
                           Save changes
                         </button>
                       </div>
+                      {entryActions && (
+                        <EntryTakeOutActions
+                          entry={entry}
+                          cardName={card.name}
+                          entryActions={entryActions}
+                          destination={removeTo[entry.id] ?? ""}
+                          onDestinationChange={(value) =>
+                            setRemoveTo((current) => ({ ...current, [entry.id]: value }))
+                          }
+                          disabled={isBusy}
+                        />
+                      )}
                     </div>
                   </li>
                 );
@@ -422,5 +442,88 @@ export default function DeckCardPopover({
         </p>
       )}
     </section>
+  );
+}
+
+type EntryTakeOutActionsProps = {
+  entry: DeckCard;
+  cardName: string;
+  entryActions: DeckEntryActions;
+  destination: string;
+  onDestinationChange: (value: string) => void;
+  disabled: boolean;
+};
+
+/**
+ * D-079 for one deck entry, with the same labels as the Decks selection bar:
+ * Remove from deck (an owned copy needs a destination), Sold / Lost / Given
+ * away for an owned copy, and Delete. Each shows Undo in the page notice.
+ */
+function EntryTakeOutActions({
+  entry,
+  cardName,
+  entryActions,
+  destination,
+  onDestinationChange,
+  disabled,
+}: EntryTakeOutActionsProps) {
+  const owned = entry.kind === "binder" && Boolean(entry.binder_card_id);
+  return (
+    <>
+      {owned && (
+        <label className="field field--soft">
+          Copy goes to
+          <select
+            className="field__input field__input--soft"
+            value={destination}
+            onChange={(event) => onDestinationChange(event.currentTarget.value)}
+          >
+            <option value="">Choose destination</option>
+            <option value="loose">Loose</option>
+            {entryActions.binders.map((binder) => (
+              <option key={binder.id} value={binder.id}>
+                {binder.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      <div className="binder-actions">
+        <button
+          type="button"
+          className="binder-button"
+          disabled={disabled || (owned && !destination)}
+          onClick={() =>
+            entryActions.remove(
+              entry,
+              cardName,
+              destination && destination !== "loose" ? destination : null,
+            )
+          }
+        >
+          Remove from deck
+        </button>
+        {owned &&
+          DISPOSAL_STATUSES.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              className="binder-button"
+              disabled={disabled}
+              onClick={() => entryActions.dispose(entry, cardName, option.value)}
+            >
+              {option.label}
+            </button>
+          ))}
+        <button
+          type="button"
+          className="binder-button"
+          disabled={disabled}
+          onClick={() => entryActions.delete(entry, cardName)}
+        >
+          Delete
+        </button>
+      </div>
+    </>
   );
 }

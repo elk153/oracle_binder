@@ -11,6 +11,9 @@ import useBinderManagement from "../binder/useBinderManagement.ts";
 import AddBinderCopyDialog from "../binder/AddBinderCopyDialog.tsx";
 import type { BinderCopy } from "../binder/useBinderCopies.ts";
 import useDeckManagement from "../decks/useDeckManagement.ts";
+import UndoNotice from "../selection/UndoNotice.tsx";
+import useUndoNotice from "../selection/useUndoNotice.ts";
+import { createDeckEntryActions } from "../decks/deckEntryActions.ts";
 import useCardBrowserResults from "./useCardBrowserResults.ts";
 import SearchControls from "../search/SearchControls.tsx";
 import type { CardPlaceEntry, CardPlaces } from "../card-filters/types.ts";
@@ -47,7 +50,9 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
     error: favoritesError,
     realtimeError: favoritesRealtimeError,
   } = favorites;
-  const [notice, setNotice] = useState("");
+  // D-079: the notice offers Undo after a dispose or delete in a popover.
+  const undoNotice = useUndoNotice();
+  const setNotice = undoNotice.show;
   const [signInPath, setSignInPath] = useState<string | null>(null);
   const binder = useBinderManagement(setNotice);
   const decks = useDeckManagement();
@@ -251,6 +256,13 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
   };
   const deckActionProps = {
     deckActions: decks,
+    // D-079 take-out actions in the deck popover, with Undo in this notice.
+    deckEntryActions: createDeckEntryActions({
+      decks,
+      binders: binder.binders,
+      disposeCopies: binder.copies.disposeCopies.mutateAsync,
+      notify: setNotice,
+    }),
     canManageDeck: Boolean(user),
   };
 
@@ -419,22 +431,16 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
         </>
       )}
 
-      {notice && (
-        <div className="page__notice" role="status">
-          <span>{notice}</span>
-          {signInPath && <Link className="page__notice-action" to={signInPath}>Sign in</Link>}
-          <button
-            type="button"
-            className="page__notice-action"
-            onClick={() => {
-              setNotice("");
-              setSignInPath(null);
-            }}
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
+      <UndoNotice
+        notice={undoNotice.notice}
+        onUndo={undoNotice.undo}
+        onDismiss={() => {
+          undoNotice.dismiss();
+          setSignInPath(null);
+        }}
+      >
+        {signInPath && <Link className="page__notice-action" to={signInPath}>Sign in</Link>}
+      </UndoNotice>
       {cardId && (
         <CardDetailsOverlay
           key={cardId}

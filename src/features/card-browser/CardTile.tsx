@@ -19,6 +19,7 @@ import type { CopyFormValues } from "../binder/BinderCopyForm.tsx";
 import BinderCopiesPopover from "../binder/BinderCopiesPopover.tsx";
 import DeckCardPopover from "../decks/DeckCardPopover.tsx";
 import type { DeckActions, DeckCard } from "../decks/useDeckManagement.ts";
+import type { DeckEntryActions } from "../decks/deckEntryActions.ts";
 import type { CardAction, CardBrowserCard } from "./types.ts";
 import "./CardTile.css";
 
@@ -45,6 +46,8 @@ type CardTileProps = {
   onRestoreBinderCopy?: (copy: BinderCopy) => void;
   onDeleteBinderCopy?: (copy: BinderCopy) => void;
   deckActions?: DeckActions;
+  /** D-079 take-out actions shown in the deck popover. */
+  deckEntryActions?: DeckEntryActions;
   canManageDeck?: boolean;
   deckEntryKind?: DeckCard["kind"];
   showKindLabel?: boolean;
@@ -141,6 +144,7 @@ export default function CardTile({
   onRestoreBinderCopy,
   onDeleteBinderCopy,
   deckActions,
+  deckEntryActions,
   canManageDeck = true,
   deckEntryKind,
   showKindLabel = true,
@@ -551,6 +555,7 @@ export default function CardTile({
                         card={card}
                         copies={binderCopies}
                         actions={deckActions}
+                        entryActions={deckEntryActions}
                         onClose={() => setDeckPopoverMode(null)}
                       />,
                       setDeckPopoverPanel,
