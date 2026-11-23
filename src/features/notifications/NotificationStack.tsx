@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type MouseEvent } from "react";
 import { Link } from "react-router";
 import useMobileNavbar from "../navigation/useMobileNavbar.ts";
 import { INFO_MS, type AppNotification } from "./notificationList.ts";
@@ -75,6 +75,20 @@ function NotificationItem({ notification, onUndo, onDismiss, onExpire }: Notific
   const paused = hovered || focused;
   // Time left on the info countdown; it shrinks each time a run is paused.
   const infoLeft = useRef(INFO_MS);
+  const dismissButton = useRef<HTMLButtonElement>(null);
+
+  // Undo removes its own button. A focused element that is removed sends no
+  // blur event, so the notice would think it still has focus and stay
+  // paused forever ("Undone." never going away). Move focus first: after a
+  // pointer click the button lets go of it (the countdown starts once the
+  // pointer leaves); after Enter/Space (detail 0) focus goes to Dismiss, so
+  // a keyboard user keeps their place and the countdown waits until they
+  // move on (D-080 point 8).
+  function handleUndo(event: MouseEvent<HTMLButtonElement>) {
+    if (event.detail > 0) event.currentTarget.blur();
+    else dismissButton.current?.focus();
+    onUndo(id);
+  }
 
   useEffect(() => {
     if (kind !== "info" || paused) return;
@@ -111,11 +125,16 @@ function NotificationItem({ notification, onUndo, onDismiss, onExpire }: Notific
         </Link>
       )}
       {kind === "undo" && (
-        <button type="button" className="notification-stack__action" onClick={() => onUndo(id)}>
+        <button type="button" className="notification-stack__action" onClick={handleUndo}>
           Undo
         </button>
       )}
-      <button type="button" className="notification-stack__action" onClick={() => onDismiss(id)}>
+      <button
+        ref={dismissButton}
+        type="button"
+        className="notification-stack__action"
+        onClick={() => onDismiss(id)}
+      >
         Dismiss
       </button>
     </li>
