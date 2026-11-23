@@ -955,3 +955,84 @@ Check: each provider shows as enabled. The sign-in test happens in D-069.
 Check: signed-out password sign-up is no longer offered, and every user reaches their existing data through a provider.
 
 Progress (2026-11-22, branch `claude/account-management-selection-85da20`): steps 1–3 done for the developer's account, which is linked to GitHub and Discord. Step 4, code part: the email/password form, the sign-up mode and their styles are removed from `LoginPage.tsx` and `AuthPages.css`. Still open: turning off the Email provider in the Supabase dashboard. Step 5: D-008 and D-017 are marked superseded and `AGENTS.md` is updated.
+
+## D-079: Delete, dispose and remove cards in Binder and Decks, one by one or in bulk
+
+- Status: Implemented (2026-11-23, branch `feature/d-079-card-removal`; migration applied to the linked project; pgTAP 39/39 passed there)
+- Release: pending (on dev)
+- Date: 2026-11-23
+- Requires: D-071 (optimistic Binder and Deck actions), because D-079 changes the same hooks (`useBinderCopies`, `useDeckManagement`) and reuses its helpers in `src/features/optimisticCache.ts`. Met on 2026-11-23: D-071 was merged into `dev` (PR #38), and D-079 is built on `feature/d-079-card-removal` from there.
+- Decision: Give Binder and Decks the same three ways to take cards out, each available for one card (in the card's popover) and for a selection (in a shared selection bar). The three actions have different meanings and keep distinct labels everywhere:
+
+  | Action (label) | Where | What happens to the data | Undo |
+  | --- | --- | --- | --- |
+  | **Delete** | Binder (owned and history views) and Decks | The record is removed from the database. Binder: the `binder_cards` row is deleted; a deck entry linked to it turns virtual (D-034). In the history view this permanently forgets a disposed copy. Decks: the `deck_cards` entry is deleted; for an owned (Binder-kind) entry the physical copy is deleted too, because "delete" means the card is no longer in the collection at all. Proxy and virtual entries only have the entry. | 8 s undo buffer, no confirm dialog (dropped 2026-11-23: Undo covers a mistake); permanent after that |
+  | **Dispose** (sold, lost, given away) | Binder and Decks (owned entries only) | The copy keeps its row with `status` set and appears under the Binder history filter, where Restore is available. A linked deck entry stays in the deck as virtual (D-034, existing `remove_or_dispose_binder_copy`). In Decks it applies only to Binder-kind entries; proxy and virtual entries in a selection are left untouched and the notice says how many were skipped. | 8 s undo buffer; later, Restore in the history view |
+  | **Remove from deck** | Decks | The deck entry is deleted. An owned copy goes back to the Binder: the action always asks where it goes (a Binder folder or Loose), with no destination preselected; in bulk, one destination applies to all selected copies. Proxy and virtual entries are simply removed, and the question is skipped when the selection holds no owned copy. | 8 s undo buffer |
+
+  Interface, the same on both pages:
+  1. **Selection.** Each card tile in a Binder view and in the Decks views (All cards and a selected deck) gets the selection checkbox the Binder already has. Above the grid, a shared `SelectionBar` component shows the count, "Select all shown", "Clear", and the actions that apply to the page: Binder → Move to…, Dispose…, Delete; Binder history view → Delete (the checkbox, hidden there today, is shown); Decks → Remove from deck…, Dispose…, Delete. Without a selection the bar shows only "Select all shown"; the summary, Clear and the actions appear once something is selected. Binder selection stays per card (all of that card's copies in the current view); deck selection is per entry, since the All cards view already shows each entry as its own tile. Choosing individual copies of the same card stays in the popover.
+  2. **One card.** The Binder copy popover and `DeckCardPopover` list the same actions per copy or entry, with the same labels and the same 8-second Undo as the bulk bar.
+  3. **Feedback.** One notice per action, for example "Disposed 4 copies as sold." or "Removed 3 cards from Burn; 2 copies back to Loose." and an Undo button for 8 seconds. A newer action replaces the notice and sends the older action at once. (Replaced by D-080: notices go to an app-wide stack where every undo notice keeps its own Undo.) Partial failures are not possible because each bulk action is one transaction (see below).
+
+  Database (one migration with rollback and pgTAP, as for D-034):
+  - `delete_binder_copies(p_copy_ids uuid[])` and `dispose_binder_copies(p_copy_ids uuid[], p_status text)`: the bulk form of `remove_or_dispose_binder_copy`, all-or-nothing, ownership checked for every id, linked deck entries turned virtual in the same transaction. The single-copy RPC stays and may call the bulk one with one id.
+  - Dispose from Decks uses `dispose_binder_copies` with the copy ids of the selected Binder-kind entries; no separate deck function.
+  - `remove_deck_entries(p_entry_ids uuid[], p_binder_id uuid)`: deletes the entries and puts each owned copy in `p_binder_id` (null = Loose, chosen explicitly by the user) in the same transaction. Without it the `deck_cards_sync_binder_copy_location` trigger sends the copy to Loose and a second call would be needed to file it, which can leave it half-done.
+  - `delete_deck_entries(p_entry_ids uuid[])`: deletes the entries and, for Binder-kind ones, their copies.
+  - All `SECURITY INVOKER`, authenticated only, least-privilege grants, as the existing functions.
+
+  Client: the mutations follow the D-071 optimistic pattern (`patchLists`/`restoreLists`, Realtime echo marking of the touched copy ids, refetch in `onSettled`).
+
+  **Undo buffer (added 2026-11-23).** Every D-079 action, one card or bulk, gets an 8-second undo buffer: the screen changes at once, but the request to the database waits 8 seconds. Undo in that time cancels the request, so nothing reaches the database, and the cached lists go back. When the time runs out, the request is sent. `src/features/undoWindow.ts` (`createUndoWindow`, tested in `tests/binder/undoWindow.test.ts`) holds the timer; the page passes the window with the mutation (`deleteCopies`, `disposeCopies`, `removeDeckEntries`, `deleteDeckEntries` accept `undoWindow`), and the mutation awaits it before the request. Undo rejects with `UndoneError`, which the page shows as "Undone." rather than as an error. Open windows are sent early only when the page is closed or left (`pagehide`); a page that is merely hidden (tab switched, phone locked) keeps its Undo. If closing the tab cuts the request off, or a hidden page is frozen and never comes back, the change simply does not happen, which is the safe side for the data. (Changed 2026-11-23: the first version also sent on `visibilitychange` to hidden; in testing, a browser pane that hides itself in the background sent a delete at once and the Undo never showed.) The Realtime echo marks are set when the request is sent, and both lists are refetched after it, because a refetch during the window can bring the old rows back. The two deck actions are not counted in `isPending`, so buttons are not locked for 8 seconds.
+
+  Settled on 2026-11-23:
+  - Decks also offer **Dispose** for owned entries (a card sold straight out of a deck); the entry stays as virtual.
+  - **Delete** from a deck also deletes the owned copy. Taking a card out of a deck while keeping it is **Remove from deck**, which moves the copy back to the Binder.
+  - Remove from deck **asks every time** where the copy goes (a Binder folder or Loose). No default and no remembered previous folder, so no new column.
+  - **Delete** is available in the Binder history view too, through the same `delete_binder_copies`.
+- Why: Today the Binder can dispose, restore and delete one copy at a time and move copies in bulk, while Decks can only delete a whole deck or change an entry's kind; there is no way to take a card out of a deck back into a folder in one step, and no bulk version of any of this. Three clearly named actions, offered the same way on both pages, match what a collector actually does (throw away a mistaken entry, record a sale, rebuild a deck) without mixing them up.
+- Alternatives considered: One "Remove" action with a follow-up question (delete, dispose, or back to the Binder): fewer buttons, but an extra step every time and easy to pick the wrong branch. Delete in Decks removing only the entry (the copy to Loose): rejected, it would make Delete and Remove from deck almost the same. Remove from deck defaulting to Loose or to the copy's previous folder: rejected in favor of asking, so a copy never lands somewhere the user did not choose; the previous folder would also need a new column. Bulk actions as a loop of the existing single-copy calls: no migration, but slower, and a failure halfway leaves a partial result (the reason D-034 used one transaction). Soft delete with a trash bin instead of real deletion: safer, but the history filter already covers "keep a record"; Delete is meant to forget.
+- Consequences:
+  - A new migration with matching rollback in `supabase/rollback/` and pgTAP tests (ownership, all-or-nothing on a bad id, deck entries turning virtual, copies landing in the chosen folder). It must be applied before the app version that uses it is deployed.
+  - `SelectionBar` is a new shared component used by `BinderPage` and `DecksPage`; it reuses `.page__toolbar`/`.page__control` styles from `layout.css` rather than new page-wide rules (D-053 Phase 4a). Tiles in Decks gain the Binder's checkbox, so the checkbox moves to a shared place instead of being copied.
+  - The existing single-copy actions in the Binder popover keep working; their labels are aligned with the table.
+  - Touches more than two files: built in small steps (migration, hooks, `SelectionBar` on Binder, then Decks, then popovers), each with a plan and approval (AGENTS.md).
+- Source: "[Binder & Decks] Delete, dispose and remove"
+- Verification (2026-11-23): `supabase/tests/card_removal_test.sql` passed 39 of 39 on the linked project. Docker is not available, so `supabase test db` could not run; the file was run through `supabase db query --remote` in one transaction that installed pgTAP, collected each test's output in a temporary table and ended with a deliberate error, so the extension and all test rows were rolled back (checked afterwards: no pgTAP, no test users, binders or decks). Browser-checked signed in on Binder and Decks (bulk and popover actions, Undo, phone width); actions that really sent requests were tried on throwaway data only.
+
+## D-080: App-wide notification stack
+
+- Status: Implemented (2026-11-23, branch `feature/d-079-card-removal`)
+- Release: pending (on dev)
+- Date: 2026-11-23
+- Related: D-079 (the 8-second undo buffer, `useUndoNotice`, `UndoNotice`)
+- Decision: Replace the single notice that each page keeps today (Search, Binder, Decks, Favorites, the deck card popover and scanner Add mode) with one notification collection for the whole app. All of them move to the new stack in the same change.
+
+  | Kind | How long it stays | Actions | Role |
+  | --- | --- | --- | --- |
+  | **Info** (confirmations such as "Moved 3 copies.") | 5 s | Dismiss | `status` |
+  | **Undo** (D-079 delete, dispose, remove; scanner Add mode "Added N × name") | 8 s, the length of its undo window | Undo, Dismiss | `status` |
+  | **Error** | Until the user dismisses it | Dismiss | `alert` |
+
+  Behavior:
+  1. **One stack for the app.** One provider in the app layout holds the stack, and every page adds to it. Notifications stay visible when the user moves to another page.
+  2. **Order.** The newest notification is at the bottom; older ones move up.
+  3. **Position.** The stack follows the navigation bar, not the viewport size: while the desktop navbar is shown it is fixed in the bottom-right corner; while the mobile navbar is shown it is fixed at the bottom center, above that bar. It has no breakpoint of its own, so if the navbar's breakpoint changes, the stack follows. (Changed 2026-11-23; the first version used `max-width: 480px`.)
+  4. **Each one ends on its own timer.** A notification goes away when its own time runs out.
+  5. **Every undo notice keeps its Undo.** Several undo windows can be open at once. Each Undo cancels only its own action, until its own 8 s end. This replaces D-079's rule that a newer action sends the older one at once. Scanner Add mode's Undo follows the same rules.
+  6. **After Undo.** The notification's text changes to "Undone." in place, and it then counts as a 5 s info notice.
+  7. **Dismiss.** Dismiss removes the notification. On an undo notice it also keeps the action: the request is sent at once instead of after 8 s, as in D-079 today.
+  8. **Pause.** While the pointer is over a notification or it has keyboard focus, its countdown pauses. For an undo notice, the undo window pauses too.
+  9. **At most 5 visible.** When a 6th arrives, the oldest non-error notification is removed at once. If that one is an undo notice, its action is sent. Errors are pushed out only when all 5 are errors.
+- Why: Several commands show a message, and in bulk work several messages often show at once. With one notice per page, a newer message replaces an older one. The older undo action is then forced through, and errors can vanish before anyone reads them.
+- Alternatives considered: Clearing the stack when the user changes page (rejected: the stack stays across navigation). Only the newest notice keeping Undo (rejected: each notice keeps its own). Errors disappearing by themselves (rejected: they stay until dismissed). No limit on visible notifications (rejected: the limit is 5). Moving Binder and Decks first and the other pages later (rejected: all pages move together).
+- Consequences:
+  - `useUndoNotice` and `UndoNotice` (D-079) are replaced by the app-wide provider.
+  - Each page's `notice`/`setNotice` and each `.page__notice` block moves to the provider: `CardBrowserPage`, `BinderPage`, `DecksPage`, `FavoritesPage`, `DeckCardPopover` and `AddScanner`.
+  - Scanner Add mode's own 8 s timer is removed, and its Undo goes through the stack.
+  - `createUndoWindow` needs a pause and resume so that hovering can stop the 8 s window; the tests in `tests/binder/undoWindow.test.ts` grow to cover them.
+  - Several undo windows can be open at once. Each one's request is sent separately when its time runs out, and every open window is still sent at once when the page is closed or left (`pagehide`); a page that is merely hidden keeps its Undo (D-079, changed 2026-11-23).
+  - Touches more than two files: built in small steps, each with a plan and approval (AGENTS.md).
+- Source: "[App] Notification collection"
+- Verification (2026-11-23): stack rules tested in `tests/notifications/notificationList.test.ts`, undo-window pause/resume in `tests/binder/undoWindow.test.ts`, overlapping undo windows in `tests/binder/optimisticCache.test.ts`. Browser-checked: order and roles, Undo to "Undone.", 5 s info and 8 s undo timers, hover and focus pause, the limit of 5, placement above the mobile navbar and bottom-right with the desktop navbar, a notice surviving a page change, and two overlapping Undos. The stack uses its own layer, `--z-notifications` (115), above popovers and the card-details overlay and below dialogs. Not tried in the browser: the Search "Sign in" link (needs a signed-out session) and scanner Add mode (needs the camera).

@@ -59,36 +59,6 @@
   color: var(--text-accent);
 }
 
-/* Toast in the bottom-right corner. */
-.page__notice {
-  position: fixed;
-  z-index: var(--z-notice);
-  right: 1rem;
-  bottom: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  max-width: calc(100vw - 2rem);
-  margin: 0;
-  padding: 0.7rem 1rem;
-  border: 1px solid var(--surface-border);
-  border-radius: var(--control-radius);
-  color: var(--text-primary);
-  background: var(--bg-card);
-  box-shadow: var(--eerie-glow);
-  font: 0.85rem var(--font-ui);
-}
-
-/* Text-style link or button inside the notice. */
-.page__notice-action {
-  border: 0;
-  color: var(--text-accent);
-  background: transparent;
-  font: inherit;
-  text-decoration: underline;
-  cursor: pointer;
-}
-
 /* Buttons, selects and inputs of the Binder and Decks pages themselves.
    Buttons add .page__button. Components rendered inside a page (filters,
    dialogs, the card overlay) keep their own control styles. */
@@ -206,12 +176,6 @@
   .page {
     padding: 1rem 0.75rem 12rem;
   }
-
-  /* The mobile nav bar sits at the bottom from this width down; keep the
-     notice (and its Undo, D-079) above it. */
-  .page__notice {
-    bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
-  }
 }
 
 @media (max-width: 540px) {
@@ -224,11 +188,5 @@
   .page__cover-card {
     flex-basis: min(calc(var(--card-image-width) + 1.45rem), calc(100vw - 1.5rem));
     width: min(calc(var(--card-image-width) + 1.45rem), calc(100vw - 1.5rem));
-  }
-
-  .page__notice {
-    right: 0.5rem;
-    left: 0.5rem;
-    justify-content: space-between;
   }
 }

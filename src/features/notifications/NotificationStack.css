@@ -1,10 +1,10 @@
-/* App-wide notification stack (D-080). The look matches the former
-   .page__notice (layout.css); the position follows the navbar that is shown
-   (NotificationStack.tsx), not a breakpoint of its own. */
+/* App-wide notification stack (D-080). It replaced the pages' own notices
+   (.page__notice) and keeps their look; the position follows the navbar
+   that is shown (NotificationStack.tsx), not a breakpoint of its own. */
 
 .notification-stack {
   position: fixed;
-  z-index: var(--z-notice);
+  z-index: var(--z-notifications);
   right: 1rem;
   bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
   max-width: calc(100vw - 2rem);

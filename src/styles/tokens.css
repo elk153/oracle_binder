@@ -44,11 +44,11 @@
 
   /* Stacking: global layers, lowest to highest. Local 0-2 values stay in components. */
   --z-filters: 90;
-  --z-notice: 95;
   --z-nav: 100;
   --z-nav-notice: 101;
   --z-popover: 105;
   --z-overlay: 110;
+  --z-notifications: 115; /* app-wide notification stack (D-080): above the card overlay, so an Undo started there stays visible; below dialogs */
   --z-dialog: 120;
 
   /* Colors that do not change with the theme */
