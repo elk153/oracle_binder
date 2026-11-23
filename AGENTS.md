@@ -160,19 +160,32 @@ The app uses Calendar Versioning (CalVer): `YYYY.M.MICRO`, unpadded (e.g. `2026.
 
 Component structure, CSS and Scryfall response handling are not part of it. Any change to the contract is listed under `### Breaking` in that release's `CHANGELOG.md` section and recorded in `DECISIONS.md`.
 
+**Branches and deployment.**
+
+| Branch | Role |
+| --- | --- |
+| `feature/<name>` | One change (usually one decision, e.g. `feature/d-073-hand-of-the-day`), branched from `dev` |
+| `dev` | Integration branch. Every pull request targets `dev`, never `main` |
+| `release/YYYY.M.MICRO` | Short-lived branch cut from `dev` to prepare and regression-test one release |
+| `main` | Released code only; production is deployed from it (Netlify) and every merge into it carries a release tag `vYYYY.M.MICRO` |
+
+- Open pull requests with `--base dev`. A pull request into `main` would also carry every unreleased `dev` commit. Pull requests are squash-merged into `dev` (title ends with `(#N)`).
+- When `dev` moves on while a pull request is open and the two conflict, merge `dev` into the feature branch (no rebase, so no force-push), resolve, rerun the checks, and push.
+- Nothing reaches `main` except through a release branch (or a hotfix branch, below) that passed the regression tests, and a release tag is created for every release.
+
 **Release flow** (solo developer). An agent releases only when asked; a request to release covers every step below, including the push.
 
-1. **Daily work:** feature branches (`feature/<name>`) are merged into `dev`. `package.json` keeps the last released version; `CHANGELOG.md` collects nothing until release time.
+1. **Daily work:** feature branches (`feature/<name>`) are merged into `dev` through pull requests. `package.json` keeps the last released version; `CHANGELOG.md` collects nothing until release time.
 2. **Regular release** from `dev`:
    1. `git switch -c release/YYYY.M.MICRO dev` (the version the release will get, per the bump table).
-   2. Check: `npm run typecheck`, `npm run lint`, `npx stylelint "src/**/*.css"`, the tests (`node --experimental-strip-types --test "tests/**/*.test.ts"`) and `npm run build` must pass.
+   2. Regression tests on the release branch, before anything is merged into `main`: `npm run typecheck`, `npm run lint`, `npm run lint:css`, the tests (`node --experimental-strip-types --test "tests/**/*.test.ts"`) and `npm run build` must pass; then serve the build (`npm run preview`) and smoke-test it in a browser: Home shows the hand of the day, a card opens its details, Search returns results, and the Login, Favorites, Binder, Decks and Scan pages load without console errors. A failure stops the release: fix it on `dev` (through a pull request) and cut the release branch again.
    3. Update `CHANGELOG.md`: a new `## [YYYY.M.MICRO] - YYYY-MM-DD` section under `## [Unreleased]`, written for users (`### Added`, `### Changed`, `### Fixed`, `### Breaking` when the public contract changes, and always `### Database`, saying which migration is needed or "No migration in this release."). Development-only tools are left out.
    4. Decisions: move each implemented decision from `DECISIONS.md` to the end of `DECISIONS_HISTORY.md` with `- Status: Implemented` and `- Release: vYYYY.M.MICRO`; replace every remaining `Release: pending (on dev)` there with the version.
    5. Update the version stamp in this file's header (check date and app version).
    6. Commit as `Changelog and decision releases for YYYY.M.MICRO`.
    7. `npm version patch -m "Release %s"` (or `npm version YYYY.M.0 -m "Release %s"` for a new month): it commits both package files and creates the annotated tag `vYYYY.M.MICRO`.
    8. `git switch main && git merge --no-ff release/YYYY.M.MICRO` (message `Merge branch 'release/YYYY.M.MICRO' into main`), then `git switch dev && git merge --no-ff main` (`Merge branch 'main' into dev`).
-   9. `git push origin main dev --follow-tags`, then delete the release branch locally (`git branch -d`).
+   9. `git push origin main dev --follow-tags`, then delete the release branch locally (`git branch -d`) and the feature branches merged in this release, locally and on `origin` (only branches whose work is in `dev`).
    10. Close the GitHub issues this release finishes: for each decision moved in step 2.4 that has an `- Issue: #N` line, close issue N with `gh issue close N --reason completed --comment "Released in vYYYY.M.MICRO (D-0xx)."`, but only once **every** decision linked to that issue is implemented and released (an issue split into several decisions stays open until the last one ships). Mention the closed issues in the release summary.
 3. **Hotfix** (a fix that can't wait for `dev`):
    1. Branch from the latest release tag: `git switch -c YYYY.M.MICROa vYYYY.M.MICRO` (for example `2026.11.3a` from `v2026.11.3`). The letter only names the branch; it is not a version, because npm versions can't carry it.
