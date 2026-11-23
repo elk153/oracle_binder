@@ -305,3 +305,37 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
   - The existing single-copy actions in the Binder popover keep working; their labels are aligned with the table.
   - Touches more than two files: built in small steps (migration, hooks, `SelectionBar` on Binder, then Decks, then popovers), each with a plan and approval (AGENTS.md).
 - Source: "[Binder & Decks] Delete, dispose and remove"
+
+## D-080: App-wide notification stack
+
+- Status: Evaluating
+- Date: 2026-11-23
+- Related: D-079 (the 8-second undo buffer, `useUndoNotice`, `UndoNotice`)
+- Decision: Replace the single notice that each page keeps today (Search, Binder, Decks, Favorites, the deck card popover and scanner Add mode) with one notification collection for the whole app. All of them move to the new stack in the same change.
+
+  | Kind | How long it stays | Actions | Role |
+  | --- | --- | --- | --- |
+  | **Info** (confirmations such as "Moved 3 copies.") | 5 s | Dismiss | `status` |
+  | **Undo** (D-079 delete, dispose, remove; scanner Add mode "Added N × name") | 8 s, the length of its undo window | Undo, Dismiss | `status` |
+  | **Error** | Until the user dismisses it | Dismiss | `alert` |
+
+  Behavior:
+  1. **One stack for the app.** One provider in the app layout holds the stack, and every page adds to it. Notifications stay visible when the user moves to another page.
+  2. **Order.** The newest notification is at the bottom; older ones move up.
+  3. **Position.** On desktop the stack is fixed in the bottom-right corner. At `max-width: 480px` (the app's smallest breakpoint) it is fixed at the bottom center.
+  4. **Each one ends on its own timer.** A notification goes away when its own time runs out.
+  5. **Every undo notice keeps its Undo.** Several undo windows can be open at once. Each Undo cancels only its own action, until its own 8 s end. This replaces D-079's rule that a newer action sends the older one at once. Scanner Add mode's Undo follows the same rules.
+  6. **After Undo.** The notification's text changes to "Undone." in place, and it then counts as a 5 s info notice.
+  7. **Dismiss.** Dismiss removes the notification. On an undo notice it also keeps the action: the request is sent at once instead of after 8 s, as in D-079 today.
+  8. **Pause.** While the pointer is over a notification or it has keyboard focus, its countdown pauses. For an undo notice, the undo window pauses too.
+  9. **At most 5 visible.** When a 6th arrives, the oldest non-error notification is removed at once. If that one is an undo notice, its action is sent. Errors are pushed out only when all 5 are errors.
+- Why: Several commands show a message, and in bulk work several messages often show at once. With one notice per page, a newer message replaces an older one. The older undo action is then forced through, and errors can vanish before anyone reads them.
+- Alternatives considered: Clearing the stack when the user changes page (rejected: the stack stays across navigation). Only the newest notice keeping Undo (rejected: each notice keeps its own). Errors disappearing by themselves (rejected: they stay until dismissed). No limit on visible notifications (rejected: the limit is 5). Moving Binder and Decks first and the other pages later (rejected: all pages move together).
+- Consequences:
+  - `useUndoNotice` and `UndoNotice` (D-079) are replaced by the app-wide provider.
+  - Each page's `notice`/`setNotice` and each `.page__notice` block moves to the provider: `CardBrowserPage`, `BinderPage`, `DecksPage`, `FavoritesPage`, `DeckCardPopover` and `AddScanner`.
+  - Scanner Add mode's own 8 s timer is removed, and its Undo goes through the stack.
+  - `createUndoWindow` needs a pause and resume so that hovering can stop the 8 s window; the tests in `tests/binder/undoWindow.test.ts` grow to cover them.
+  - Several undo windows can be open at once. Each one's request is sent separately when its time runs out, and every open window is still sent at once when the page is hidden.
+  - Touches more than two files: built in small steps, each with a plan and approval (AGENTS.md).
+- Source: "[App] Notification collection"
