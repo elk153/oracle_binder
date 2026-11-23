@@ -255,13 +255,92 @@ does what the app did before this change.
 - Favorites, Binder and Decks are usually already preloaded in idle time; there the hover only
   helps when the user is quicker than the idle preload.
 
+## Binder and Deck actions (decision step 5, second half)
+
+### Baseline (before)
+
+Counted from the code (`useBinderCopies.ts`, `useDeckManagement.ts`) on commit `5da3009`, and
+timed for one request round trip to the project's Supabase API (read-only, publishable key,
+15 requests from the Mac on Wi-Fi, after the connection was set up): **median 61 ms** (52–87).
+On the phone profiles above, one round trip is about **225 ms (4G)** and **620 ms (slow 4G)**
+(61 ms + the profile's latency).
+
+"Screen" = the Binder/Deck icon counts, popover lists and Binder page rows (all read from
+the TanStack Query caches). "Buttons" = how long the Binder/Deck buttons stay disabled
+(`isPending`), because `onSuccess` returned (awaited) a refetch of the other list.
+
+| Action | Own list changes after | Other list changes after | Buttons disabled for |
+| --- | --- | --- | --- |
+| Add copy to Binder/Loose | 1 round trip | – | 1 |
+| Add copy straight into a deck | 1 | 2 (deck entries refetched) | 2 |
+| Edit / restore copy | 1 | – | 1 |
+| Dispose / delete copy | 1 | 2 (deck entry turns virtual) | 2 |
+| Move copies between folders | 1 | – | 1 |
+| Move copy to a folder or deck | 1 | 2 | 2 |
+| Add deck entry (Binder copy) | 1 | 2 (copy leaves its folder) | 2 |
+| Add deck entry (proxy/virtual) | 1 | – | 1 |
+| Change deck entry | 1 | 2 | 2 |
+| Remove deck entries (Undo in Scan) | 1 | 2 if a Binder copy | 2 |
+| Rename deck | 1 | – | 1 |
+| Delete deck | 1 | 2 | 2 |
+
+So a tap shows its result after **~225 ms on 4G (~620 ms slow 4G)**, the linked list after
+**~450 ms (~1.2 s)**, and the buttons stay locked that long. Not timed on a signed-in session
+(OAuth sign-in is not available to this session).
+
+### After
+
+Every Binder copy and deck mutation except "create deck" is now optimistic (helpers in
+`src/features/optimisticCache.ts`):
+
+- `onMutate` changes the cached copies and deck entries the way the database will (including
+  its triggers: a removed/disposed copy's deck entry becomes virtual, a Binder deck entry
+  takes its copy out of its folder, a deleted deck frees its copies).
+- `onError` puts the snapshots back; `onSuccess` swaps in the server's row; `onSettled`
+  refetches the linked list **without awaiting it**, so the buttons unlock after the write.
+- New copies and deck entries get their id in the browser (the app already chose copy ids
+  client-side), so the instant row and the saved row are the same row. Deck entries created
+  by database functions get a temporary `optimistic-…` id until the background refetch.
+- The Add-copy dialog closes at once. If the save fails, the copy disappears again and the
+  notice says why (the form input is lost in that case).
+- "Create deck" stays a normal request: the deck popover needs the new deck's id to select it.
+- The scanner already saved in the background; it passes no ids, so it gets no instant rows.
+
+| Action | Own list | Other list | Buttons disabled | ≈ 4G / slow 4G before → after (screen) |
+| --- | --- | --- | --- | --- |
+| Add copy to Binder/Loose | 1 → **0** | – | 1 → 1 | 225 / 620 ms → **0** |
+| Add copy straight into a deck | 1 → **0** | 2 → **0** | 2 → **1** | 450 / 1,240 ms → **0** |
+| Edit / restore copy | 1 → **0** | – | 1 → 1 | 225 / 620 ms → **0** |
+| Dispose / delete copy | 1 → **0** | 2 → **0** | 2 → **1** | 450 / 1,240 ms → **0** |
+| Move copies between folders | 1 → **0** | – | 1 → 1 | 225 / 620 ms → **0** |
+| Move copy to a folder or deck | 1 → **0** | 2 → **0** | 2 → **1** | 450 / 1,240 ms → **0** |
+| Add deck entry (Binder copy) | 1 → **0** | 2 → **0** | 2 → **1** | 450 / 1,240 ms → **0** |
+| Add deck entry (proxy/virtual) | 1 → **0** | – | 1 → 1 | 225 / 620 ms → **0** |
+| Change deck entry | 1 → **0** | 2 → **0** | 2 → **1** | 450 / 1,240 ms → **0** |
+| Remove deck entries | 1 → **0** | 2 → **0** | 2 → **1** | 450 / 1,240 ms → **0** |
+| Rename deck | 1 → **0** | – | 1 → 1 | 225 / 620 ms → **0** |
+| Delete deck | 1 → **0** | 2 → **0** | 2 → **1** | 450 / 1,240 ms → **0** |
+| Create deck | 1 → 1 | – | 1 → 1 | unchanged |
+
+(Round trips, from the code; ms = round trips × the measured ~61 ms Supabase round trip plus
+the profile's latency.) The buttons stay disabled for the one write, on purpose: two quick
+taps cannot then send conflicting requests.
+
+How it was checked: `tests/binder/optimisticCache.test.ts` (8 tests) runs the helpers and real
+TanStack Query mutations: the lists change before the request finishes and go back when it
+fails. All 133 tests pass. Typecheck, lint, CSS lint and build pass; Home and the Binder route
+load without console errors. **Not checked on a signed-in session**: the actual writes
+against Supabase, and the screens after an action, need an OAuth sign-in this session cannot
+do.
+
 ### Not done / next
 
-- Netlify + real phone: repeat the recording on a Netlify deploy preview (HTTP/2) to check the
+- Netlify + real phone (parked for now, 23 Nov 2026): repeat the recording on a Netlify deploy preview (HTTP/2) to check the
   FCP regression, and once on a real phone.
 - Folding the small shared chunks back into the main chunk was tried with Rolldown's
   `experimentalInlineCommonChunks`; it split the app into *more* files, so it was dropped in
   favor of the inlined splash logo.
-- Optimistic Binder/Deck actions (step 5, "if they still feel slow").
+- Try the Binder/Deck actions signed in (add, dispose, move into a deck, Undo in Scan),
+  including one forced failure (e.g. offline), to see the rollback on screen.
 - Bigger JS wins need a look at Supabase (realtime-js + phoenix ≈ 56 kB minified, only
   needed when signed in) and the card details overlay.
