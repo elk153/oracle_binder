@@ -281,9 +281,73 @@ export default function useBinderCopies() {
                 disposed_at: new Date().toISOString(),
               })),
         ],
-        [deckKey, releaseDeckEntriesOf(id)],
+        [deckKey, releaseDeckEntriesOf([id])],
       ]),
     onError: (_error, _input, snapshots) => restoreLists(queryClient, snapshots),
+    onSettled: () => refetchDeckEntries(),
+  });
+
+  // D-079 bulk actions. One request for the whole list: the database
+  // function changes all copies or none (delete_binder_copies,
+  // dispose_binder_copies). Deck entries using the copies become virtual.
+  const deleteCopies = useMutation<void, Error, { ids: string[] }, ListSnapshot[]>({
+    mutationFn: async ({ ids }) => {
+      if (!user) throw new Error("Sign in to delete binder copies.");
+      if (ids.length === 0) return;
+      markLocalRealtimeChange("binder_cards", user.id, ids);
+      try {
+        const { error } = await supabase.rpc("delete_binder_copies", { p_copy_ids: ids });
+        if (error) throw error;
+      } catch (error) {
+        clearLocalRealtimeChange("binder_cards", user.id, ids);
+        throw error;
+      }
+    },
+    onMutate: ({ ids }) => {
+      const deleted = new Set(ids);
+      return patchLists(queryClient, [
+        [queryKey, (current: BinderCopy[]) => current.filter((copy) => !deleted.has(copy.id))],
+        [deckKey, releaseDeckEntriesOf(ids)],
+      ]);
+    },
+    onError: (_error, _input, snapshots) => restoreLists(queryClient, snapshots),
+    onSettled: () => refetchDeckEntries(),
+  });
+
+  const disposeCopies = useMutation<
+    BinderCopy[],
+    Error,
+    { ids: string[]; status: "sold" | "lost" | "given_away" },
+    ListSnapshot[]
+  >({
+    mutationFn: async ({ ids, status }) => {
+      if (!user) throw new Error("Sign in to dispose binder copies.");
+      if (ids.length === 0) return [];
+      markLocalRealtimeChange("binder_cards", user.id, ids);
+      try {
+        const { data, error } = await supabase.rpc("dispose_binder_copies", {
+          p_copy_ids: ids,
+          p_disposal_status: status,
+        });
+        if (error) throw error;
+        return data;
+      } catch (error) {
+        clearLocalRealtimeChange("binder_cards", user.id, ids);
+        throw error;
+      }
+    },
+    onMutate: ({ ids, status }) => {
+      const disposedAt = new Date().toISOString();
+      return patchLists(queryClient, [
+        [
+          queryKey,
+          updateById<BinderCopy>(ids, (copy) => ({ ...copy, status, disposed_at: disposedAt })),
+        ],
+        [deckKey, releaseDeckEntriesOf(ids)],
+      ]);
+    },
+    onError: (_error, _input, snapshots) => restoreLists(queryClient, snapshots),
+    onSuccess: (updated) => replaceCopies(updated),
     onSettled: () => refetchDeckEntries(),
   });
 
@@ -357,7 +421,7 @@ export default function useBinderCopies() {
         const existing = current.find(
           (entry) => entry.binder_card_id === id && entry.kind === "binder",
         );
-        if (!deckId) return releaseDeckEntriesOf(id)(current);
+        if (!deckId) return releaseDeckEntriesOf([id])(current);
         if (existing) {
           return updateById<DeckEntry>([existing.id], (entry) => ({ ...entry, deck_id: deckId }))(current);
         }
@@ -413,6 +477,8 @@ export default function useBinderCopies() {
     addCopyToDeck,
     updateCopy,
     removeOrDisposeCopy,
+    deleteCopies,
+    disposeCopies,
     moveCopies,
     moveCopyToLocation,
   };

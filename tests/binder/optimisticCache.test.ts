@@ -57,11 +57,32 @@ test("updateById changes only the listed rows", () => {
 
 test("releaseDeckEntriesOf turns the copy's Binder entry into a virtual card", () => {
   const entries = [entry("e1", "binder", "c1"), entry("e2", "binder", "c2"), entry("e3", "proxy", null)];
-  const next = releaseDeckEntriesOf("c1")(entries);
+  const next = releaseDeckEntriesOf(["c1"])(entries);
   assert.equal(next[0].kind, "virtual");
   assert.equal(next[0].binder_card_id, null);
   assert.equal(next[1], entries[1]);
   assert.equal(next[2], entries[2]);
+});
+
+test("releaseDeckEntriesOf releases several copies at once (D-079 bulk)", () => {
+  const entries = [
+    entry("e1", "binder", "c1"),
+    entry("e2", "binder", "c2"),
+    entry("e3", "binder", "c3"),
+    entry("e4", "virtual", null),
+  ];
+  const next = releaseDeckEntriesOf(["c1", "c3"])(entries);
+  assert.deepEqual(
+    next.map((row) => [row.kind, row.binder_card_id]),
+    [
+      ["virtual", null],
+      ["binder", "c2"],
+      ["virtual", null],
+      ["virtual", null],
+    ],
+  );
+  assert.equal(next[1], entries[1]);
+  assert.equal(next[3], entries[3]);
 });
 
 test("toOptimisticCopy fills database defaults and keeps the given id", () => {
@@ -110,7 +131,7 @@ function removeCopyMutation(client: QueryClient, request: () => Promise<void>) {
     onMutate: (copyId) =>
       patchLists(client, [
         [copiesKey, (current: Row[]) => current.filter((row) => row.id !== copyId)],
-        [deckKey, releaseDeckEntriesOf(copyId)],
+        [deckKey, releaseDeckEntriesOf([copyId])],
       ]),
     onError: (_error, _copyId, snapshots) => restoreLists(client, snapshots),
   });

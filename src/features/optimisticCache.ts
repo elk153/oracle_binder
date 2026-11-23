@@ -143,12 +143,16 @@ export function toOptimisticDeckEntry(
 /**
  * A deck's Binder entry that loses its copy stays in the deck as a virtual
  * card (the database does the same when a copy is removed, disposed or moved
- * out of the deck).
+ * out of the deck). Takes an array, not any iterable: a single string is
+ * iterable too, and would be read as a list of characters.
  */
-export function releaseDeckEntriesOf(copyId: string): (entries: DeckEntry[]) => DeckEntry[] {
+export function releaseDeckEntriesOf(
+  copyIds: readonly string[],
+): (entries: DeckEntry[]) => DeckEntry[] {
+  const released = new Set(copyIds);
   return (entries) =>
     entries.map((entry) =>
-      entry.binder_card_id === copyId && entry.kind === "binder"
+      entry.binder_card_id !== null && released.has(entry.binder_card_id) && entry.kind === "binder"
         ? { ...entry, kind: "virtual", binder_card_id: null }
         : entry,
     );

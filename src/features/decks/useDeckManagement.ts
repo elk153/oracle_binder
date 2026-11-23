@@ -293,6 +293,58 @@ export default function useDeckManagement() {
     },
   });
 
+  // D-079 "Remove from deck": the entries leave the deck, and their owned
+  // copies go to the folder the user chose (null = Loose), in one database
+  // transaction (remove_deck_entries). Returns the moved copies.
+  const removeDeckEntries = useMutation<
+    BinderCopyRow[],
+    Error,
+    { ids: string[]; binderId: string | null },
+    MarkedContext
+  >({
+    mutationFn: async ({ ids, binderId }) => {
+      if (!user) throw new Error("Sign in to remove cards from a deck.");
+      if (ids.length === 0) return [];
+      const { data, error } = await supabase.rpc("remove_deck_entries", {
+        p_entry_ids: ids,
+        p_binder_id: binderId,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onMutate: ({ ids, binderId }) => {
+      const removed = new Set(ids);
+      const copyIds = copyIdsOfEntries((entry) => removed.has(entry.id));
+      return markAndPatch(copyIds, [
+        [deckCardsKey, (current: DeckCard[]) => current.filter((entry) => !removed.has(entry.id))],
+        [copiesKey, updateById<BinderCopyRow>(copyIds, (copy) => ({ ...copy, binder_id: binderId }))],
+      ]);
+    },
+    onError: (_error, _input, context) => undoMarkAndPatch(context),
+    onSuccess: (moved) => replaceBinderCopies(moved),
+  });
+
+  // D-079 "Delete" in Decks: the entries are deleted, and so are the owned
+  // copies they use: the card leaves the collection (delete_deck_entries).
+  const deleteDeckEntries = useMutation<void, Error, { ids: string[] }, MarkedContext>({
+    mutationFn: async ({ ids }) => {
+      if (!user) throw new Error("Sign in to delete deck cards.");
+      if (ids.length === 0) return;
+      const { error } = await supabase.rpc("delete_deck_entries", { p_entry_ids: ids });
+      if (error) throw error;
+    },
+    onMutate: ({ ids }) => {
+      const deleted = new Set(ids);
+      const copyIds = copyIdsOfEntries((entry) => deleted.has(entry.id));
+      const deletedCopies = new Set(copyIds);
+      return markAndPatch(copyIds, [
+        [deckCardsKey, (current: DeckCard[]) => current.filter((entry) => !deleted.has(entry.id))],
+        [copiesKey, (current: BinderCopyRow[]) => current.filter((copy) => !deletedCopies.has(copy.id))],
+      ]);
+    },
+    onError: (_error, _input, context) => undoMarkAndPatch(context),
+  });
+
   // Binder copies used by the cached deck entries that match `test`. Read
   // in onMutate, *before* the optimistic patch changes the entries.
   function copyIdsOfEntries(test: (entry: DeckCard) => boolean): string[] {
@@ -329,6 +381,14 @@ export default function useDeckManagement() {
     });
   }
 
+  // Puts the server's version of these Binder copies in the cached list.
+  function replaceBinderCopies(rows: BinderCopyRow[]) {
+    const byId = new Map(rows.map((row) => [row.id, row]));
+    queryClient.setQueryData<BinderCopyRow[]>(copiesKey, (current) =>
+      current?.map((copy) => byId.get(copy.id) ?? copy),
+    );
+  }
+
   // Background refetch, not awaited: the buttons unlock after the write.
   function refetchBinderCopies() {
     void queryClient.invalidateQueries({ queryKey: copiesKey });
@@ -345,13 +405,17 @@ export default function useDeckManagement() {
       deleteDeck.isPending ||
       addDeckCard.isPending ||
       updateDeckCard.isPending ||
-      deleteDeckCards.isPending,
+      deleteDeckCards.isPending ||
+      removeDeckEntries.isPending ||
+      deleteDeckEntries.isPending,
     createDeck: createDeck.mutateAsync,
     renameDeck: renameDeck.mutateAsync,
     deleteDeck: deleteDeck.mutateAsync,
     addDeckCard: addDeckCard.mutateAsync,
     updateDeckCard: updateDeckCard.mutateAsync,
     deleteDeckCards: deleteDeckCards.mutateAsync,
+    removeDeckEntries: removeDeckEntries.mutateAsync,
+    deleteDeckEntries: deleteDeckEntries.mutateAsync,
   };
 }
 
