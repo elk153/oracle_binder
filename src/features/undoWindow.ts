@@ -35,6 +35,15 @@ export type UndoWindow = {
   sendNow: () => void;
   /** True until the window has ended, one way or the other. */
   isOpen: () => boolean;
+  /**
+   * Stops the countdown, e.g. while the pointer is over the notification
+   * (D-080). Undo, sendNow and closing the page still work while paused.
+   */
+  pause: () => void;
+  /** Continues the countdown with the time that was left. */
+  resume: () => void;
+  /** True while paused; false once the window has ended. */
+  isPaused: () => boolean;
 };
 
 // Windows still waiting. They are sent at once only when the page is being
@@ -62,6 +71,11 @@ export function createUndoWindow(ms: number = UNDO_WINDOW_MS): UndoWindow {
   let open = true;
   let resolveWait!: () => void;
   let rejectWait!: (error: Error) => void;
+  // Running: `deadline` is when the request goes out and `timer` fires then.
+  // Paused: `remaining` holds the time that was left and there is no timer.
+  let deadline = Date.now() + ms;
+  let remaining: number | null = null;
+  let timer: ReturnType<typeof setTimeout> | undefined;
 
   const wait = new Promise<void>((resolve, reject) => {
     resolveWait = resolve;
@@ -77,6 +91,11 @@ export function createUndoWindow(ms: number = UNDO_WINDOW_MS): UndoWindow {
     openWindows.delete(undoWindow);
   }
 
+  function start(after: number) {
+    deadline = Date.now() + after;
+    timer = setTimeout(() => undoWindow.sendNow(), after);
+  }
+
   const undoWindow: UndoWindow = {
     wait,
     undo() {
@@ -90,11 +109,21 @@ export function createUndoWindow(ms: number = UNDO_WINDOW_MS): UndoWindow {
       resolveWait();
     },
     isOpen: () => open,
+    pause() {
+      if (!open || remaining !== null) return;
+      clearTimeout(timer);
+      remaining = Math.max(0, deadline - Date.now());
+    },
+    resume() {
+      if (!open || remaining === null) return;
+      const left = remaining;
+      remaining = null;
+      start(left);
+    },
+    isPaused: () => open && remaining !== null,
   };
 
-  // `close` reads `timer`; it can only run after this line (undo and
-  // sendNow are called later), so declaring it here is safe.
-  const timer = setTimeout(() => undoWindow.sendNow(), ms);
+  start(ms);
   openWindows.add(undoWindow);
   listenForPageClose();
   return undoWindow;

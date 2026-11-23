@@ -105,6 +105,65 @@ test("a deferred mutation changes the list at once and Undo restores it unsent",
   assert.equal(request.mock.callCount(), 0);
 });
 
+// D-080: hovering a notification pauses its undo window. `Date` is mocked
+// with `setTimeout`, so the remaining time is measured on the same clock.
+test("pause stops the countdown and resume continues with the time left", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout", "Date"] });
+  const undoWindow = createUndoWindow();
+  t.mock.timers.tick(3_000);
+  undoWindow.pause();
+  assert.equal(undoWindow.isPaused(), true);
+  t.mock.timers.tick(60_000);
+  assert.equal(await outcome(undoWindow), "waiting", "a paused window is not sent");
+
+  undoWindow.resume();
+  assert.equal(undoWindow.isPaused(), false);
+  t.mock.timers.tick(UNDO_WINDOW_MS - 3_000 - 1);
+  assert.equal(await outcome(undoWindow), "waiting");
+  t.mock.timers.tick(1);
+  assert.equal(await outcome(undoWindow), "sent", "sent after the 5 s that were left");
+});
+
+test("pausing or resuming twice does not change the time left", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout", "Date"] });
+  const undoWindow = createUndoWindow();
+  t.mock.timers.tick(2_000);
+  undoWindow.pause();
+  t.mock.timers.tick(1_000);
+  undoWindow.pause();
+  undoWindow.resume();
+  undoWindow.resume();
+  t.mock.timers.tick(UNDO_WINDOW_MS - 2_000 - 1);
+  assert.equal(await outcome(undoWindow), "waiting");
+  t.mock.timers.tick(1);
+  assert.equal(await outcome(undoWindow), "sent");
+});
+
+test("Undo and sendNow work while paused", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout", "Date"] });
+  const undone = createUndoWindow();
+  undone.pause();
+  undone.undo();
+  assert.equal(await outcome(undone), "undone");
+  assert.equal(undone.isOpen(), false);
+  assert.equal(undone.isPaused(), false, "an ended window is not paused");
+
+  const sent = createUndoWindow();
+  sent.pause();
+  sent.sendNow();
+  assert.equal(await outcome(sent), "sent");
+});
+
+test("pause and resume after the window ended do nothing", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout", "Date"] });
+  const undoWindow = createUndoWindow();
+  undoWindow.sendNow();
+  undoWindow.pause();
+  assert.equal(undoWindow.isPaused(), false);
+  undoWindow.resume();
+  assert.equal(await outcome(undoWindow), "sent");
+});
+
 // Runs last: it gives Node a stand-in `window` and `document`, so the module
 // starts listening for page events (it only does so once).
 test("a hidden page keeps its Undo; closing the page sends the request", async (t) => {
@@ -119,8 +178,12 @@ test("a hidden page keeps its Undo; closing the page sends the request", async (
     fakeDocument.dispatchEvent(new Event("visibilitychange"));
     assert.equal(await outcome(undoWindow), "waiting", "switching away does not send");
 
+    const paused = createUndoWindow();
+    paused.pause();
+
     fakeWindow.dispatchEvent(new Event("pagehide"));
     assert.equal(await outcome(undoWindow), "sent", "closing the page sends at once");
+    assert.equal(await outcome(paused), "sent", "a paused window is sent too");
   } finally {
     Reflect.deleteProperty(globalThis, "window");
     Reflect.deleteProperty(globalThis, "document");

@@ -322,7 +322,7 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
   Behavior:
   1. **One stack for the app.** One provider in the app layout holds the stack, and every page adds to it. Notifications stay visible when the user moves to another page.
   2. **Order.** The newest notification is at the bottom; older ones move up.
-  3. **Position.** On desktop the stack is fixed in the bottom-right corner. At `max-width: 480px` (the app's smallest breakpoint) it is fixed at the bottom center.
+  3. **Position.** The stack follows the navigation bar, not the viewport size: while the desktop navbar is shown it is fixed in the bottom-right corner; while the mobile navbar is shown it is fixed at the bottom center, above that bar. It has no breakpoint of its own, so if the navbar's breakpoint changes, the stack follows. (Changed 2026-11-23; the first version used `max-width: 480px`.)
   4. **Each one ends on its own timer.** A notification goes away when its own time runs out.
   5. **Every undo notice keeps its Undo.** Several undo windows can be open at once. Each Undo cancels only its own action, until its own 8 s end. This replaces D-079's rule that a newer action sends the older one at once. Scanner Add mode's Undo follows the same rules.
   6. **After Undo.** The notification's text changes to "Undone." in place, and it then counts as a 5 s info notice.
@@ -336,6 +336,6 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
   - Each page's `notice`/`setNotice` and each `.page__notice` block moves to the provider: `CardBrowserPage`, `BinderPage`, `DecksPage`, `FavoritesPage`, `DeckCardPopover` and `AddScanner`.
   - Scanner Add mode's own 8 s timer is removed, and its Undo goes through the stack.
   - `createUndoWindow` needs a pause and resume so that hovering can stop the 8 s window; the tests in `tests/binder/undoWindow.test.ts` grow to cover them.
-  - Several undo windows can be open at once. Each one's request is sent separately when its time runs out, and every open window is still sent at once when the page is hidden.
+  - Several undo windows can be open at once. Each one's request is sent separately when its time runs out, and every open window is still sent at once when the page is closed or left (`pagehide`); a page that is merely hidden keeps its Undo (D-079, changed 2026-11-23).
   - Touches more than two files: built in small steps, each with a plan and approval (AGENTS.md).
 - Source: "[App] Notification collection"
