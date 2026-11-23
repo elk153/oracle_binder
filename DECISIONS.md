@@ -125,6 +125,7 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
   - Route-level `lazy` changes how pages load; a chunk that fails after a deploy is already handled by `RouteErrorPage` (D-060).
   - Each step is a separate, small change with its own before/after measurement. Steps touching more than two files need a plan and approval (AGENTS.md).
   - Background loading must stay gentle with Scryfall: no bursts, the existing staggered batching (`fetchScryfallCardsForIds`) is kept.
+- Measurements: baseline and after figures for steps 2, 3, the first half of 4, and favorites in step 5 are in `docs/perf/d-071-measurements.md` (23 Nov 2026). Step 1 (Lighthouse 12.8.2, local `vite preview`, emulated phone, cold start, medians of 3, second recording after the fixes), before → after: hand-of-the-day data ready on mobile 4G 1,789 → 1,651 ms, slow 4G 5,753 → 4,978 ms, desktop 1,217 → 935 ms; hand visible on slow 4G 10,067 → 9,294 ms, desktop 1,935 → 1,621 ms; FCP unchanged; bytes before the hand data 691 → 436 kB. A first recording showed a slow-4G FCP regression (splash logo waiting behind JS files on HTTP/1.1) and background work overlapping the card images; both were fixed (inlined splash logo, background waits for on-screen images). Still open: Netlify and real-phone recording, Binder/Deck optimistic updates.
 - Source: "[Issues] Decision plan review" (`docs/issue-decision-plan.md`)
 
 ## D-072: Share link that shows the same cards to anyone
