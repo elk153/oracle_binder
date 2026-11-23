@@ -15,6 +15,7 @@ import {
   applyChanges,
   patchLists,
   releaseDeckEntriesOf,
+  restoreRows,
   restoreLists,
   temporaryId,
   toOptimisticCopy,
@@ -83,6 +84,48 @@ test("releaseDeckEntriesOf releases several copies at once (D-079 bulk)", () => 
   );
   assert.equal(next[1], entries[1]);
   assert.equal(next[3], entries[3]);
+});
+
+test("restoreRows: two overlapping actions undone oldest first both come back (D-080)", async () => {
+  const queryClient = new QueryClient();
+  const copies = [
+    { id: "a", name: "A", binder_id: null },
+    { id: "b", name: "B", binder_id: null },
+    { id: "c", name: "C", binder_id: null },
+  ];
+  queryClient.setQueryData(copiesKey, copies);
+  const without = (id: string) => (list: Row[]) => list.filter((row) => row.id !== id);
+
+  // Action 1 deletes A, then action 2 deletes C, both still in their window.
+  const first = await patchLists(queryClient, [[copiesKey, without("a")]]);
+  const second = await patchLists(queryClient, [[copiesKey, without("c")]]);
+  assert.deepEqual(queryClient.getQueryData<Row[]>(copiesKey)?.map((row) => row.id), ["b"]);
+
+  restoreRows(queryClient, first, ["a"]);
+  assert.deepEqual(
+    queryClient.getQueryData<Row[]>(copiesKey)?.map((row) => row.id),
+    ["a", "b"],
+    "undoing the first brings A back and keeps C deleted",
+  );
+  restoreRows(queryClient, second, ["c"]);
+  assert.deepEqual(
+    queryClient.getQueryData<Row[]>(copiesKey)?.map((row) => row.id),
+    ["a", "b", "c"],
+    "undoing the second brings C back without losing A",
+  );
+});
+
+test("restoreRows also puts back deck entries that used a touched copy", async () => {
+  const queryClient = new QueryClient();
+  queryClient.setQueryData(deckKey, [entry("e1", "binder", "c1"), entry("e2", "proxy", null)]);
+  const snapshots = await patchLists(queryClient, [[deckKey, releaseDeckEntriesOf(["c1"])]]);
+  assert.equal(queryClient.getQueryData<DeckEntry[]>(deckKey)?.[0].kind, "virtual");
+  restoreRows(queryClient, snapshots, ["c1"]);
+  const after = queryClient.getQueryData<DeckEntry[]>(deckKey);
+  assert.deepEqual(after?.map((row) => [row.id, row.kind, row.binder_card_id]), [
+    ["e1", "binder", "c1"],
+    ["e2", "proxy", null],
+  ]);
 });
 
 test("toOptimisticCopy fills database defaults and keeps the given id", () => {

@@ -24,8 +24,7 @@ import useDeckManagement from "../decks/useDeckManagement.ts";
 import { createDeckEntryActions } from "../decks/deckEntryActions.ts";
 import SelectionBar from "../selection/SelectionBar.tsx";
 import SelectionCheckbox from "../selection/SelectionCheckbox.tsx";
-import UndoNotice from "../selection/UndoNotice.tsx";
-import useUndoNotice from "../selection/useUndoNotice.ts";
+import { useNotify } from "../notifications/NotificationContext.ts";
 import {
   DISPOSAL_STATUSES,
   countText,
@@ -69,9 +68,8 @@ export default function BinderPage() {
     parseAsString,
   );
   const { user } = useAuth();
-  // D-079: the notice offers Undo for 8 s after a delete or dispose.
-  const undoNotice = useUndoNotice();
-  const setNotice = undoNotice.show;
+  // Messages go to the app-wide notification stack (D-080).
+  const notify = useNotify();
   const [cardId, setCardId] = useState<string | null>(null);
   const [binderDialog, setBinderDialog] = useState<BinderDialogState | null>(
     null,
@@ -81,7 +79,7 @@ export default function BinderPage() {
   );
   const [moveDestination, setMoveDestination] = useState("");
   const [disposeStatus, setDisposeStatus] = useState<DisposalStatus | "">("");
-  const binder = useBinderManagement(setNotice);
+  const binder = useBinderManagement();
   const decks = useDeckManagement();
   const favorites = useFavoriteCardAction();
   const { favoriteIds, isLoading: favoritesLoading } = favorites;
@@ -191,13 +189,13 @@ export default function BinderPage() {
     try {
       if (binderDialog.mode === "create") {
         await binder.bindersQuery.createBinder.mutateAsync(values);
-        setNotice(`Created binder “${values.name}”.`);
+        notify.info(`Created binder “${values.name}”.`);
       } else {
         await binder.bindersQuery.updateBinder.mutateAsync({
           id: binderDialog.binder.id,
           ...values,
         });
-        setNotice(`Updated binder “${values.name}”.`);
+        notify.info(`Updated binder “${values.name}”.`);
       }
       setBinderDialog(null);
     } catch (error) {
@@ -220,9 +218,9 @@ export default function BinderPage() {
     try {
       await binder.bindersQuery.deleteBinder.mutateAsync(target.id);
       if (selectedBinderId === target.id) void setSelectedBinderId(null);
-      setNotice(`Deleted “${target.name}”; ${count} ${cardWord} to Loose.`);
+      notify.info(`Deleted “${target.name}”; ${count} ${cardWord} to Loose.`);
     } catch (error) {
-      setNotice(
+      notify.error(
         `Could not delete binder: ${
           error instanceof Error ? error.message : "The request failed."
         }`,
@@ -238,10 +236,10 @@ export default function BinderPage() {
 
     try {
       await binder.copies.moveCopies.mutateAsync({ ids, binderId: destination });
-      setNotice(`Moved ${ids.length} ${ids.length === 1 ? "copy" : "copies"}.`);
+      notify.info(`Moved ${ids.length} ${ids.length === 1 ? "copy" : "copies"}.`);
       setSelectedCardIds(new Set());
     } catch (error) {
-      setNotice(
+      notify.error(
         `Could not move selected copies: ${
           error instanceof Error ? error.message : "The request failed."
         }`,
@@ -258,7 +256,7 @@ export default function BinderPage() {
     setDisposeStatus("");
     setSelectedCardIds(new Set());
     void runUndoable(
-      setNotice,
+      notify,
       `Disposed ${copiesText(ids.length)} as ${disposalLabel(status).toLowerCase()}.`,
       "Could not dispose the selected copies",
       (undoWindow) => binder.copies.disposeCopies.mutateAsync({ ids, status, undoWindow }),
@@ -270,7 +268,7 @@ export default function BinderPage() {
     if (ids.length === 0) return;
     setSelectedCardIds(new Set());
     void runUndoable(
-      setNotice,
+      notify,
       `Deleted ${copiesText(ids.length)}.`,
       "Could not delete the selected copies",
       (undoWindow) => binder.copies.deleteCopies.mutateAsync({ ids, undoWindow }),
@@ -281,12 +279,12 @@ export default function BinderPage() {
     if (action !== "favorite" || !user) return;
     favorites.toggleCardFavorite(card, user.id, {
       onSuccess: (wasFavorite) =>
-        setNotice(
+        notify.info(
           wasFavorite
             ? `Removed ${card.name} from Favorites.`
             : `Added ${card.name} to Favorites.`,
         ),
-      onError: (error) => setNotice(`Could not update Favorites: ${error.message}`),
+      onError: (error) => notify.error(`Could not update Favorites: ${error.message}`),
     });
   }
 
@@ -317,7 +315,7 @@ export default function BinderPage() {
       decks,
       binders: binder.binders,
       disposeCopies: binder.copies.disposeCopies.mutateAsync,
-      notify: setNotice,
+      notify,
     }),
     canManageDeck: Boolean(user),
   };
@@ -582,11 +580,6 @@ export default function BinderPage() {
         </>
       )}
 
-      <UndoNotice
-        notice={undoNotice.notice}
-        onUndo={undoNotice.undo}
-        onDismiss={undoNotice.dismiss}
-      />
 
       {/* Any card id can be shown: a card outside this page (e.g. a meld
           partner) has no fallbackCard, so the overlay fetches it. */}

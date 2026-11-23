@@ -1,4 +1,5 @@
 import { createUndoWindow, isUndoneError, type UndoWindow } from "../undoWindow.ts";
+import type { NotifyApi } from "../notifications/NotificationContext.ts";
 
 // Shared by the Binder and Decks selection bars (D-079).
 
@@ -23,22 +24,23 @@ export function errorText(error: unknown) {
 }
 
 /**
- * Runs an action with an 8-second undo buffer: the notice shows `text` with
+ * Runs an action with an 8-second undo buffer: the stack shows `text` with
  * Undo, the action waits for the window before its request, and Undo cancels
- * it. An undone action is not an error; a real failure replaces the notice.
+ * it. An undone action is not an error; a real failure adds an error notice
+ * that stays until dismissed (D-080).
  */
 export async function runUndoable(
-  show: (text: string, undoWindow?: UndoWindow) => void,
+  notify: Pick<NotifyApi, "undoable" | "error">,
   text: string,
   failure: string,
   run: (undoWindow: UndoWindow) => Promise<unknown>,
 ) {
   const undoWindow = createUndoWindow();
-  show(text, undoWindow);
+  notify.undoable(text, undoWindow);
   try {
     await run(undoWindow);
   } catch (error) {
     if (isUndoneError(error)) return;
-    show(`${failure}: ${errorText(error)}`);
+    notify.error(`${failure}: ${errorText(error)}`);
   }
 }

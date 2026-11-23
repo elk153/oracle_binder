@@ -157,3 +157,55 @@ export function releaseDeckEntriesOf(
         : entry,
     );
 }
+
+type Row = { id: string; binder_card_id?: string | null };
+
+/**
+ * Puts back only the rows an action touched, from its snapshots, and keeps
+ * every other row as it is now. `restoreLists` puts back whole lists, which
+ * is wrong once several actions overlap (D-080: several undo windows can be
+ * open at once): undoing the older action would restore a list without the
+ * newer action's change, and undoing the newer one would then bring back a
+ * list without the older one's row.
+ *
+ * `touchedIds` are the ids the action changed (copies and/or deck entries).
+ * A row counts as touched when its own id is listed, or, for deck entries,
+ * when it used a listed copy (`binder_card_id`). Restored rows go back to
+ * their old place, after the nearest row that came before them.
+ */
+export function restoreRows(
+  queryClient: QueryClient,
+  snapshots: ListSnapshot[] | undefined,
+  touchedIds: Iterable<string>,
+) {
+  const touched = new Set(touchedIds);
+  for (const { queryKey, previous } of snapshots ?? []) {
+    if (previous === undefined) continue;
+    const before = previous as Row[];
+    const rows = before.filter(
+      (row) => touched.has(row.id) || (row.binder_card_id != null && touched.has(row.binder_card_id)),
+    );
+    if (rows.length === 0) continue;
+    queryClient.setQueryData<Row[]>(queryKey, (current) =>
+      current ? putBack(current, before, rows) : current,
+    );
+  }
+}
+
+function putBack(current: Row[], before: Row[], rows: Row[]): Row[] {
+  const replaced = new Set(rows.map((row) => row.id));
+  const result = current.filter((row) => !replaced.has(row.id));
+  for (const row of rows) {
+    const oldIndex = before.findIndex((entry) => entry.id === row.id);
+    let at = 0;
+    for (let i = oldIndex - 1; i >= 0; i--) {
+      const found = result.findIndex((entry) => entry.id === before[i].id);
+      if (found !== -1) {
+        at = found + 1;
+        break;
+      }
+    }
+    result.splice(at, 0, row);
+  }
+  return result;
+}

@@ -13,8 +13,7 @@ import useBinderManagement from "../binder/useBinderManagement.ts";
 import AddBinderCopyDialog from "../binder/AddBinderCopyDialog.tsx";
 import type { BinderCopy } from "../binder/useBinderCopies.ts";
 import useDeckManagement from "../decks/useDeckManagement.ts";
-import UndoNotice from "../selection/UndoNotice.tsx";
-import useUndoNotice from "../selection/useUndoNotice.ts";
+import { useNotify } from "../notifications/NotificationContext.ts";
 import { createDeckEntryActions } from "../decks/deckEntryActions.ts";
 import "./FavoritesPage.css";
 
@@ -35,17 +34,16 @@ export default function FavoritesPage() {
     realtimeError: favoritesRealtimeError,
   } = useFavoriteIds();
   const toggleFavorite = useToggleFavorite();
-  // D-079: the notice offers Undo after a dispose or delete in a popover.
-  const undoNotice = useUndoNotice();
-  const setNotice = undoNotice.show;
-  const binder = useBinderManagement(setNotice);
+  // Messages go to the app-wide notification stack (D-080).
+  const notify = useNotify();
+  const binder = useBinderManagement();
   const decks = useDeckManagement();
   // D-079 take-out actions in the deck popover, with Undo in this notice.
   const deckEntryActions = createDeckEntryActions({
     decks,
     binders: binder.binders,
     disposeCopies: binder.copies.disposeCopies.mutateAsync,
-    notify: setNotice,
+    notify,
   });
   const cardId = searchParams.get("card");
   const invalidCardData = favoriteSource.cards.some(
@@ -103,17 +101,17 @@ export default function FavoritesPage() {
 
   function handleAction(action: CardAction, card: CardBrowserCard) {
     if (action === "deck") {
-      if (!user) setNotice("Sign in to manage decks.");
+      if (!user) notify.info("Sign in to manage decks.");
       return;
     }
 
     if (action !== "favorite") {
-      setNotice(`${ACTION_LABELS[action]} for ${card.name} is under construction.`);
+      notify.info(`${ACTION_LABELS[action]} for ${card.name} is under construction.`);
       return;
     }
 
     if (!user) {
-      setNotice("Sign in to manage your favorites.");
+      notify.info("Sign in to manage your favorites.");
       return;
     }
 
@@ -122,13 +120,13 @@ export default function FavoritesPage() {
       { userId: user.id, scryfallId: card.id, isFavorite: wasFavorite },
       {
         onSuccess: () =>
-          setNotice(
+          notify.info(
             wasFavorite
               ? `Removed ${card.name} from Favorites.`
               : `Added ${card.name} to Favorites.`,
           ),
         onError: (error) =>
-          setNotice(`Could not update Favorites for ${card.name}: ${error.message}`),
+          notify.error(`Could not update Favorites for ${card.name}: ${error.message}`),
       },
     );
   }
@@ -265,11 +263,6 @@ export default function FavoritesPage() {
         </div>
       )}
 
-      <UndoNotice
-        notice={undoNotice.notice}
-        onUndo={undoNotice.undo}
-        onDismiss={undoNotice.dismiss}
-      />
 
       {cardId && (
         <CardDetailsOverlay

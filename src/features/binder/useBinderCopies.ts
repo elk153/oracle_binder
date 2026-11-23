@@ -10,6 +10,7 @@ import {
   patchLists,
   releaseDeckEntriesOf,
   restoreLists,
+  restoreRows,
   toOptimisticCopy,
   toOptimisticDeckEntry,
   updateById,
@@ -322,7 +323,9 @@ export default function useBinderCopies() {
         [deckKey, releaseDeckEntriesOf(ids)],
       ]);
     },
-    onError: (_error, _input, snapshots) => restoreLists(queryClient, snapshots),
+    // Only these copies (and their deck entries) go back: other undo
+    // windows may be open at the same time (D-080).
+    onError: (_error, { ids }, snapshots) => restoreRows(queryClient, snapshots, ids),
     onSettled: (_data, error) => refetchAfterDeferred(error),
   });
 
@@ -359,7 +362,9 @@ export default function useBinderCopies() {
         [deckKey, releaseDeckEntriesOf(ids)],
       ]);
     },
-    onError: (_error, _input, snapshots) => restoreLists(queryClient, snapshots),
+    // Only these copies (and their deck entries) go back: other undo
+    // windows may be open at the same time (D-080).
+    onError: (_error, { ids }, snapshots) => restoreRows(queryClient, snapshots, ids),
     onSuccess: (updated) => replaceCopies(updated),
     onSettled: (_data, error) => refetchAfterDeferred(error),
   });

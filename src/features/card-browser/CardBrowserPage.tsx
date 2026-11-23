@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { Link, useLocation, useSearchParams } from "react-router";
 import CardFilters from "../card-filters/CardFilters.tsx";
 import { useCardsTable } from "../card-filters/useCardsTable.ts";
@@ -11,8 +11,7 @@ import useBinderManagement from "../binder/useBinderManagement.ts";
 import AddBinderCopyDialog from "../binder/AddBinderCopyDialog.tsx";
 import type { BinderCopy } from "../binder/useBinderCopies.ts";
 import useDeckManagement from "../decks/useDeckManagement.ts";
-import UndoNotice from "../selection/UndoNotice.tsx";
-import useUndoNotice from "../selection/useUndoNotice.ts";
+import { useNotify } from "../notifications/NotificationContext.ts";
 import { createDeckEntryActions } from "../decks/deckEntryActions.ts";
 import useCardBrowserResults from "./useCardBrowserResults.ts";
 import SearchControls from "../search/SearchControls.tsx";
@@ -50,11 +49,9 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
     error: favoritesError,
     realtimeError: favoritesRealtimeError,
   } = favorites;
-  // D-079: the notice offers Undo after a dispose or delete in a popover.
-  const undoNotice = useUndoNotice();
-  const setNotice = undoNotice.show;
-  const [signInPath, setSignInPath] = useState<string | null>(null);
-  const binder = useBinderManagement(setNotice);
+  // Messages go to the app-wide notification stack (D-080).
+  const notify = useNotify();
+  const binder = useBinderManagement();
   const decks = useDeckManagement();
   const cardId = searchParams.get("card");
   const {
@@ -180,47 +177,42 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
   }, [searchParams, setSearchParams]);
 
   function showActionNotice(action: CardAction, card: CardBrowserCard) {
-    setSignInPath(null);
+    const nextPath = `${location.pathname}${location.search}${location.hash}`;
+    const signIn = { link: { label: "Sign in", to: `/v2/login?next=${encodeURIComponent(nextPath)}` } };
 
     if (action === "binder") {
       if (!user) {
-        const nextPath = `${location.pathname}${location.search}${location.hash}`;
-        setNotice("Sign in to manage your Binder.");
-        setSignInPath(`/v2/login?next=${encodeURIComponent(nextPath)}`);
+        notify.info("Sign in to manage your Binder.", signIn);
       }
       return;
     }
 
     if (action === "deck") {
       if (!user) {
-        const nextPath = `${location.pathname}${location.search}${location.hash}`;
-        setNotice("Sign in to manage decks.");
-        setSignInPath(`/v2/login?next=${encodeURIComponent(nextPath)}`);
+        notify.info("Sign in to manage decks.", signIn);
       }
       return;
     }
 
     if (action !== "favorite") {
-      setNotice(`${ACTION_LABELS[action]} for ${card.name} is under construction.`);
+      notify.info(`${ACTION_LABELS[action]} for ${card.name} is under construction.`);
       return;
     }
 
     if (!user) {
-      const nextPath = `${location.pathname}${location.search}${location.hash}`;
-      setNotice(`Sign in to save ${card.name} to Favorites.`);
-      setSignInPath(`/v2/login?next=${encodeURIComponent(nextPath)}`);
+      notify.info(`Sign in to save ${card.name} to Favorites.`, signIn);
       return;
     }
 
     favorites.toggleCardFavorite(card, user.id, {
       onSuccess: (wasFavorite) =>
-        setNotice(
+        notify.info(
           wasFavorite
             ? `Removed ${card.name} from Favorites.`
             : `Added ${card.name} to Favorites.`,
         ),
       onError: (error) =>
-        setNotice(
+        notify.error(
           `Could not update Favorites for ${card.name}: ${
             error.message
           }`,
@@ -261,7 +253,7 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
       decks,
       binders: binder.binders,
       disposeCopies: binder.copies.disposeCopies.mutateAsync,
-      notify: setNotice,
+      notify,
     }),
     canManageDeck: Boolean(user),
   };
@@ -431,16 +423,6 @@ export default function CardBrowserPage({ mode = "search" }: CardBrowserPageProp
         </>
       )}
 
-      <UndoNotice
-        notice={undoNotice.notice}
-        onUndo={undoNotice.undo}
-        onDismiss={() => {
-          undoNotice.dismiss();
-          setSignInPath(null);
-        }}
-      >
-        {signInPath && <Link className="page__notice-action" to={signInPath}>Sign in</Link>}
-      </UndoNotice>
       {cardId && (
         <CardDetailsOverlay
           key={cardId}

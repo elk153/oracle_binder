@@ -1,10 +1,11 @@
 import { createContext, useContext } from "react";
 import type { UndoWindow } from "../undoWindow.ts";
+import type { NotificationLink } from "./notificationList.ts";
 
 // What pages use to show a notification in the app-wide stack (D-080).
 export type NotifyApi = {
-  /** A confirmation; goes away after 5 s. */
-  info: (text: string) => void;
+  /** A confirmation; goes away after 5 s. A link adds an action ("Sign in"). */
+  info: (text: string, options?: { link?: NotificationLink }) => void;
   /** An action with Undo; stays for its 8-second window (D-079). */
   undoable: (text: string, undoWindow: UndoWindow) => void;
   /** A failure; stays until dismissed. */

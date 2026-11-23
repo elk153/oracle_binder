@@ -8,6 +8,7 @@ import {
   removeNotification,
   type AppNotification,
   type NotificationKind,
+  type NotificationLink,
 } from "./notificationList.ts";
 
 /**
@@ -34,8 +35,8 @@ export default function NotificationProvider({ children }: { children: ReactNode
   );
 
   const add = useCallback(
-    (kind: NotificationKind, text: string, undoWindow?: UndoWindow) => {
-      const notification: AppNotification = { id: crypto.randomUUID(), kind, text, undoWindow };
+    (kind: NotificationKind, text: string, undoWindow?: UndoWindow, link?: NotificationLink) => {
+      const notification: AppNotification = { id: crypto.randomUUID(), kind, text, undoWindow, link };
       const { list: next, removed } = addNotification(listRef.current, notification);
       store(next);
       // Pushed out by the limit of 5: an undo notice's action goes now.
@@ -76,7 +77,7 @@ export default function NotificationProvider({ children }: { children: ReactNode
 
   const api = useMemo<NotifyApi>(
     () => ({
-      info: (text) => add("info", text),
+      info: (text, options) => add("info", text, undefined, options?.link),
       undoable: (text, undoWindow) => add("undo", text, undoWindow),
       error: (text) => add("error", text),
       notify: (text, undoWindow) =>

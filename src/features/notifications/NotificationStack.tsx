@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { Link } from "react-router";
 import useMobileNavbar from "../navigation/useMobileNavbar.ts";
 import { INFO_MS, type AppNotification } from "./notificationList.ts";
 import "./NotificationStack.css";
@@ -68,7 +69,7 @@ type NotificationItemProps = {
  * for an undo notice the undo window itself pauses.
  */
 function NotificationItem({ notification, onUndo, onDismiss, onExpire }: NotificationItemProps) {
-  const { id, kind, text, undoWindow } = notification;
+  const { id, kind, text, undoWindow, link } = notification;
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const paused = hovered || focused;
@@ -104,6 +105,11 @@ function NotificationItem({ notification, onUndo, onDismiss, onExpire }: Notific
       }}
     >
       <span className="notification-stack__text">{text}</span>
+      {link && (
+        <Link className="notification-stack__action" to={link.to} onClick={() => onDismiss(id)}>
+          {link.label}
+        </Link>
+      )}
       {kind === "undo" && (
         <button type="button" className="notification-stack__action" onClick={() => onUndo(id)}>
           Undo

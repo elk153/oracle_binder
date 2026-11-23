@@ -15,7 +15,11 @@ export type AppNotification = {
   text: string;
   /** Only on kind "undo": the action's 8-second window (D-079). */
   undoWindow?: UndoWindow;
+  /** Optional link shown as an action, e.g. "Sign in". */
+  link?: NotificationLink;
 };
+
+export type NotificationLink = { label: string; to: string };
 
 /**
  * Adds a notification at the end (the bottom of the stack: newest last).

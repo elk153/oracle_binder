@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import type { BinderCopy } from "../binder/useBinderCopies.ts";
 import type { CardBrowserCard } from "../card-browser/types.ts";
-import { DISPOSAL_STATUSES } from "../selection/selectionActions.ts";
+import { DISPOSAL_STATUSES, errorText } from "../selection/selectionActions.ts";
+import { useNotify } from "../notifications/NotificationContext.ts";
 import type {
   Deck,
   DeckActions,
@@ -62,8 +63,10 @@ export default function DeckCardPopover({
   // Where each owned entry's copy goes on "Remove from deck" ("" = not
   // chosen yet, "loose" = Loose, otherwise a binder id). D-079 asks every time.
   const [removeTo, setRemoveTo] = useState<Record<string, string>>({});
+  // Form hints ("Choose a deck first.") stay in the popover; results and
+  // failures of requests go to the app-wide notification stack (D-080).
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const notify = useNotify();
   const [isSaving, setIsSaving] = useState(false);
   const isBusy = isSaving || actions.isPending;
 
@@ -111,16 +114,13 @@ export default function DeckCardPopover({
 
   async function runAction(action: () => Promise<unknown>, success: string) {
     setError(null);
-    setNotice(null);
     setIsSaving(true);
     try {
       await action();
-      setNotice(success);
+      notify.info(success);
       return success;
     } catch (caught) {
-      setError(
-        caught instanceof Error ? caught.message : "The request failed.",
-      );
+      notify.error(`Could not update decks for ${card.name}: ${errorText(caught)}`);
       return null;
     } finally {
       setIsSaving(false);
@@ -436,11 +436,6 @@ export default function DeckCardPopover({
           {error}
         </p>
       )}
-      {notice && (
-        <p className="binder-copy-popover__empty" role="status">
-          {notice}
-        </p>
-      )}
     </section>
   );
 }
@@ -457,7 +452,8 @@ type EntryTakeOutActionsProps = {
 /**
  * D-079 for one deck entry, with the same labels as the Decks selection bar:
  * Remove from deck (an owned copy needs a destination), Sold / Lost / Given
- * away for an owned copy, and Delete. Each shows Undo in the page notice.
+ * away for an owned copy, and Delete. Each shows Undo in the notification
+ * stack (D-080).
  */
 function EntryTakeOutActions({
   entry,

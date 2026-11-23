@@ -3,15 +3,12 @@ import type { CardBrowserCard } from "../card-browser/types.ts";
 import type { CopyFormValues } from "./BinderCopyForm.tsx";
 import useBinderCopies, { type BinderCopy } from "./useBinderCopies.ts";
 import useBinders from "./useBinders.ts";
-import type { UndoWindow } from "../undoWindow.ts";
+import { useNotify } from "../notifications/NotificationContext.ts";
 import {
   countText,
   disposalLabel,
   runUndoable,
 } from "../selection/selectionActions.ts";
-
-// The page notice. With an undo window it shows Undo (useUndoNotice, D-079).
-export type Notify = (message: string, undoWindow?: UndoWindow) => void;
 
 function isDisposalStatus(
   status: string,
@@ -25,7 +22,10 @@ function confirmDeckConversion(action: string): boolean {
   );
 }
 
-export default function useBinderManagement(notify: Notify) {
+// Messages go to the app-wide notification stack (D-080): confirmations as
+// info, failures as errors that stay until dismissed.
+export default function useBinderManagement() {
+  const notify = useNotify();
   const [cardToAdd, setCardToAdd] = useState<CardBrowserCard | null>(null);
   const copies = useBinderCopies();
   const bindersQuery = useBinders();
@@ -53,13 +53,13 @@ export default function useBinderManagement(notify: Notify) {
       };
       if (deckId) {
         await copies.addCopyToDeck.mutateAsync({ copy, deckId });
-        notify(`Added ${card.name} to the selected deck.`);
+        notify.info(`Added ${card.name} to the selected deck.`);
       } else {
         await copies.addCopy.mutateAsync(copy);
-        notify(`Added ${card.name} to your Binder.`);
+        notify.info(`Added ${card.name} to your Binder.`);
       }
     } catch (error) {
-      notify(
+      notify.error(
         `Could not add ${card.name}: ${
           error instanceof Error ? error.message : "The request failed."
         }`,
@@ -85,7 +85,7 @@ export default function useBinderManagement(notify: Notify) {
           status: nextStatus,
           changes: disposalChanges,
         });
-        notify("Binder copy updated.");
+        notify.info("Binder copy updated.");
         return true;
       }
 
@@ -111,10 +111,10 @@ export default function useBinderManagement(notify: Notify) {
       } else {
         await copies.updateCopy.mutateAsync({ id: copy.id, changes });
       }
-      notify("Binder copy updated.");
+      notify.info("Binder copy updated.");
       return true;
     } catch (error) {
-      notify(
+      notify.error(
         `Could not update binder copy: ${
           error instanceof Error ? error.message : "The request failed."
         }`,
@@ -145,9 +145,9 @@ export default function useBinderManagement(notify: Notify) {
           disposal_price: null,
         },
       });
-      notify("Copy restored to owned.");
+      notify.info("Copy restored to owned.");
     } catch (error) {
-      notify(
+      notify.error(
         `Could not restore binder copy: ${
           error instanceof Error ? error.message : "The request failed."
         }`,

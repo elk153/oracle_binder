@@ -21,8 +21,7 @@ import { createDeckEntryActions } from "./deckEntryActions.ts";
 import useFavoriteCardAction from "../favorites/useFavoriteCardAction.ts";
 import SelectionBar from "../selection/SelectionBar.tsx";
 import SelectionCheckbox from "../selection/SelectionCheckbox.tsx";
-import UndoNotice from "../selection/UndoNotice.tsx";
-import useUndoNotice from "../selection/useUndoNotice.ts";
+import { useNotify } from "../notifications/NotificationContext.ts";
 import {
   DISPOSAL_STATUSES,
   countText,
@@ -70,16 +69,15 @@ export default function DecksPage() {
   const { user } = useAuth();
   const [cardId, setCardId] = useState<string | null>(null);
   const [newDeckName, setNewDeckName] = useState("");
-  // D-079: the notice offers Undo for 8 s after a remove, dispose or delete.
-  const undoNotice = useUndoNotice();
-  const setNotice = undoNotice.show;
+  // Messages go to the app-wide notification stack (D-080).
+  const notify = useNotify();
   // Selected deck entries (D-079). Unlike the Binder, every tile here is one
   // entry, so the selection holds entry ids.
   const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(() => new Set());
   const [removeDestination, setRemoveDestination] = useState("");
   const [disposeStatus, setDisposeStatus] = useState<DisposalStatus | "">("");
   const decks = useDeckManagement();
-  const binder = useBinderManagement(setNotice);
+  const binder = useBinderManagement();
   const favorites = useFavoriteCardAction();
   const {
     favoriteIds,
@@ -180,9 +178,9 @@ export default function DecksPage() {
     try {
       await decks.createDeck(name);
       setNewDeckName("");
-      setNotice(`Created deck “${name}”.`);
+      notify.info(`Created deck “${name}”.`);
     } catch (error) {
-      setNotice(
+      notify.error(
         `Could not create deck: ${
           error instanceof Error ? error.message : "The request failed."
         }`,
@@ -195,9 +193,9 @@ export default function DecksPage() {
     if (!name || name === deck.name) return;
     try {
       await decks.renameDeck({ id: deck.id, name });
-      setNotice(`Renamed deck to “${name}”.`);
+      notify.info(`Renamed deck to “${name}”.`);
     } catch (error) {
-      setNotice(
+      notify.error(
         `Could not rename deck: ${
           error instanceof Error ? error.message : "The request failed."
         }`,
@@ -221,9 +219,9 @@ export default function DecksPage() {
     try {
       await decks.deleteDeck(deck.id);
       if (selectedDeckId === deck.id) void setSelectedDeckId(null);
-      setNotice(`Deleted “${deck.name}” and its ${count} deck entries.`);
+      notify.info(`Deleted “${deck.name}” and its ${count} deck entries.`);
     } catch (error) {
-      setNotice(
+      notify.error(
         `Could not delete deck: ${
           error instanceof Error ? error.message : "The request failed."
         }`,
@@ -262,7 +260,7 @@ export default function DecksPage() {
       (owned > 0 ? `; ${countText(owned, "copy", "copies")} to ${destination}.` : ".");
     setSelectedEntryIds(new Set());
     setRemoveDestination("");
-    void runUndoable(setNotice, text, "Could not remove the selected cards", (undoWindow) =>
+    void runUndoable(notify, text, "Could not remove the selected cards", (undoWindow) =>
       decks.removeDeckEntries({ ids, binderId, undoWindow }),
     );
   }
@@ -281,7 +279,7 @@ export default function DecksPage() {
       (skipped > 0 ? `; ${countText(skipped, "proxy or virtual card", "proxy or virtual cards")} skipped.` : ".");
     setSelectedEntryIds(new Set());
     setDisposeStatus("");
-    void runUndoable(setNotice, text, "Could not dispose the selected copies", (undoWindow) =>
+    void runUndoable(notify, text, "Could not dispose the selected copies", (undoWindow) =>
       binder.copies.disposeCopies.mutateAsync({ ids, status, undoWindow }),
     );
   }
@@ -294,7 +292,7 @@ export default function DecksPage() {
       `Deleted ${countText(ids.length, "card")} from ${fromText()}` +
       (owned > 0 ? `, including ${countText(owned, "owned copy", "owned copies")}.` : ".");
     setSelectedEntryIds(new Set());
-    void runUndoable(setNotice, text, "Could not delete the selected cards", (undoWindow) =>
+    void runUndoable(notify, text, "Could not delete the selected cards", (undoWindow) =>
       decks.deleteDeckEntries({ ids, undoWindow }),
     );
   }
@@ -303,12 +301,12 @@ export default function DecksPage() {
     if (action !== "favorite" || !user) return;
     favorites.toggleCardFavorite(card, user.id, {
       onSuccess: (wasFavorite) =>
-        setNotice(
+        notify.info(
           wasFavorite
             ? `Removed ${card.name} from Favorites.`
             : `Added ${card.name} to Favorites.`,
         ),
-      onError: (error) => setNotice(`Could not update Favorites: ${error.message}`),
+      onError: (error) => notify.error(`Could not update Favorites: ${error.message}`),
     });
   }
 
@@ -339,7 +337,7 @@ export default function DecksPage() {
       decks,
       binders: binder.binders,
       disposeCopies: binder.copies.disposeCopies.mutateAsync,
-      notify: setNotice,
+      notify,
     }),
     canManageDeck: Boolean(user),
   };
@@ -707,11 +705,6 @@ export default function DecksPage() {
         </>
       )}
 
-      <UndoNotice
-        notice={undoNotice.notice}
-        onUndo={undoNotice.undo}
-        onDismiss={undoNotice.dismiss}
-      />
 
       {/* Any card id can be shown: a card outside this page (e.g. a meld
           partner) has no fallbackCard, so the overlay fetches it. */}

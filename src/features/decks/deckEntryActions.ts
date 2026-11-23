@@ -1,5 +1,5 @@
 import type { Binder } from "../binder/useBinders.ts";
-import type { Notify } from "../binder/useBinderManagement.ts";
+import type { NotifyApi } from "../notifications/NotificationContext.ts";
 import type { UndoWindow } from "../undoWindow.ts";
 import {
   disposalLabel,
@@ -32,7 +32,7 @@ type Options = {
     status: DisposalStatus;
     undoWindow?: UndoWindow;
   }) => Promise<unknown>;
-  notify: Notify;
+  notify: Pick<NotifyApi, "undoable" | "error">;
 };
 
 export function createDeckEntryActions({

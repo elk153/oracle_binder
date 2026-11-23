@@ -19,6 +19,7 @@ import {
   applyChanges,
   patchLists,
   restoreLists,
+  restoreRows,
   toOptimisticDeckEntry,
   updateById,
   type ListSnapshot,
@@ -336,7 +337,7 @@ export default function useDeckManagement() {
         ]),
       };
     },
-    onError: (_error, _input, context) => undoMarkAndPatch(context),
+    onError: (_error, input, context) => undoMarkAndRestoreRows(context, input),
     onSuccess: (moved) => replaceBinderCopies(moved),
     onSettled: (_data, error) => refetchAfterDeferred(error),
   });
@@ -361,7 +362,7 @@ export default function useDeckManagement() {
         ]),
       };
     },
-    onError: (_error, _input, context) => undoMarkAndPatch(context),
+    onError: (_error, input, context) => undoMarkAndRestoreRows(context, input),
     onSettled: (_data, error) => refetchAfterDeferred(error),
   });
 
@@ -389,6 +390,17 @@ export default function useDeckManagement() {
   ): Promise<MarkedContext> {
     if (user) markLocalRealtimeChange("binder_cards", user.id, copyIds);
     return { copyIds, snapshots: await patchLists(queryClient, patches) };
+  }
+
+  // Like undoMarkAndPatch, but puts back only the entries and copies this
+  // action touched: other undo windows may be open at once (D-080).
+  function undoMarkAndRestoreRows(
+    context: MarkedContext | undefined,
+    input: { ids: string[]; copyIds: string[] },
+  ) {
+    if (!context) return;
+    if (user) clearLocalRealtimeChange("binder_cards", user.id, context.copyIds);
+    restoreRows(queryClient, context.snapshots, [...input.ids, ...input.copyIds]);
   }
 
   function undoMarkAndPatch(context: MarkedContext | undefined) {
