@@ -435,39 +435,39 @@
   color: var(--text-secondary);
 }
 
-/* D-074: the languages the card has printings in; each one shows or hides them. */
+/* D-074: one pill per language the card has printings in; each shows or hides them. */
 .card-detail__languages {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem 0.5rem;
+  align-items: center;
+  gap: 0.35rem;
   margin: 0.25rem 0 0.75rem;
-  padding: 0;
-  border: 0;
-  color: var(--text-secondary);
-  font-size: 0.75rem;
 }
 
-.card-detail__languages-legend {
-  margin-bottom: 0.3rem;
-  padding: 0;
+.card-detail__languages-title {
+  flex-basis: 100%;
+  margin: 0 0 0.1rem;
   color: var(--text-accent);
   font-size: 0.8rem;
 }
 
 .card-detail__language {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
+  min-width: 2.6rem;
   padding: 0.2rem 0.55rem;
   border: 1px solid var(--surface-border);
   border-radius: var(--control-radius);
+  color: var(--text-secondary);
   background: var(--bg-card);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   cursor: pointer;
 }
 
-.card-detail__language--checked {
+.card-detail__language--selected {
   border-color: var(--text-accent);
-  color: var(--text-primary);
+  color: var(--bg-header);
+  background: var(--text-accent);
 }
 
 .card-detail__languages-note {

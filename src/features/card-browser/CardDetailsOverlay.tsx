@@ -358,26 +358,40 @@ export default function CardDetailsOverlay({
 
           <section className="card-detail-overlay__prints" aria-label="Card prints">
             {languages.length > 0 && (
-              <fieldset className="card-detail__languages">
-                <legend className="card-detail__languages-legend">Languages</legend>
-                {languages.map((language) => (
-                  <label
-                    key={language.code}
-                    className={`card-detail__language${
-                      selectedLanguages.has(language.code) ? " card-detail__language--checked" : ""
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedLanguages.has(language.code)}
-                      onChange={() =>
+              <div
+                className="card-detail__languages"
+                role="group"
+                aria-labelledby="card-detail-languages-title"
+              >
+                <h3 id="card-detail-languages-title" className="card-detail__languages-title">
+                  Languages
+                </h3>
+                {/* Toggle buttons (aria-pressed): the code on the pill, the
+                    full name in the tooltip and for screen readers. */}
+                {languages.map((language) => {
+                  const selected = selectedLanguages.has(language.code);
+                  const label = `${language.name}: ${language.count} ${
+                    language.count === 1 ? "printing" : "printings"
+                  }`;
+                  return (
+                    <button
+                      key={language.code}
+                      type="button"
+                      className={`card-detail__language${
+                        selected ? " card-detail__language--selected" : ""
+                      }`}
+                      aria-pressed={selected}
+                      aria-label={label}
+                      title={label}
+                      onClick={() =>
                         setChosenLanguages(toggleLanguage(selectedLanguages, language.code))
                       }
-                    />
-                    {language.name} ({language.count})
-                  </label>
-                ))}
-              </fieldset>
+                    >
+                      {language.code.toUpperCase()}
+                    </button>
+                  );
+                })}
+              </div>
             )}
             {printsQuery.data?.truncated && (
               <p className="card-detail__languages-note">
