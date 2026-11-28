@@ -2,8 +2,8 @@ import { lazy, memo, Suspense, useMemo } from 'react';
 import type { ComponentType } from 'react';
 import { CARD_SHAPES } from './scryfallCardLayouts.ts';
 import type { CardShape } from './scryfallCardLayouts.ts';
-import { normalizeCard } from './normalizeCard.ts';
-import type { RawScryfallCard, ShapeComponentProps } from './types.ts';
+import { normalizeCard, withTextLanguage } from './normalizeCard.ts';
+import type { RawScryfallCard, ShapeComponentProps, TextLanguage } from './types.ts';
 
 // Eager: ONE_FACE covers 15 of the 24 layouts and is the overwhelming
 // majority of any real card pool — no reason to pay a lazy-load waterfall
@@ -34,6 +34,11 @@ function CardFallback() {
 type CardRendererProps = Omit<ShapeComponentProps, 'card'> & {
   /** A raw Scryfall card; it is normalized here before rendering. */
   card: RawScryfallCard;
+  /**
+   * D-074: show the card as printed (its language, where Scryfall has the
+   * text; the default) or Scryfall's English oracle text.
+   */
+  textLanguage?: TextLanguage;
 };
 
 /**
@@ -42,8 +47,11 @@ type CardRendererProps = Omit<ShapeComponentProps, 'card'> & {
  * Usage: <CardRenderer card={scryfallCard} />
  * Meld cards accept an extra `fetchCardByUri` prop for resolving all_parts.
  */
-function CardRenderer({ card, ...rest }: CardRendererProps) {
-  const normalized = useMemo(() => normalizeCard(card), [card]);
+function CardRenderer({ card, textLanguage = 'printed', ...rest }: CardRendererProps) {
+  const normalized = useMemo(
+    () => withTextLanguage(normalizeCard(card), textLanguage),
+    [card, textLanguage],
+  );
   const Component = SHAPE_COMPONENTS[normalized.shape];
 
   return (

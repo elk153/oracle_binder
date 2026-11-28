@@ -7,6 +7,8 @@ import useFetchUrl from "../../hooks/useFetchUrl.ts";
 import useScryfallCardsSearch from "./useScryfallCardsSearch.ts";
 import fetchCardRulings from "./fetchCardRulings.ts";
 import CardTile from "./CardTile.tsx";
+import { languageNameOfCode } from "../cardLanguages.ts";
+import type { TextLanguage } from "../scryfall-card-renderer/types.ts";
 import type { BinderCopy } from "../binder/useBinderCopies.ts";
 import type { Binder } from "../binder/useBinders.ts";
 import type { CopyFormValues } from "../binder/BinderCopyForm.tsx";
@@ -46,6 +48,30 @@ type CardDetailsOverlayProps = {
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 const NO_PRINTS: unknown[] = [];
 
+/** D-074: true when Scryfall has printed (non-English) text for this printing. */
+function hasPrintedText(card: CardBrowserCard): boolean {
+  const parts: (CardBrowserCard | CardBrowserFace)[] = [card, ...(card.card_faces ?? [])];
+  return parts.some(
+    (part) => Boolean(part.printed_name || part.printed_type_line || part.printed_text),
+  );
+}
+
+/**
+ * D-074: Scryfall's printings list leaves out other languages unless
+ * `include_multilingual=true` is added. Returns the URL unchanged when off
+ * or when it can't be parsed.
+ */
+function withMultilingual(uri: string | undefined, include: boolean): string | undefined {
+  if (!uri || !include) return uri;
+  try {
+    const url = new URL(uri);
+    url.searchParams.set("include_multilingual", "true");
+    return url.toString();
+  } catch {
+    return uri;
+  }
+}
+
 export default function CardDetailsOverlay({
   cardId,
   fallbackCard,
@@ -77,6 +103,7 @@ export default function CardDetailsOverlay({
   }, []);
   const [selectedPrint, setSelectedPrint] = useState<CardBrowserCard | null>(null);
   const [faceIndex, setFaceIndex] = useState(0);
+  const [textLanguage, setTextLanguage] = useState<TextLanguage>("printed");
   const cardQuery = useScryfallCardsSearch(
     fallbackCard ? null : `cards/${encodeURIComponent(cardId)}`,
     {},
@@ -103,7 +130,12 @@ export default function CardDetailsOverlay({
     activeFace?.image_uris?.normal ??
     displayCard?.image_uris?.normal;
   const rulingsUri = originalCard?.rulings_uri;
-  const printsUri = originalCard?.prints_search_uri;
+  // D-074: other languages are listed when asked, and from the start when the
+  // opened card is itself a non-English printing.
+  const [showAllLanguages, setShowAllLanguages] = useState<boolean | null>(null);
+  const includeAllLanguages =
+    showAllLanguages ?? (originalCard?.lang !== undefined && originalCard.lang !== "en");
+  const printsUri = withMultilingual(originalCard?.prints_search_uri, includeAllLanguages);
   const rulingsQuery = useQuery({
     queryKey: ["fetchedUrl", "cardRulingsNormalized", rulingsUri],
     queryFn: () => {
@@ -163,7 +195,11 @@ export default function CardDetailsOverlay({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
-  const title = originalCard?.name ?? "Card details";
+  const showsPrintedText = displayCard !== undefined && hasPrintedText(displayCard);
+  const title =
+    (showsPrintedText && textLanguage === "printed" ? displayCard?.printed_name : undefined) ??
+    originalCard?.name ??
+    "Card details";
 
   return (
     <section
@@ -239,10 +275,28 @@ export default function CardDetailsOverlay({
               <CardRenderer
                 key={`${displayCard.id}-${faceIndex}`}
                 card={contentCard}
+                textLanguage={textLanguage}
                 showDetailsMetadata
                 onOpenCard={onOpenCard}
               />
             </div>
+
+            {showsPrintedText && (
+              <div className="card-detail__text-language">
+                <button
+                  className="card-detail__text-language-button"
+                  type="button"
+                  aria-pressed={textLanguage === "oracle"}
+                  onClick={() =>
+                    setTextLanguage((current) => (current === "printed" ? "oracle" : "printed"))
+                  }
+                >
+                  {textLanguage === "printed"
+                    ? "Show English text"
+                    : `Show ${languageNameOfCode(displayCard.lang) ?? "printed"} text`}
+                </button>
+              </div>
+            )}
 
             <section className="card-detail__section">
               <h3 className="card-detail__section-title">Rulings</h3>
@@ -284,6 +338,14 @@ export default function CardDetailsOverlay({
           </div>
 
           <section className="card-detail-overlay__prints" aria-label="Card prints">
+            <label className="card-detail__languages">
+              <input
+                type="checkbox"
+                checked={includeAllLanguages}
+                onChange={(event) => setShowAllLanguages(event.currentTarget.checked)}
+              />
+              Show printings in other languages
+            </label>
             {printsQuery.isLoading && <p role="status">Loading printings…</p>}
             {printsQuery.error && (
               <p className="card-detail__error" role="alert">
@@ -304,6 +366,9 @@ export default function CardDetailsOverlay({
                       <p className="card-detail__print-meta">
                         {print.set?.toUpperCase() ?? "—"} / {print.collector_number ?? "—"}
                         {print.released_at ? ` · ${print.released_at}` : ""}
+                        {print.lang && print.lang !== "en"
+                          ? ` · ${languageNameOfCode(print.lang) ?? print.lang}`
+                          : ""}
                       </p>
                       <div className="card-detail__prices">
                         <span>Non-foil: {print.prices?.eur ? `€${print.prices.eur}` : "—"}</span>

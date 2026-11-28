@@ -1,3 +1,5 @@
+import { CARD_LANGUAGE_CODES } from "../cardLanguages.ts";
+
 export type SearchSource = "scryfall" | "collection";
 
 export type SearchMode = "simple" | "advanced";
@@ -56,9 +58,15 @@ export const FORMAT_FILTERS = SCRYFALL_FORMATS.flatMap((format) =>
 ) as `${ScryfallFormat}:${FormatLegality}`[];
 export type FormatFilter = (typeof FORMAT_FILTERS)[number];
 
+/** D-074: the `lang:` filter; Scryfall's language codes ("fr", "ja", ...). */
+export const SEARCH_LANGUAGES = CARD_LANGUAGE_CODES;
+export type SearchLanguage = (typeof SEARCH_LANGUAGES)[number];
+
 export type AdvancedSearchFilters = {
   s_name: string;
   s_set: string;
+  /** null: no language filter (Scryfall then shows its default printings). */
+  s_lang: SearchLanguage | null;
   s_text: string;
   s_type: string;
   s_flavor: string;

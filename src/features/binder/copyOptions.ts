@@ -2,6 +2,8 @@
 // copy form (BinderCopyForm) and the scanner's Add session setup (D-064).
 // Kept in one place so both forms always offer the same values.
 
+import { CARD_LANGUAGE_NAMES } from "../cardLanguages.ts";
+
 export const ACQUISITION_TYPES = [
   "Purchase",
   "Trade",
@@ -30,14 +32,8 @@ export const CONDITIONS = [
 
 export const FINISHES = ["Non-foil", "Foil", "Etched foil"] as const;
 
-export const LANGUAGES = [
-  "French",
-  "English",
-  "German",
-  "Italian",
-  "Japanese",
-  "Spanish",
-] as const;
+// Every language Scryfall prints cards in (D-074); see cardLanguages.ts.
+export const LANGUAGES = CARD_LANGUAGE_NAMES;
 
 // An empty or blank text field is stored as null, not as "".
 export function optionalText(value: string): string | null {

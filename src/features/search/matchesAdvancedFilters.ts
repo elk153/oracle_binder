@@ -121,6 +121,9 @@ export default function matchesAdvancedFilters(
     return false;
   }
 
+  // lang: Scryfall gives every card a `lang`; a card without one is English.
+  if (filters.s_lang && (card.lang ?? "en") !== filters.s_lang) return false;
+
   // o: (oracle text), t: (type line), ft: (flavor text)
   if (!matchesText(card, "oracle_text", filters.s_text, true)) return false;
   if (!matchesText(card, "type_line", filters.s_type)) return false;

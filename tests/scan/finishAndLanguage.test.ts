@@ -46,11 +46,16 @@ test("the set code inside another word is not taken", () => {
   assert.deepEqual(parseFinishAndLanguage("0123 R\nXDMU • EN", "dmu"), { foilMark: null, language: null });
 });
 
-test("printed codes map to the app's languages where it has them", () => {
+test("printed codes map to the app's languages (all of Scryfall's, D-074)", () => {
   assert.equal(languageNameOf("FR"), "French");
   assert.equal(languageNameOf("JP"), "Japanese");
   assert.equal(languageNameOf("JA"), "Japanese");
-  assert.equal(languageNameOf("KO"), null);
+  assert.equal(languageNameOf("KO"), "Korean");
+  assert.equal(languageNameOf("PT"), "Portuguese");
+  assert.equal(languageNameOf("ZHS"), "Simplified Chinese");
+  assert.equal(languageNameOf("CT"), "Traditional Chinese");
+  assert.equal(languageNameOf("PH"), "Phyrexian");
+  assert.equal(languageNameOf("XX"), null);
   assert.equal(languageNameOf(null), null);
 });
 

@@ -10,11 +10,13 @@ import {
   COLOR_OPERATORS,
   FORMAT_FILTERS,
   IDENTITY_OPERATORS,
+  SEARCH_LANGUAGES,
 } from "./types.ts";
 
 export const advancedSearchParsers = {
   s_name: parseAsString.withDefault(""),
   s_set: parseAsString.withDefault(""),
+  s_lang: parseAsStringLiteral(SEARCH_LANGUAGES),
   s_text: parseAsString.withDefault(""),
   s_type: parseAsString.withDefault(""),
   s_flavor: parseAsString.withDefault(""),

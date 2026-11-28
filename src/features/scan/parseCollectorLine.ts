@@ -7,6 +7,8 @@
 // Newer cards drop the set size ("0123 R") and some put the rarity first
 // ("R 0123"). OCR adds noise, so the parser looks for tokens, not positions.
 
+import { languageNameOfPrinted } from "../cardLanguages.ts";
+
 export type CollectorLine = {
   setCode: string; // lowercase, as Scryfall uses it, e.g. "dmu"
   collectorNumber: string; // without leading zeros, e.g. "123"
@@ -147,22 +149,11 @@ export function parseCollectorLine(text: string): CollectorLine | null {
   return null;
 }
 
-// Printed language codes (D-066) and the app's language names
-// (LANGUAGES in binder/copyOptions.ts) where the app has one.
-const LANGUAGE_NAMES: Record<string, string> = {
-  EN: "English",
-  FR: "French",
-  DE: "German",
-  IT: "Italian",
-  ES: "Spanish",
-  JA: "Japanese",
-  JP: "Japanese",
-};
-
-// The app language for a printed code, or null when the app has none
-// (Portuguese, Korean, Russian, Chinese, Phyrexian for now).
+// The app language for a printed code (D-066), or null when the code is
+// unknown. The codes and names are shared with search and the Binder in
+// cardLanguages.ts (D-074).
 export function languageNameOf(code: string | null): string | null {
-  return code ? (LANGUAGE_NAMES[code] ?? null) : null;
+  return languageNameOfPrinted(code);
 }
 
 export type FinishAndLanguage = {

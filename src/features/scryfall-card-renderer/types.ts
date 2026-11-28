@@ -36,6 +36,10 @@ export type RawScryfallFace = {
   image_uris?: RawImageUris;
   /** Only set on reversible_card faces, where each face has its own layout. */
   layout?: string;
+  /** D-074: the face as printed, on non-English printings when Scryfall has it. */
+  printed_name?: string;
+  printed_type_line?: string;
+  printed_text?: string;
 };
 
 /** A related object in Scryfall's `all_parts` (meld pieces, tokens, ...). */
@@ -72,7 +76,18 @@ export type NormalizedFace = {
   image: string | null;
   layout: string | null;
   rotation: FaceRotation;
+  /**
+   * D-074: the printed (non-English) name, type line and text, or null when
+   * Scryfall has none. `name`, `typeLine` and `oracleText` stay English;
+   * `withTextLanguage` swaps these in when the printed text is shown.
+   */
+  printedName: string | null;
+  printedTypeLine: string | null;
+  printedText: string | null;
 };
+
+/** D-074: which text a card shows: as printed, or Scryfall's English (oracle) text. */
+export type TextLanguage = "printed" | "oracle";
 
 export type NormalizedCard = {
   id: string;

@@ -40,7 +40,9 @@ const CARDS: CardBrowserCard[] = [
     prices: { eur: "1.50" },
   },
   {
+    // A French printing (D-074); the other fixtures have no `lang`, so English.
     id: "char",
+    lang: "fr",
     name: "Char",
     layout: "normal",
     rarity: "uncommon",
@@ -113,6 +115,7 @@ const CARDS: CardBrowserCard[] = [
 const NO_FILTERS: AdvancedSearchFilters = {
   s_name: "",
   s_set: "",
+  s_lang: null,
   s_text: "",
   s_type: "",
   s_flavor: "",
@@ -146,6 +149,10 @@ const cases: Case[] = [
   // set:
   { name: "set code is case-insensitive", filters: { s_set: "ISD" }, query: "set:isd", matches: ["delver"] },
   { name: "invalid set code is ignored by both", filters: { s_set: "is d" }, query: "", matches: ALL },
+
+  // lang: (D-074)
+  { name: "language keeps that language's printings", filters: { s_lang: "fr" }, query: "lang:fr", matches: ["char"] },
+  { name: "a card without lang counts as English", filters: { s_lang: "en" }, query: "lang:en", matches: ["bolt", "lotus", "delver", "niv"] },
 
   // o: ~ t: ft:
   { name: "oracle text substring", filters: { s_text: "damage" }, query: 'o:"damage"', matches: ["bolt", "char", "niv"] },
@@ -192,8 +199,8 @@ const cases: Case[] = [
   // all together
   {
     name: "several fields combine with AND",
-    filters: { s_set: "m10", s_text: "damage", s_colors: ["R"], s_rarity: ["common"] },
-    query: 'set:m10 o:"damage" c>=R (r:common)',
+    filters: { s_set: "m10", s_lang: "en", s_text: "damage", s_colors: ["R"], s_rarity: ["common"] },
+    query: 'set:m10 lang:en o:"damage" c>=R (r:common)',
     matches: ["bolt"],
   },
 ];

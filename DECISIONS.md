@@ -156,7 +156,7 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
 
 ## D-074: Cards in other languages in search, Binder and Decks
 
-- Status: Evaluating
+- Status: Accepted (2026-11-28): option B for the Binder; all of Scryfall's languages. In progress on `feature/d-074-card-languages`: phase 1 (search and card details) done, phase 2 (Binder, Decks, Scanner) to do. One pull request into `dev` once both phases are done.
 - Date: 2026-11-22
 - Issue: #12 (with D-075)
 - Decision: Let the user find and manage **non-English printings** of a card.
@@ -167,6 +167,10 @@ Check: the Keycloak provider shows as enabled. The full sign-in test happens in 
   - **Decks:** deck entries have no language today. With B, a Binder entry follows its copy; proxy/virtual entries could pick a printing in any language.
   - **Scanner:** Add mode already reads the printed language (D-066); with B it could look up that language's printing.
   - Recommendation: B, because it shows the card the user actually owns, and it needs no schema change (a foreign printing is just another Scryfall id).
+  - **Settled (2026-11-28):** B. The language lists offer every language Scryfall prints cards in (18), not only the six the app had; the six keep their spelling, so stored copies still match.
+- Implementation:
+  - **Phase 1, done:** `src/features/cardLanguages.ts` holds the one language list (Scryfall code, app name, printed codes), used by advanced search, the Binder copy form, the scanner's Add mode and `languageNameOf`. Advanced search has a Language select that writes `s_lang` (a Scryfall code; new URL parameter) and adds `lang:<code>` to the Scryfall query; collection search keeps cards whose `lang` matches (a card without `lang` counts as English). `normalizeCard` adds `printedName`, `printedTypeLine` and `printedText` to each face and keeps the English fields; `withTextLanguage` swaps the printed text in, face by face, with English where Scryfall has none. `CardRenderer` takes `textLanguage` (default `printed`). The details overlay shows the printed name and text with a "Show English text" toggle, and its printings list has "Show printings in other languages" (adds `include_multilingual=true`; on from the start when the opened card is not English), with the language after each foreign printing's date. Tests: `tests/languages/`, `tests/renderer/printedText.test.ts`, and `lang:` cases in the search and scanner tests.
+  - **Phase 2, to do:** Binder copy language follows the card's language when adding from a foreign printing; Decks entries follow their copy; the scanner looks up the printing in the language read on the card.
 - Why: The collection holds French and other non-English cards (the scanner already detects them), but the app only shows English printings.
 - Alternatives considered: A only (simplest, but the binder shows the wrong image). Translating card text in the app (Scryfall already has printed text where it exists).
 - Consequences:

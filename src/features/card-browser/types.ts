@@ -30,6 +30,10 @@ export type CardBrowserFace = {
   defense?: string;
   layout?: string;
   colors?: ScryfallCard["colors"];
+  // D-074: the face as printed, on non-English printings when Scryfall has it.
+  printed_name?: string;
+  printed_type_line?: string;
+  printed_text?: string;
 };
 
 export type CardBrowserCard = Omit<ScryfallCard, "card_faces" | "prices"> & {
@@ -59,6 +63,12 @@ export type CardBrowserCard = Omit<ScryfallCard, "card_faces" | "prices"> & {
   toughness?: string;
   loyalty?: string;
   defense?: string;
+  // D-074: Scryfall's language code of this printing ("en", "fr", ...) and
+  // the card as printed in that language, when Scryfall has it.
+  lang?: string;
+  printed_name?: string;
+  printed_type_line?: string;
+  printed_text?: string;
 };
 
 export type CardAction = "favorite" | "binder" | "deck";
@@ -90,7 +100,7 @@ function isCardFace(value: unknown): value is CardBrowserFace {
     isRecord(value) &&
     typeof value.name === "string" &&
     (!("image_uris" in value) || isImageUris(value.image_uris)) &&
-    ["artist", "mana_cost", "type_line", "oracle_text", "flavor_text", "power", "toughness", "loyalty", "defense", "layout"].every(
+    ["artist", "mana_cost", "type_line", "oracle_text", "flavor_text", "power", "toughness", "loyalty", "defense", "layout", "printed_name", "printed_type_line", "printed_text"].every(
       (key) => isOptionalString(value, key),
     ) &&
     (!("colors" in value) || isColorArray(value.colors))
@@ -120,7 +130,7 @@ export function isCardBrowserCard(value: unknown): value is CardBrowserCard {
     typeof value.name === "string" &&
     typeof value.layout === "string" &&
     typeof value.rarity === "string" &&
-    ["set", "set_name", "collector_number", "released_at", "artist", "oracle_text", "flavor_text", "mana_cost", "power", "toughness", "loyalty", "defense", "rulings_uri", "prints_search_uri"].every(
+    ["set", "set_name", "collector_number", "released_at", "artist", "oracle_text", "flavor_text", "mana_cost", "power", "toughness", "loyalty", "defense", "rulings_uri", "prints_search_uri", "lang", "printed_name", "printed_type_line", "printed_text"].every(
       (key) => isOptionalString(value, key),
     ) &&
     (!("cmc" in value) || typeof value.cmc === "number") &&

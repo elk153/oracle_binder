@@ -181,6 +181,23 @@
   margin: 0;
 }
 
+/* D-074: switch between the printed (non-English) text and the English text. */
+.card-detail__text-language {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+.card-detail__text-language-button {
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--control-radius);
+  color: var(--text-primary);
+  background: var(--bg-card);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
 .card-detail__section {
   margin-top: 1rem;
   padding: 0.75rem 1rem;
@@ -416,6 +433,16 @@
 
 .card-detail__legality--not_legal {
   color: var(--text-secondary);
+}
+
+/* D-074: include printings in other languages. */
+.card-detail__languages {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.25rem 0 0.75rem;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
 }
 
 .card-detail__print-grid {

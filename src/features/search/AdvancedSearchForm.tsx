@@ -3,6 +3,7 @@ import { useQueryStates } from "nuqs";
 import useFetchUrl from "../../hooks/useFetchUrl.ts";
 import useCardSymbols, { type CardSymbol } from "../../hooks/useCardSymbols.ts";
 import { isScryfallSet, type ScryfallSet } from "../card-browser/mulliganSets.ts";
+import { CARD_LANGUAGES } from "../cardLanguages.ts";
 import NameAutocomplete from "./NameAutocomplete.tsx";
 import { advancedSearchParsers } from "./advancedSearchParams.ts";
 import { isValidManaSequence } from "./toScryfallQuery.ts";
@@ -13,12 +14,14 @@ import {
   FORMAT_LEGALITIES,
   IDENTITY_OPERATORS,
   SCRYFALL_FORMATS,
+  SEARCH_LANGUAGES,
   type AdvancedColor,
   type AdvancedRarity,
   type AdvancedSearchFilters,
   type ColorOperator,
   type FormatFilter,
   type IdentityOperator,
+  type SearchLanguage,
 } from "./types.ts";
 import "./AdvancedSearchForm.css";
 
@@ -44,6 +47,7 @@ const OPERATOR_LABELS: Record<ColorOperator | IdentityOperator, string> = {
 type Draft = {
   name: string;
   set: string;
+  lang: SearchLanguage | "";
   text: string;
   type: string;
   flavor: string;
@@ -61,6 +65,7 @@ type Draft = {
 const EMPTY_DRAFT: Draft = {
   name: "",
   set: "",
+  lang: "",
   text: "",
   type: "",
   flavor: "",
@@ -88,6 +93,7 @@ function toDraft(
   return {
     name: filters.s_name,
     set: set?.name ?? filters.s_set,
+    lang: filters.s_lang ?? "",
     text: filters.s_text,
     type: filters.s_type,
     flavor: filters.s_flavor,
@@ -237,6 +243,7 @@ export default function AdvancedSearchForm({
     void setFilters({
       s_name: draft.name.trim(),
       s_set: setCode,
+      s_lang: draft.lang || null,
       s_text: draft.text.trim(),
       s_type: draft.type.trim(),
       s_flavor: draft.flavor.trim(),
@@ -282,6 +289,26 @@ export default function AdvancedSearchForm({
             </p>
           )}
         </div>
+
+        <label className="field">
+          <span>Language</span>
+          <select
+            className="field__input"
+            value={draft.lang}
+            onChange={(event) =>
+              update({
+                lang: findLiteral(SEARCH_LANGUAGES, event.currentTarget.value) ?? "",
+              })
+            }
+          >
+            <option value="">Any (default)</option>
+            {CARD_LANGUAGES.map((language) => (
+              <option key={language.code} value={language.code}>
+                {language.name}
+              </option>
+            ))}
+          </select>
+        </label>
 
         <label className="field">
           <span>Type line</span>

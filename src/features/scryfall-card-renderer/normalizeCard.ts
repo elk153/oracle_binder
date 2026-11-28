@@ -9,6 +9,7 @@ import type {
   NormalizedFace,
   RawScryfallCard,
   RawScryfallFace,
+  TextLanguage,
 } from './types.ts';
 
 /**
@@ -48,6 +49,9 @@ function toNormalizedFace(
     // normalization using this value.
     layout: face.layout ?? null,
     rotation,
+    printedName: face.printed_name || null,
+    printedTypeLine: face.printed_type_line || null,
+    printedText: face.printed_text || null,
   };
 }
 
@@ -90,4 +94,28 @@ export function normalizeCard(card: RawScryfallCard): NormalizedCard {
     // on mobile) without every consumer having to scan card.faces itself.
     hasRotatedFaces: faces.some((face) => face.rotation !== 0),
   };
+}
+
+/** D-074: true when at least one face has printed (non-English) text. */
+export function hasPrintedText(card: NormalizedCard): boolean {
+  return card.faces.some(
+    (face) => face.printedName !== null || face.printedTypeLine !== null || face.printedText !== null,
+  );
+}
+
+/**
+ * D-074: the card with the chosen text in `name`, `typeLine` and
+ * `oracleText`, so the shape components need no change. "printed" uses each
+ * printed field where Scryfall has it and keeps the English one where it
+ * has not; "oracle" returns the card unchanged.
+ */
+export function withTextLanguage(card: NormalizedCard, language: TextLanguage): NormalizedCard {
+  if (language === 'oracle' || !hasPrintedText(card)) return card;
+  const faces = card.faces.map((face) => ({
+    ...face,
+    name: face.printedName ?? face.name,
+    typeLine: face.printedTypeLine ?? face.typeLine,
+    oracleText: face.printedText ?? face.oracleText,
+  }));
+  return { ...card, faces };
 }

@@ -58,6 +58,9 @@ export function toScryfallQuery(filters: AdvancedSearchFilters): string {
     terms.push(`set:${setCode.toLowerCase()}`);
   }
 
+  // D-074: printings in one language (Scryfall's code, e.g. lang:fr).
+  if (filters.s_lang) terms.push(`lang:${filters.s_lang}`);
+
   addTextTerm("o", filters.s_text);
   addTextTerm("t", filters.s_type);
   addTextTerm("ft", filters.s_flavor);
