@@ -3,11 +3,17 @@ import { useQuery } from "@tanstack/react-query";
 import CardRenderer from "../scryfall-card-renderer/CardRenderer.tsx";
 import OracleText from "../scryfall-card-renderer/components/OracleText.tsx";
 import IconClose from "../../assets/icons/IconClose.tsx";
-import useFetchUrl from "../../hooks/useFetchUrl.ts";
+import fetchScryfallPages from "../../services/fetchScryfallPages.ts";
 import useScryfallCardsSearch from "./useScryfallCardsSearch.ts";
 import fetchCardRulings from "./fetchCardRulings.ts";
 import CardTile from "./CardTile.tsx";
 import { languageNameOfCode } from "../cardLanguages.ts";
+import {
+  defaultPrintingLanguages,
+  filterByLanguages,
+  printingLanguages,
+  toggleLanguage,
+} from "./printingLanguages.ts";
 import type { TextLanguage } from "../scryfall-card-renderer/types.ts";
 import type { BinderCopy } from "../binder/useBinderCopies.ts";
 import type { Binder } from "../binder/useBinders.ts";
@@ -58,11 +64,11 @@ function hasPrintedText(card: CardBrowserCard): boolean {
 
 /**
  * D-074: Scryfall's printings list leaves out other languages unless
- * `include_multilingual=true` is added. Returns the URL unchanged when off
- * or when it can't be parsed.
+ * `include_multilingual=true` is added. Returns the URL unchanged when it
+ * can't be parsed.
  */
-function withMultilingual(uri: string | undefined, include: boolean): string | undefined {
-  if (!uri || !include) return uri;
+function withAllLanguages(uri: string | undefined): string | undefined {
+  if (!uri) return uri;
   try {
     const url = new URL(uri);
     url.searchParams.set("include_multilingual", "true");
@@ -130,12 +136,9 @@ export default function CardDetailsOverlay({
     activeFace?.image_uris?.normal ??
     displayCard?.image_uris?.normal;
   const rulingsUri = originalCard?.rulings_uri;
-  // D-074: other languages are listed when asked, and from the start when the
-  // opened card is itself a non-English printing.
-  const [showAllLanguages, setShowAllLanguages] = useState<boolean | null>(null);
-  const includeAllLanguages =
-    showAllLanguages ?? (originalCard?.lang !== undefined && originalCard.lang !== "en");
-  const printsUri = withMultilingual(originalCard?.prints_search_uri, includeAllLanguages);
+  // D-074: every printing in every language is loaded once (all pages);
+  // the language checkboxes then filter it locally, with no new request.
+  const printsUri = withAllLanguages(originalCard?.prints_search_uri);
   const rulingsQuery = useQuery({
     queryKey: ["fetchedUrl", "cardRulingsNormalized", rulingsUri],
     queryFn: () => {
@@ -145,8 +148,18 @@ export default function CardDetailsOverlay({
     enabled: Boolean(rulingsUri),
     staleTime: DAY_IN_MS,
   });
-  const printsQuery = useFetchUrl("cardPrints", printsUri);
-  const printValues = printsQuery.data ?? NO_PRINTS;
+  // Not a "fetchedUrl" key on purpose: those are saved in localStorage, and
+  // a list of several hundred printings would fill it.
+  const printsQuery = useQuery({
+    queryKey: ["cardPrintings", printsUri],
+    queryFn: ({ signal }) => {
+      if (!printsUri) throw new Error("This card has no printings URL.");
+      return fetchScryfallPages(printsUri, { signal });
+    },
+    enabled: Boolean(printsUri),
+    staleTime: DAY_IN_MS,
+  });
+  const printValues = printsQuery.data?.data ?? NO_PRINTS;
   const invalidPrintData = printValues.some((value) => !isCardBrowserCard(value));
   const prints = useMemo(
     () =>
@@ -155,6 +168,12 @@ export default function CardDetailsOverlay({
         : printValues.filter(isCardBrowserCard),
     [invalidPrintData, printValues],
   );
+  const languages = useMemo(() => printingLanguages(prints), [prints]);
+  // null until the person clicks a language: then the defaults apply.
+  const [chosenLanguages, setChosenLanguages] = useState<ReadonlySet<string> | null>(null);
+  const selectedLanguages =
+    chosenLanguages ?? defaultPrintingLanguages(originalCard?.lang, languages);
+  const shownPrints = filterByLanguages(prints, selectedLanguages);
   const contentCard = useMemo<CardBrowserCard | undefined>(() => {
     if (!displayCard || !supportsFaceSelection || faceIndex === 0) return displayCard;
     const selectedFaces: CardBrowserFace[] = displayCard.card_faces ?? [];
@@ -338,14 +357,33 @@ export default function CardDetailsOverlay({
           </div>
 
           <section className="card-detail-overlay__prints" aria-label="Card prints">
-            <label className="card-detail__languages">
-              <input
-                type="checkbox"
-                checked={includeAllLanguages}
-                onChange={(event) => setShowAllLanguages(event.currentTarget.checked)}
-              />
-              Show printings in other languages
-            </label>
+            {languages.length > 0 && (
+              <fieldset className="card-detail__languages">
+                <legend className="card-detail__languages-legend">Languages</legend>
+                {languages.map((language) => (
+                  <label
+                    key={language.code}
+                    className={`card-detail__language${
+                      selectedLanguages.has(language.code) ? " card-detail__language--checked" : ""
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedLanguages.has(language.code)}
+                      onChange={() =>
+                        setChosenLanguages(toggleLanguage(selectedLanguages, language.code))
+                      }
+                    />
+                    {language.name} ({language.count})
+                  </label>
+                ))}
+              </fieldset>
+            )}
+            {printsQuery.data?.truncated && (
+              <p className="card-detail__languages-note">
+                Showing the first {prints.length} of {printsQuery.data.totalCards ?? "more"} printings.
+              </p>
+            )}
             {printsQuery.isLoading && <p role="status">Loading printings…</p>}
             {printsQuery.error && (
               <p className="card-detail__error" role="alert">
@@ -359,7 +397,7 @@ export default function CardDetailsOverlay({
             )}
             {!printsQuery.isLoading && !printsQuery.error && !invalidPrintData && (
               <div className="card-detail__print-grid">
-                {prints.map((print) => (
+                {shownPrints.map((print) => (
                   <article className="card-detail__print" key={print.id}>
                     <div className="card-detail__print-info">
                       <h3 className="card-detail__print-name">{print.set_name ?? "Unknown set"}</h3>
@@ -400,6 +438,9 @@ export default function CardDetailsOverlay({
                   </article>
                 ))}
                 {prints.length === 0 && <p>No printings found.</p>}
+                {prints.length > 0 && shownPrints.length === 0 && (
+                  <p>Choose a language to see its printings.</p>
+                )}
               </div>
             )}
           </section>
