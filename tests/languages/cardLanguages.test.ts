@@ -41,5 +41,13 @@ test("Scryfall codes and printed codes map to names", () => {
   assert.equal(languageNameOfCode(undefined), null);
   assert.equal(languageNameOfPrinted("sp"), "Spanish");
   assert.equal(languageNameOfPrinted("KR"), "Korean");
+  assert.equal(languageNameOfPrinted("AG"), "Ancient Greek");
+  assert.equal(languageNameOfPrinted("KL"), "Klingon");
   assert.equal(languageNameOfPrinted(""), null);
+});
+
+test("all 20 Scryfall languages are listed (scryfall.com/docs/api/languages, 2026-11-28)", () => {
+  assert.equal(CARD_LANGUAGES.length, 20);
+  assert.equal(languageNameOfCode("dw"), "Dwarvish");
+  assert.equal(languageNameOfCode("tlh"), "Klingon");
 });

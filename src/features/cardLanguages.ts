@@ -8,10 +8,11 @@
  *   copies saved earlier still match.
  * - `printed` lists the codes printed on a card's collector line (read by
  *   the scanner, D-066): Scryfall's printed code first, then the code newer
- *   cards use where it differs (e.g. Japanese "JP" and "JA").
+ *   cards use where it differs (e.g. Japanese "JP" and "JA"). Empty for the
+ *   few languages Scryfall gives no printed code.
  *
- * Source: https://scryfall.com/docs/api/languages (written from that page's
- * list as known on 2026-11-28; recheck there if Scryfall adds a language).
+ * Source: https://scryfall.com/docs/api/languages, checked on 2026-11-28
+ * (20 languages). Recheck there if Scryfall adds one.
  */
 export const CARD_LANGUAGES = [
   { code: "en", name: "English", printed: ["EN"] },
@@ -25,13 +26,15 @@ export const CARD_LANGUAGES = [
   { code: "ru", name: "Russian", printed: ["RU"] },
   { code: "zhs", name: "Simplified Chinese", printed: ["CS", "ZHS"] },
   { code: "zht", name: "Traditional Chinese", printed: ["CT", "ZHT"] },
-  { code: "he", name: "Hebrew", printed: ["HE"] },
-  { code: "la", name: "Latin", printed: ["LA"] },
-  { code: "grc", name: "Ancient Greek", printed: ["GR"] },
-  { code: "ar", name: "Arabic", printed: ["AR"] },
-  { code: "sa", name: "Sanskrit", printed: ["SA"] },
+  { code: "he", name: "Hebrew", printed: [] },
+  { code: "la", name: "Latin", printed: [] },
+  { code: "grc", name: "Ancient Greek", printed: ["AG"] },
+  { code: "ar", name: "Arabic", printed: [] },
+  { code: "sa", name: "Sanskrit", printed: [] },
   { code: "ph", name: "Phyrexian", printed: ["PH"] },
-  { code: "qya", name: "Quenya", printed: ["QYA"] },
+  { code: "qya", name: "Quenya", printed: [] },
+  { code: "dw", name: "Dwarvish", printed: ["DW"] },
+  { code: "tlh", name: "Klingon", printed: ["KL"] },
 ] as const;
 
 export type CardLanguage = (typeof CARD_LANGUAGES)[number];
